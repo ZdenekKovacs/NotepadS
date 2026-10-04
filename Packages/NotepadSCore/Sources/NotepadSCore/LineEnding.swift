@@ -24,7 +24,7 @@ public enum LineEnding: String, CaseIterable, Hashable, Sendable {
         self == .crlf ? 2 : 1
     }
 
-    /// Short label for the status bar, e.g. "CRLF".
+    /// Short label for the status bar, e.g. "CRLF". Technical names are not translated.
     public var shortName: String {
         switch self {
         case .lf: return "LF"
@@ -36,9 +36,12 @@ public enum LineEnding: String, CaseIterable, Hashable, Sendable {
     /// Label for menus, e.g. "CRLF (Windows)".
     public var displayName: String {
         switch self {
-        case .lf: return "LF (macOS, Linux)"
-        case .crlf: return "CRLF (Windows)"
-        case .cr: return "CR (classic Mac OS)"
+        case .lf:
+            return String(localized: "LF (macOS, Linux)", bundle: .module, comment: "Line-break style name in menus")
+        case .crlf:
+            return String(localized: "CRLF (Windows)", bundle: .module, comment: "Line-break style name in menus")
+        case .cr:
+            return String(localized: "CR (classic Mac OS)", bundle: .module, comment: "Line-break style name in menus")
         }
     }
 

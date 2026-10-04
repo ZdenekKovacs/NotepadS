@@ -15,20 +15,27 @@ public enum TextEncoding: String, CaseIterable, Hashable, Sendable {
     /// Label for menus, e.g. "Western (Windows-1252)".
     public var displayName: String {
         switch self {
-        case .utf8: return "Unicode (UTF-8)"
-        case .utf8WithBOM: return "Unicode (UTF-8 with BOM)"
-        case .utf16LittleEndian: return "Unicode (UTF-16 LE)"
-        case .utf16BigEndian: return "Unicode (UTF-16 BE)"
-        case .windows1252: return "Western (Windows-1252)"
-        case .isoLatin1: return "Western (ISO 8859-1)"
+        case .utf8:
+            return String(localized: "Unicode (UTF-8)", bundle: .module, comment: "Text encoding name in menus")
+        case .utf8WithBOM:
+            return String(localized: "Unicode (UTF-8 with BOM)", bundle: .module, comment: "Text encoding name in menus")
+        case .utf16LittleEndian:
+            return String(localized: "Unicode (UTF-16 LE)", bundle: .module, comment: "Text encoding name in menus")
+        case .utf16BigEndian:
+            return String(localized: "Unicode (UTF-16 BE)", bundle: .module, comment: "Text encoding name in menus")
+        case .windows1252:
+            return String(localized: "Western (Windows-1252)", bundle: .module, comment: "Text encoding name in menus")
+        case .isoLatin1:
+            return String(localized: "Western (ISO 8859-1)", bundle: .module, comment: "Text encoding name in menus")
         }
     }
 
-    /// Short label for the status bar, e.g. "UTF-8".
+    /// Short label for the status bar, e.g. "UTF-8". Technical names are not translated.
     public var shortName: String {
         switch self {
         case .utf8: return "UTF-8"
-        case .utf8WithBOM: return "UTF-8 with BOM"
+        case .utf8WithBOM:
+            return String(localized: "UTF-8 with BOM", bundle: .module, comment: "Short text encoding name in the status bar")
         case .utf16LittleEndian: return "UTF-16 LE"
         case .utf16BigEndian: return "UTF-16 BE"
         case .windows1252: return "Windows-1252"

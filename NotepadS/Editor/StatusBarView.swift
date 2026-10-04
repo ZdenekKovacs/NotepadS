@@ -29,7 +29,7 @@ final class StatusBarView: NSView {
         super.init(frame: frameRect)
         buildMenus()
         setUpLayout()
-        languageLabel.stringValue = "Plain Text"   // syntax languages arrive in v0.2
+        languageLabel.stringValue = String(localized: "Plain Text", comment: "Status bar: syntax language")   // languages arrive in v0.2
     }
 
     @available(*, unavailable)
@@ -43,8 +43,10 @@ final class StatusBarView: NSView {
     func update(line: Int, column: Int, selectedCharacters: Int,
                 encoding: TextEncoding, lineEndingCounts: LineEndingCounts,
                 newLineEnding: LineEnding, canReopen: Bool) {
-        positionLabel.stringValue = "Ln \(line), Col \(column)"
-        selectionLabel.stringValue = selectedCharacters > 0 ? "\(selectedCharacters) selected" : ""
+        positionLabel.stringValue = String(localized: "Ln \(line), Col \(column)", comment: "Status bar: caret line and column")
+        selectionLabel.stringValue = selectedCharacters > 0
+            ? String(localized: "\(selectedCharacters) selected", comment: "Status bar: number of selected characters")
+            : ""
 
         setTitle(encoding.shortName, of: encodingButton)
         for item in reopenItems {
@@ -60,8 +62,9 @@ final class StatusBarView: NSView {
         let isMixed = lineEndingCounts.isMixed
         setTitle(isMixed ? "\(shownLineEnding.shortName) (mixed)" : shownLineEnding.shortName, of: lineEndingButton)
         lineEndingButton.toolTip = isMixed
-            ? "This text mixes line-break styles. New line breaks use \(newLineEnding.shortName). Choose “Convert to …” to unify them."
-            : "Line endings: \(shownLineEnding.displayName)"
+            ? String(localized: "This text mixes line-break styles. New line breaks use \(newLineEnding.shortName). Choose “Convert to …” to unify them.",
+                     comment: "Status bar tooltip; the style is LF, CRLF or CR")
+            : String(localized: "Line endings: \(shownLineEnding.displayName)", comment: "Status bar tooltip")
         for item in lineEndingItems {
             item.state = !isMixed && (item.representedObject as? LineEnding) == shownLineEnding ? .on : .off
         }
@@ -90,27 +93,27 @@ final class StatusBarView: NSView {
         let encodingMenu = NSMenu()
         encodingMenu.autoenablesItems = false
         encodingMenu.addItem(NSMenuItem())   // item 0 of a pull-down is its title, not a choice
-        encodingMenu.addItem(NSMenuItem.sectionHeader(title: "Reopen with Encoding"))
+        encodingMenu.addItem(NSMenuItem.sectionHeader(title: String(localized: "Reopen with Encoding", comment: "Encoding menu section")))
         for encoding in TextEncoding.allCases {
             reopenItems.append(addItem(encoding.displayName, value: encoding,
                                        action: #selector(reopenItemChosen(_:)), to: encodingMenu))
         }
         encodingMenu.addItem(.separator())
-        encodingMenu.addItem(NSMenuItem.sectionHeader(title: "Convert to Encoding"))
+        encodingMenu.addItem(NSMenuItem.sectionHeader(title: String(localized: "Convert to Encoding", comment: "Encoding menu section")))
         for encoding in TextEncoding.allCases {
             convertItems.append(addItem(encoding.displayName, value: encoding,
                                         action: #selector(convertItemChosen(_:)), to: encodingMenu))
         }
-        configure(encodingButton, menu: encodingMenu, toolTip: "Text encoding")
+        configure(encodingButton, menu: encodingMenu, toolTip: String(localized: "Text encoding", comment: "Status bar tooltip"))
 
         let lineEndingMenu = NSMenu()
         lineEndingMenu.autoenablesItems = false
         lineEndingMenu.addItem(NSMenuItem())
         for lineEnding in LineEnding.allCases {
-            lineEndingItems.append(addItem("Convert to \(lineEnding.displayName)", value: lineEnding,
+            lineEndingItems.append(addItem(String(localized: "Convert to \(lineEnding.displayName)", comment: "Line-endings menu item"), value: lineEnding,
                                            action: #selector(lineEndingItemChosen(_:)), to: lineEndingMenu))
         }
-        configure(lineEndingButton, menu: lineEndingMenu, toolTip: "Line endings")
+        configure(lineEndingButton, menu: lineEndingMenu, toolTip: String(localized: "Line endings", comment: "Status bar tooltip"))
     }
 
     private func addItem(_ title: String, value: Any, action: Selector, to menu: NSMenu) -> NSMenuItem {

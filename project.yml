@@ -15,6 +15,10 @@ settings:
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.0"               # Swift 6 language mode later (see docs/DESIGN.md)
+    # Localization: user-facing strings use String(localized:) and live in String Catalogs
+    # (NotepadS/Resources/Localizable.xcstrings). English only for now.
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
     # No paid Apple Developer account yet: sign locally ("Sign to Run Locally", ad-hoc).
     # The app runs on this Mac with the sandbox on, but can't be given to others.
     # When the account exists: set DEVELOPMENT_TEAM, CODE_SIGN_STYLE: Automatic, remove CODE_SIGN_IDENTITY.

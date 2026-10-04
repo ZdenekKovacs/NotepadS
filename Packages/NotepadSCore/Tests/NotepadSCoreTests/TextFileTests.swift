@@ -40,6 +40,13 @@ final class TextEncodingTests: XCTestCase {
         XCTAssertFalse(TextEncoding.windows1252.canEncode("e\u{301}"))
     }
 
+    /// The names come from the package's String Catalog; English is the source language.
+    func testLocalizedNamesResolve() {
+        XCTAssertEqual(TextEncoding.windows1252.displayName, "Western (Windows-1252)")
+        XCTAssertEqual(LineEnding.crlf.displayName, "CRLF (Windows)")
+        XCTAssertEqual(TextCodecError.binaryFile.errorDescription, "The file doesn’t contain plain text.")
+    }
+
     func testFirstUnencodableCharacter() throws {
         let found = try XCTUnwrap(TextEncoding.windows1252.firstUnencodableCharacter(in: "é\r\nñ\r😀x"))
         XCTAssertEqual(found.character, "😀")

@@ -1,0 +1,82 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%lld selected" : {
+      "comment" : "Status bar: number of selected characters"
+    },
+    "Cancel" : {
+      "comment" : "Dialog button"
+    },
+    "Change Encoding" : {
+      "comment" : "Undo action name"
+    },
+    "Convert Line Endings" : {
+      "comment" : "Undo action name"
+    },
+    "Convert the document to UTF-8 to insert it. One Undo reverts both." : {
+      "comment" : "Unsupported-character dialog"
+    },
+    "Convert to %@" : {
+      "comment" : "Line-endings menu item"
+    },
+    "Convert to Encoding" : {
+      "comment" : "Encoding menu section"
+    },
+    "Convert to UTF-8" : {
+      "comment" : "Undo action name"
+    },
+    "Convert to UTF-8 and Insert" : {
+      "comment" : "Unsupported-character dialog button"
+    },
+    "Line endings" : {
+      "comment" : "Status bar tooltip"
+    },
+    "Line endings: %@" : {
+      "comment" : "Status bar tooltip"
+    },
+    "Ln %lld, Col %lld" : {
+      "comment" : "Status bar: caret line and column",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Ln %1$lld, Col %2$lld"
+          }
+        }
+      }
+    },
+    "Plain Text" : {
+      "comment" : "Status bar: syntax language"
+    },
+    "Reopen" : {
+      "comment" : "Dialog button"
+    },
+    "Reopen with %@?" : {
+      "comment" : "Dialog title"
+    },
+    "Reopen with Encoding" : {
+      "comment" : "Encoding menu section"
+    },
+    "Text encoding" : {
+      "comment" : "Status bar tooltip"
+    },
+    "This text mixes line-break styles. New line breaks use %@. Choose “Convert to …” to unify them." : {
+      "comment" : "Status bar tooltip; the style is LF, CRLF or CR"
+    },
+    "Unsaved changes will be discarded and the file will be read again from disk." : {
+      "comment" : "Reopen-with-encoding dialog"
+    },
+    "“%@” can’t be saved in %@." : {
+      "comment" : "Dialog title; character in quotes, then encoding name",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "“%1$@” can’t be saved in %2$@."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

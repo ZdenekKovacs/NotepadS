@@ -238,7 +238,7 @@ final class EditorViewController: NSViewController {
             isPerformingProgrammaticEdit = false
             textView.setSelectedRange(NSRange(location: min(caret, storage.length), length: 0))
         }
-        undoManager.setActionName("Convert Line Endings")
+        undoManager.setActionName(String(localized: "Convert Line Endings", comment: "Undo action name"))
         undoManager.endUndoGrouping()
     }
 
@@ -284,17 +284,20 @@ final class EditorViewController: NSViewController {
             NSSound.beep()
             return
         }
-        let characterName = "“\(character.character)”"
+        let characterName = String(character.character)
         let encodingName = document.encoding.displayName
         // Present after the current editing event has finished. The sheet is window-modal,
         // so the user can't edit the text meanwhile and `range` stays valid.
         DispatchQueue.main.async { [weak self] in
             let alert = NSAlert()
             alert.alertStyle = .warning
-            alert.messageText = "\(characterName) can’t be saved in \(encodingName)."
-            alert.informativeText = "Convert the document to UTF-8 to insert it. One Undo reverts both."
-            alert.addButton(withTitle: "Convert to UTF-8 and Insert")   // first button = default (Return)
-            alert.addButton(withTitle: "Cancel")                        // Esc
+            alert.messageText = String(localized: "“\(characterName)” can’t be saved in \(encodingName).",
+                                       comment: "Dialog title; character in quotes, then encoding name")
+            alert.informativeText = String(localized: "Convert the document to UTF-8 to insert it. One Undo reverts both.",
+                                           comment: "Unsupported-character dialog")
+            // First button = default (Return), second = Esc.
+            alert.addButton(withTitle: String(localized: "Convert to UTF-8 and Insert", comment: "Unsupported-character dialog button"))
+            alert.addButton(withTitle: String(localized: "Cancel", comment: "Dialog button"))
             alert.beginSheetModal(for: window) { response in
                 guard response == .alertFirstButtonReturn else { return }
                 self?.convertToUTF8AndInsert(text, in: range)
@@ -316,7 +319,7 @@ final class EditorViewController: NSViewController {
         } catch {
             showError(error)
         }
-        undoManager.setActionName("Convert to UTF-8")
+        undoManager.setActionName(String(localized: "Convert to UTF-8", comment: "Undo action name"))
         undoManager.endUndoGrouping()
     }
 }
@@ -383,10 +386,11 @@ extension EditorViewController: StatusBarViewDelegate {
             return
         }
         let alert = NSAlert()
-        alert.messageText = "Reopen with \(encoding.displayName)?"
-        alert.informativeText = "Unsaved changes will be discarded and the file will be read again from disk."
-        alert.addButton(withTitle: "Reopen")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = String(localized: "Reopen with \(encoding.displayName)?", comment: "Dialog title")
+        alert.informativeText = String(localized: "Unsaved changes will be discarded and the file will be read again from disk.",
+                                       comment: "Reopen-with-encoding dialog")
+        alert.addButton(withTitle: String(localized: "Reopen", comment: "Dialog button"))
+        alert.addButton(withTitle: String(localized: "Cancel", comment: "Dialog button"))
         alert.beginSheetModal(for: window) { [weak self] response in
             if response == .alertFirstButtonReturn {
                 self?.reopen(with: encoding)

@@ -78,6 +78,10 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - Small types, one main type per file, `final class` by default, `private` unless needed elsewhere.
 - Clear names over abbreviations. No force unwraps unless AppKit guarantees the value (comment why).
 - Comments explain *why*, especially AppKit behaviour. `///` doc comments on non-trivial types and functions.
+- **Every user-facing string is localizable**: `String(localized: "…", comment: "…")` (in `NotepadSCore` add
+  `bundle: .module`). Use interpolation inside the localized string; never concatenate translated pieces.
+  Strings live in String Catalogs (`NotepadS/Resources/Localizable.xcstrings`, and `Resources/` in the package),
+  English only for now. After adding strings and building from the command line, run `scripts/sync-strings.sh`.
 - User-facing errors conform to `LocalizedError` (`errorDescription`, `recoverySuggestion`), so
   `NSAlert(error:)` shows them.
 - Semantic system colors only (`.textColor`, `.textBackgroundColor`, …) so Light/Dark mode works.

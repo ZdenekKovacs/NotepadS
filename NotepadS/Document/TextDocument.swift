@@ -136,7 +136,7 @@ final class TextDocument: NSDocument {
         undoManager?.registerUndo(withTarget: self) { document in
             document.setEncoding(oldEncoding)
         }
-        undoManager?.setActionName("Change Encoding")
+        undoManager?.setActionName(String(localized: "Change Encoding", comment: "Undo action name"))
         encoding = newEncoding
         onSettingsChanged?()
     }

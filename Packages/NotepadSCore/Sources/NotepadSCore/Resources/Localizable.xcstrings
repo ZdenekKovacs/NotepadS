@@ -1,0 +1,76 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "CR (classic Mac OS)" : {
+      "comment" : "Line-break style name in menus"
+    },
+    "CRLF (Windows)" : {
+      "comment" : "Line-break style name in menus"
+    },
+    "Choose a different encoding with “Reopen with Encoding” in the status bar." : {
+      "comment" : "Advice after the wrong-encoding error"
+    },
+    "LF (macOS, Linux)" : {
+      "comment" : "Line-break style name in menus"
+    },
+    "NotepadS edits text files only." : {
+      "comment" : "Advice after the binary-file error"
+    },
+    "Remove the character, or choose a Unicode encoding such as UTF-8." : {
+      "comment" : "Advice after the unsupported-character error"
+    },
+    "The file doesn’t contain plain text." : {
+      "comment" : "Error when opening an image, archive or other binary file"
+    },
+    "The file is too large (%@). NotepadS opens files up to %@." : {
+      "comment" : "Error when opening a huge file; sizes like “250 MB”",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "The file is too large (%1$@). NotepadS opens files up to %2$@."
+          }
+        }
+      }
+    },
+    "The file isn’t valid %@ text." : {
+      "comment" : "Error when reopening a file with the wrong encoding"
+    },
+    "The text can’t be saved in %@." : {
+      "comment" : "Error when converting to an encoding that lacks a character"
+    },
+    "UTF-8 with BOM" : {
+      "comment" : "Short text encoding name in the status bar"
+    },
+    "Unicode (UTF-16 BE)" : {
+      "comment" : "Text encoding name in menus"
+    },
+    "Unicode (UTF-16 LE)" : {
+      "comment" : "Text encoding name in menus"
+    },
+    "Unicode (UTF-8 with BOM)" : {
+      "comment" : "Text encoding name in menus"
+    },
+    "Unicode (UTF-8)" : {
+      "comment" : "Text encoding name in menus"
+    },
+    "Western (ISO 8859-1)" : {
+      "comment" : "Text encoding name in menus"
+    },
+    "Western (Windows-1252)" : {
+      "comment" : "Text encoding name in menus"
+    },
+    "“%@” on line %lld can’t be saved in %@." : {
+      "comment" : "Error when converting to an encoding that lacks a character",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "“%1$@” on line %2$lld can’t be saved in %3$@."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
