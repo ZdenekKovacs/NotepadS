@@ -115,8 +115,8 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 ### Phase 1 — MVP acceptance (manual checks in DESIGN.md §4)
 - [ ] 1.1 Skeleton and menu bar
 - [ ] 1.2 Plain-text view, smart features off
-- [ ] 1.3 Core tests
-- [ ] 1.4 Open/save any extension, hidden files, binary/size guard, byte-exact saves
+- [x] 1.3 Core tests
+- [x] 1.4 Open/save any extension, hidden files, binary/size guard, byte-exact saves
 - [ ] 1.5 Edit gatekeeper
 - [ ] 1.6 Autosave + restore (⌘Q, crash, restart, "close windows" setting on)
 - [ ] 1.7 Font, ⌘+ / ⌘− / ⌘0
