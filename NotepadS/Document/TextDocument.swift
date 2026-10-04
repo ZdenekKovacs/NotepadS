@@ -28,6 +28,9 @@ final class TextDocument: NSDocument {
     /// Set by `reopen(with:)` right before reverting; consumed by `read(from:ofType:)`.
     private var encodingForNextRead: TextEncoding?
 
+    /// Re-entrancy guard for `writableTypes(for:)`.
+    private var isComputingWritableTypes = false
+
     /// Larger files are refused: TextKit 1 becomes unusable long before memory runs out.
     static let maximumFileSize = 100 * 1024 * 1024
 
@@ -43,6 +46,11 @@ final class TextDocument: NSDocument {
 
     override func writableTypes(for saveOperation: NSDocument.SaveOperationType) -> [String] {
         var types = super.writableTypes(for: saveOperation)
+        // While `fileType` is nil, reading it makes NSDocument compute a default by calling this
+        // method again, which would recurse until the stack overflows. Skip on re-entry.
+        guard !isComputingWritableTypes else { return types }
+        isComputingWritableTypes = true
+        defer { isComputingWritableTypes = false }
         if let fileType, !types.contains(fileType) {
             types.insert(fileType, at: 0)
         }
