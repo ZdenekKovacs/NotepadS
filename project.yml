@@ -1,0 +1,53 @@
+# XcodeGen spec. NotepadS.xcodeproj is generated from this file and is NOT committed.
+#   Install once:   brew install xcodegen
+#   Generate:       xcodegen generate        (re-run after adding/removing files)
+name: NotepadS
+
+options:
+  bundleIdPrefix: com.example          # TODO: your reverse-DNS prefix
+  deploymentTarget:
+    macOS: "14.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"               # Swift 6 language mode later (see docs/DESIGN.md)
+    DEVELOPMENT_TEAM: ""               # TODO: your Team ID (Xcode › Settings › Accounts)
+
+packages:
+  NotepadSCore:
+    path: Packages/NotepadSCore
+
+targets:
+  NotepadS:
+    type: application
+    platform: macOS
+    sources:
+      - path: NotepadS
+      - path: Config
+        buildPhase: none               # shown in Xcode, not copied into the app
+    dependencies:
+      - package: NotepadSCore
+    settings:
+      base:
+        PRODUCT_NAME: NotepadS
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.NotepadS   # TODO
+        INFOPLIST_FILE: Config/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_ENTITLEMENTS: Config/NotepadS.entitlements
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_HARDENED_RUNTIME: YES
+        SWIFT_STRICT_CONCURRENCY: minimal
+
+schemes:
+  NotepadS:
+    build:
+      targets:
+        NotepadS: all
+    run:
+      config: Debug
+    archive:
+      config: Release

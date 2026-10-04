@@ -1,0 +1,328 @@
+# NotepadS — Design
+
+Contents: 1. Critique of the brief and decisions · 2. Architecture · 3. Project structure · 4. Work plan · 5. Phase 0 change list (first Claude Code task)
+
+> **Status (read first).** The phase 1 code in this repository is a *draft written without a compiler*, and it predates four decisions made afterwards: line breaks are preserved as on disk (§1, risk 2), unencodable input triggers a dialog instead of being refused (risk 3), the menu bar comes from a XIB so no private API is needed (risk 14), and builds are signed locally because there is no paid developer account yet (§2.4). **Phase 0 (§4, §5) makes the code compile and brings it in line with these decisions.** Where this document and the code disagree, this document wins.
+
+---
+
+## 1. Critique of the brief and decisions
+
+### Decisions at a glance
+
+| Topic | Brief | Decision | Reason |
+|---|---|---|---|
+| App lifecycle | AppKit + `NSDocument` | **Follow** | Autosave, versions, recents, tabs, restoration, external-change and locked-file handling for free. `DocumentGroup` hides the window/text-view control this app needs. |
+| Text engine | TextKit 1 | **Follow, built explicitly** | Mature `NSRulerView`/glyph drawing, `allowsNonContiguousLayout` for big files. Build the stack by hand (storage → layout manager → container → view); never `init(frame:)` or `scrollableTextView()`. |
+| UI construction | — | **Views and logic in code; menu bar from Xcode's "Main Menu" XIB**, adjusted in code | Code is reviewable and AI-friendly. The menu bar is the exception: a XIB is the only public way to get a working Open Recent menu (risk 14). |
+| Xcode project | — | **XcodeGen (`project.yml`)**, `.xcodeproj` not committed | `.pbxproj` edits are the most common source of broken AI diffs. XcodeGen is a dev tool, not an app dependency. |
+| Never lose text | Autosave + restoration | **Follow + one override** (`NSQuitAlwaysKeepsWindows`) | Restoration alone fails under a default macOS setting (risk 1). |
+| Line endings | Detect & preserve | **Store line breaks exactly as on disk**; new breaks use the document's style; unify only on explicit "Convert Line Endings" | Editing one line must not change other lines (no whole-file Git diffs). See risk 2. |
+| Encoding | Detect UTF-8/BOM/UTF-16/1250/8859-2 | **Follow + binary detection + "every character is saveable" invariant**; unencodable input → immediate dialog offering conversion to UTF-8 | See risks 3–4. |
+| Distribution | Undecided | **Deferred** until a paid Apple Developer account exists. Sandbox stays on; local ad-hoc signing | See §2.4. |
+| Highlighting | Regex, edited paragraphs | **Follow, with per-line state + temporary attributes** | See risk 5. |
+| JSON prettify | (implied `JSONSerialization`) | **Own token-based formatter** | See risk 7. |
+| XML prettify/minify | v0.3 | **Postpone** | See risk 8. |
+| Swift mode | — | **Swift 5 language mode, minimal concurrency checking**; Swift 6 later | Strict concurrency + AppKit is a lot of noise for a Swift beginner. |
+| Tests | — | **XCTest** in the package (`swift test`) | Runs from the command line and in Xcode. |
+| Build verification | — | **Claude Code on the MacBook** runs `xcodegen`, `xcodebuild`, `swift test` and fixes errors | The draft was never compiled (risk 15). |
+
+### Risks, contradictions and weak spots
+
+1. **"Never lose text" vs. a default macOS setting.** With *System Settings › Desktop & Dock › Close windows when quitting an application* on, macOS doesn't restore windows after ⌘Q and asks to save untitled documents. Fix: the app writes `NSQuitAlwaysKeepsWindows = true` into its own defaults domain, which overrides the global setting for this app only. Autosaved untitled documents are then restored after ⌘Q, restart and crash. Remaining gap: text typed in the last seconds before a crash. Closing a window explicitly still asks Save/Delete — intended. **No custom scratchpad store** unless acceptance test 1.6 fails.
+
+2. **Line endings: never touch line breaks the user didn't edit.** Silently unifying a mixed file means that fixing one character changes many lines and Git shows a diff over the whole file.
+   - **Decision:** the text storage holds every line break exactly as read (`\n`, `\r\n`, `\r`, possibly mixed). Saving writes the text unchanged. Line breaks the editor *inserts* (Enter, paste, drop, transformations) use the document's `lineEnding` — the dominant style at open time. Only the explicit **Convert Line Endings** command rewrites existing breaks, as one undoable edit. The status bar shows the dominant style and "(mixed)", updated live.
+   - **Rejected alternative:** LF in memory plus a per-line map of original endings. Its flaw is undo: deleting a minority-style line break and pressing ⌘Z would bring it back in the *dominant* style, because the map is not part of `NSTextView`'s undo. With raw storage, undo, redo, find/replace and save are byte-exact automatically.
+   - **Cost:** every piece of code that splits text into lines must understand all three styles. This is concentrated in `LineIndex` (which also records each break's style) and one Core helper for line-based utilities. `NSTextView`/`NSLayoutManager` already treat `\r\n` as one paragraph break and one caret step.
+
+3. **Saving can lose characters.** A Windows-1250 file plus an emoji: `data(using:)` fails, and an *autosave* failure is the worst place to find out.
+   - **Invariant kept:** every character in the document can be represented in its encoding, so saving and autosaving never fail or replace characters.
+   - **UX decision:** when typed/pasted/dropped text contains characters the encoding can't store, show a sheet immediately: *"“😀” can't be saved in Windows-1250."* — **[Convert to UTF-8 and Insert]** (default) / **[Cancel]**. Nothing is inserted until the user decides. Confirming converts the document and inserts the text as one undo step. (A third button "Insert without unsupported characters" is optional, later.)
+   - **Why not "allow it and ask when saving":** with autosave in place there is no save moment — the file is rewritten in the background every few seconds. Deferring the question means either autosave errors at random times, or pausing autosave, which breaks "never lose text". And by then the user no longer knows which paste caused it.
+
+4. **Windows-1250 vs ISO-8859-2 is undecidable in general.** Both decode any byte sequence; they share á č ď é ě í ň ó ř ú ů ý and differ only in 0x80–0xBF. Heuristic (implemented): any byte 0x80–0x9F → Windows-1250; else ISO-8859-2 letters (š=0xB9, ž=0xBE, …) → ISO-8859-2; else Windows-1250. Good for Czech, wrong for Western-European legacy files (never guessed). "Reopen with Encoding" is the escape hatch. UTF-16 is always written with a BOM.
+
+5. **"Highlight only edited paragraphs" breaks multi-line constructs** (block comments, Python `"""`, Markdown fences). Grammars get single-line rules plus begin/end rules; the highlighter caches the "state at line start" per line and re-highlights from the edit until the state stabilizes. Tokenize line *contents* (without the break characters). Apply colors with `NSLayoutManager.addTemporaryAttribute` — no effect on text storage, undo or autosave.
+
+6. **"Any file" includes binary and huge files.** Claiming `public.data` makes images and archives openable, and ISO-8859-2 decodes anything, so a PNG would open as garbage and might not round-trip. Implemented: NUL bytes in the first 8 KB (and not UTF-16) → refused as binary. Files over 100 MB → refused.
+
+7. **JSON prettify via `JSONSerialization`/`Codable` is destructive:** key order lost, numbers rewritten (`1.0` → `1`, big integers lose precision). Use a small tokenizer-based formatter that only changes whitespace and reports exact error line/column.
+
+8. **XML prettify contradicts "shared package reusable on iOS":** `XMLDocument` exists only in macOS Foundation and rewrites content. Postpone, or write a tokenizer-based re-indenter later.
+
+9. **Hashing is ambiguous** — a hash is over bytes. Whole document → hash exactly the bytes Save would write (matches `shasum file`). Selection → UTF-8 bytes of the selection as stored, including its line breaks. Say so in the menu item.
+
+10. **Units.** Line/column are 1-based; column and selection size count user-perceived characters (a tab = 1, an emoji = 1, `\r\n` = 1). Huge selections and lines over 10 000 characters fall back to UTF-16 units to stay instant.
+
+11. **"Disable smart substitutions" was incomplete.** Also off (implemented): grammar checking, text completion, data detectors, smart insert/delete, macOS 14 inline predictions, macOS 15 Writing Tools.
+
+12. **Undo as one step** needs `breakUndoCoalescing()` before a transformation, then `shouldChangeText` → replace → `didChangeText`, plus `setActionName`. Changes that touch both document state and text (e.g. convert encoding + insert) are wrapped in one undo group.
+
+13. **Very long lines** (minified JSON, logs) are TextKit 1's real weak spot. Highlighting turns off for lines over ~20 000 characters, independent of file size.
+
+14. **Private API vs. App Store.** The draft fills Open Recent via the private `-[NSMenu _setMenuName:]`. App Review rejects private API use (guideline 2.5.1), which contradicts recommending the App Store. `NSDocumentController.noteNewRecentDocumentURL(_:)` does **not** solve it: it adds a URL to the recent-documents *list* (and `NSDocumentController` already calls it on every open and save); the problem is *displaying* that list in a menu built in code. Public options:
+    - **(A, chosen)** Menu bar from Xcode's *Main Menu* XIB template. Its Open Recent submenu is marked as the system recent-documents menu, so AppKit fills it — also in the sandbox. Custom items are still added in code.
+    - (B, fallback) Own submenu via `NSMenuDelegate` + `NSDocumentController.shared.recentDocumentURLs`. Fully in code, but access to those files after relaunch in the sandbox is unverified — would need testing.
+    - **Rule: no private API anywhere.**
+
+15. **The draft was never compiled.** Expect dozens of compiler errors (API names, initializer signatures, SDK annotations) plus runtime problems a compiler can't catch (layout, gutter drawing, restoration). Workflow: Claude Code on the MacBook runs the build loop itself (§4 Phase 0). It can't see the window, so the UI acceptance tests in §4 stay manual. If the error pile is unmanageable, rebuild the app task by task (1.1 → 1.10) using the draft as a reference.
+
+### Missing from the brief
+
+- **Printing** (⌘P) → v0.4 (`printOperation(withSettings:)` with a page-width text view). Remove Print/Page Setup from the menu until then.
+- **Caret/scroll restore** per document → v0.2.
+- **Command-line launch:** `open -a NotepadS file.txt`. A real CLI can't be installed by a sandboxed App Store app.
+- **Root-owned files** (`/etc/hosts`): impossible in the sandbox.
+- **Per-document vs global settings** (font size, wrap, tabs): define in v0.4.
+- **`.editorconfig`**, app icon, Czech localization.
+
+### Cut or postpone
+
+XML prettify/minify · custom regex find/replace panel stays in v0.4 · Title Case kept simple (`cs` locale, capitalize words).
+
+### Assumptions
+
+One window per document · plain text only, forever · files up to tens of MB (100 MB hard limit) · macOS 14 minimum (`NSMenuItem.sectionHeader`, `inlinePredictionType`).
+
+---
+
+## 2. Architecture
+
+### 2.1 Components
+
+```mermaid
+flowchart TB
+  subgraph App["NotepadS app target — AppKit"]
+    AD["AppDelegate<br/>MainMenu.xib + MainMenu.swift"] --> DC["DocumentController<br/>(NSDocumentController)"]
+    DC --> TD["TextDocument<br/>(NSDocument)"]
+    TD -- owns --> TS[("NSTextStorage<br/>text exactly as on disk")]
+    TD --> WC["DocumentWindowController"]
+    WC --> VC["EditorViewController"]
+    VC --> TV["EditorTextView<br/>(NSTextView, TextKit 1)"]
+    VC --> LN["LineNumberRulerView<br/>(NSRulerView)"]
+    VC --> SB["StatusBarView"]
+    TS --> LM["NSLayoutManager"] --> TV
+  end
+  subgraph Core["NotepadSCore — Swift package, Foundation only"]
+    TF["TextFile<br/>decode / encode"] --> ED["EncodingDetector"]
+    TF --> TE["TextEncoding"]
+    LE["LineEnding"]
+    LI["LineIndex<br/>(line starts + break styles)"]
+    LATER["later: Grammar, Highlighter,<br/>Transformations"]
+  end
+  TD --> TF
+  VC --> LI
+  VC --> LE
+  LN --> LI
+```
+
+| Component | Responsibility |
+|---|---|
+| `AppDelegate`, `MainMenu.xib`, `MainMenu.swift` | Launch setup, restoration opt-in. The XIB provides the standard menu bar (incl. a working Open Recent); `MainMenu.swift` adjusts it in code (app name, removed items, font-size items). |
+| `DocumentController` | Shared `NSDocumentController`; Open panel shows hidden files. |
+| `TextDocument` | File I/O via `TextFile`; owns the text storage, `encoding` and `lineEnding` (style for new breaks); enforces the encoding invariant; autosave; save-panel config. |
+| `DocumentWindowController` | Window, tabs, "+" button. |
+| `EditorViewController` | TextKit 1 stack, scroll view, gutter, status bar; keeps `LineIndex` current; font size; **edit gatekeeper** (line-break style of inserted text, encodability dialog); Convert Line Endings. |
+| `EditorTextView` | Plain-text configuration of `NSTextView`; Enter inserts the document's line-break style. Home of future editor behaviour. |
+| `LineNumberRulerView` | Draws visible line numbers using `LineIndex` + layout manager. |
+| `StatusBarView` | Position, selection, language, encoding (reopen/convert), line endings (dominant, "(mixed)", convert). Reports choices to its delegate. |
+| `NotepadSCore` | Pure, tested logic. No AppKit/UIKit. |
+
+### 2.2 Data flow
+
+- **Open:** `NSDocumentController` → `TextDocument.read(from:ofType:)` → `TextFile.decode` (detect encoding, refuse binary, detect dominant line ending — **no normalization**) → text storage.
+- **Edit:** keystroke → `NSTextView` → delegate gatekeeper (`textView(_:shouldChangeTextIn:replacementString:)`): line breaks in inserted text are converted to `document.lineEnding`; unencodable text opens the conversion dialog → text storage → `didProcessEditingNotification` → `LineIndex.applyEdit` (rescans only around the edit; keeps break-style counts) → gutter redraw, status bar. Undo is recorded by `NSTextView` in the document's undo manager, which marks the document edited and schedules autosave.
+- **Save / autosave:** `NSDocument` → `data(ofType:)` → `TextFile.encode` (text unchanged, encoding + BOM).
+- **External change:** `NSDocument` is an `NSFilePresenter`. A document without unsaved changes is reverted automatically; with unsaved changes macOS shows a conflict dialog on save. Revert calls `read` → `onTextReplaced` → editor refresh.
+
+### 2.3 Key decisions
+
+**NSDocument vs alternatives.** `DocumentGroup`/`FileDocument` copies the whole text on changes, hides the `NSTextView`, and makes tabs/restoration/save panel hard to control. A custom architecture would re-implement autosave, versions, recents, file coordination and restoration. SwiftUI only for the future Settings window (lazily loaded).
+
+**TextKit 1 vs 2.** TextKit 2 `NSTextView` still shows scroll jumps and estimation glitches with long plain text, has no `NSRulerView`-friendly line enumeration, and silently downgrades when `layoutManager` is touched. TextKit 1 with non-contiguous layout is proven in editors like CotEditor. Revisit only when Apple deprecates TextKit 1. Guard: `assert(textView.textLayoutManager == nil)`.
+
+### 2.4 Distribution and signing
+
+**Now (no paid Apple Developer account):** develop and run locally with ad-hoc signing ("Sign to Run Locally", no team). The sandbox works locally, so keep it on — it costs nothing and keeps both distribution paths open. You can't notarize or publish; a build you give to someone else is blocked by Gatekeeper (they must allow it in System Settings › Privacy & Security). **Decide distribution when you buy the account** ($99/year, needed for both options below).
+
+| Concern | Mac App Store (sandbox) | Developer ID + notarization |
+|---|---|---|
+| File access | Files the user opens/saves/drops — `NSDocument` handles it. No root-owned files. | Anything the user account can access. |
+| Open Recent | Works with the XIB menu (AppKit stores security-scoped bookmarks). | Works. |
+| Autosave / restore | Works; files in the app container. | Works; `~/Library/Autosave Information`. |
+| Updates | Automatic. | Sparkle (third-party) or manual. |
+| Payments, trust | Built in. | DIY; notarization satisfies Gatekeeper. |
+| CLI helper, `/etc/hosts` | Not possible. | Possible. |
+
+Current leaning for later: **Mac App Store** (no update mechanism to build, the sandbox is nearly invisible for an `NSDocument` editor). Requirement either way: **no private API** (risk 14).
+
+### 2.5 Performance thresholds (v0.2+)
+
+| Condition | Behaviour |
+|---|---|
+| ≤ 2 MB, no line > 20 000 chars | Full highlighting, incremental (debounce ~100 ms). |
+| 2–10 MB | Visible range + edited lines only. |
+| > 10 MB or any line > 20 000 chars | Highlighting off (shown in status bar). |
+| > 100 MB | Refused on open. |
+
+Cold start: no grammar loading, no SwiftUI, no file scanning at launch.
+
+---
+
+## 3. Project structure
+
+```
+NotepadS/
+├── CLAUDE.md                     rules for AI-assisted work (read first)
+├── docs/DESIGN.md                this document
+├── project.yml                   XcodeGen spec → NotepadS.xcodeproj (generated, git-ignored)
+├── .gitignore
+├── Config/
+│   ├── Info.plist                document types, NSPrincipalClass (+ NSMainNibFile after Phase 0)
+│   └── NotepadS.entitlements     sandbox + user-selected files
+├── NotepadS/                     app target (AppKit)
+│   ├── App/
+│   │   ├── main.swift
+│   │   ├── AppDelegate.swift
+│   │   ├── MainMenu.xib          ← created in Phase 0 from Xcode's template
+│   │   └── MainMenu.swift        adjusts the loaded menu (Phase 0: no longer builds it)
+│   ├── Document/
+│   │   ├── TextDocument.swift
+│   │   ├── DocumentController.swift
+│   │   └── DocumentWindowController.swift
+│   └── Editor/
+│       ├── EditorViewController.swift
+│       ├── EditorTextView.swift
+│       ├── LineNumberRulerView.swift
+│       ├── StatusBarView.swift
+│       └── EditorDefaults.swift
+└── Packages/NotepadSCore/        local Swift package, Foundation only
+    ├── Package.swift
+    ├── Sources/NotepadSCore/     TextEncoding, TextCodecError, EncodingDetector,
+    │                             LineEnding, TextFile, LineIndex
+    └── Tests/NotepadSCoreTests/  TextFileTests, LineTests
+```
+
+Later: `Core/Syntax/` (Grammar, Highlighter, LanguageDetector), `Core/Transform/` (JSON formatter, Base64/URL, hashing, case, lines), `App/Settings/` (SwiftUI).
+
+### Targets
+
+- **NotepadS** (macOS app) — depends on the `NotepadSCore` product.
+- **NotepadSCore** + **NotepadSCoreTests** (XCTest) — `swift test --package-path Packages/NotepadSCore`; in Xcode add NotepadSCoreTests to the scheme's Test action for ⌘U.
+
+### Info.plist / UTType setup
+
+- Two `CFBundleDocumentTypes`, both `Editor`, rank `Alternate`, class `TextDocument`: `public.text` (everything macOS knows is text) and `public.data` (`.env`, `.conf`, extensionless files). Trade-off: NotepadS also appears in "Open With" for images/archives; those are refused as binary.
+- No exported/imported UTType declarations: the app owns no format; syntax languages are chosen by file-extension string.
+- In code, every type is native and writable, so `.yaml` or extensionless files save in place, never "converted".
+- Save panel: `allowedContentTypes = []` + `allowsOtherFileTypes = true` (any extension, no ".txt" appended, no "Use .json or .txt?" alert), extension never hidden, no format pop-up.
+
+---
+
+## 4. Work plan
+
+Every task ends with a buildable, runnable app. "Done when" is the acceptance test. **[manual]** = needs a human clicking through the UI.
+
+### Phase 0 — Build and align (first Claude Code task)
+
+Details per file in §5. Commit after each green step.
+
+| # | Task | Done when |
+|---|---|---|
+| 0.1 | Core compiles, tests pass | `swift test --package-path Packages/NotepadSCore` green. |
+| 0.2 | App compiles with local signing | `project.yml` uses ad-hoc signing; `xcodegen generate` + `xcodebuild … build` succeed; the app launches and ⌘N opens a window [manual]; the TextKit 1 assertion doesn't fire. |
+| 0.3 | Preserve line breaks (Core + app) | New Core tests green (CR/CRLF/mixed, randomized `LineIndex` edits incl. `\r` and `\n`, decode/encode byte-exact for mixed files). [manual] Open a mixed file, edit one line, save → `git diff` shows only that line; Enter inserts the document's style; pasting CRLF into an LF file inserts LF; Convert Line Endings unifies and ⌘Z restores the mixed file exactly. |
+| 0.4 | Encodability dialog | [manual] In a Windows-1250 doc, pasting an emoji shows the sheet; "Convert to UTF-8 and Insert" converts and inserts; one ⌘Z undoes both; Cancel inserts nothing. |
+| 0.5 | Menu bar from XIB, no private API | `grep -rn "_setMenuName\|NSSelectorFromString(\"_" NotepadS` finds nothing. [manual] Open Recent lists files after opening some, also after relaunch; font-size items work; no Format/Print menus. |
+
+### Phase 1 — MVP acceptance (code exists after Phase 0)
+
+| # | Area | Done when |
+|---|---|---|
+| 1.1 | Skeleton | Full menu bar; ⌘Q quits. |
+| 1.2 | Text view | Typing `"--"` stays `"--"`; no spell-check underlines; no inline predictions. |
+| 1.3 | Core | `swift test` green. |
+| 1.4 | Open/save any file | Open `.env` (⇧⌘. in the panel), `x.yml`, `Makefile`; edit; save → `git diff`/`cmp` shows only the edit. Untitled saved as `Makefile` gets no extension. Windows-1250 stays Windows-1250 (`file -I`). CRLF and mixed files keep their bytes except edited lines. Binary file → clear error. |
+| 1.5 | Edit gatekeeper | Pasted line breaks get the document style; unencodable input → dialog (0.4). |
+| 1.6 | Autosave + restore | (a) Untitled doc, ⌘Q, relaunch → restored. (b) Same with "Close windows when quitting" **on**. (c) Type, wait 30 s, `kill -9 <pid>`, relaunch → restored. (d) Restart the Mac → restored. |
+| 1.7 | Font | ⌘+ / ⌘= / ⌘− / ⌘0; size persists for new windows; tabs align at 4 spaces. |
+| 1.8 | Gutter | Correct numbers with wrapping, CRLF/CR files, trailing break; current line highlighted; widens at 1 000 / 10 000 lines; 100 000-line file scrolls smoothly. |
+| 1.9 | Status bar | Ln/Col and selection live; Reopen with Windows-1250 fixes a mis-detected Czech file; Convert to ISO-8859-2 with an emoji → error naming the line; line-ending "(mixed)" appears/disappears live; Convert Line Endings is undoable. |
+| 1.10 | Find, tabs, external changes | ⌘F/⌘G/⌥⌘F; ⌘N opens a tab, "+" works, tabs restored after relaunch; `echo x >> file` while open & unedited → reloads; while edited → conflict dialog on save. |
+
+### Phase 2 — v0.2
+
+| # | Task | Done when |
+|---|---|---|
+| 2.1 | Core `Grammar` (rules as data: line rules + begin/end spans, scopes) | Unit tests tokenize sample lines; a new language = data only. |
+| 2.2 | Core `Highlighter` with per-line start-state cache | Opening a block comment re-tokenizes only until the state stabilizes (tests). |
+| 2.3 | Temporary-attribute highlighting, debounced, thresholds §2.5 | Smooth typing in a 5 MB JSON; > 10 MB or long lines show "Highlighting off". |
+| 2.4 | JSON, Python, Shell, Markdown; detection by extension + shebang; status-bar override | `.py` and `#!/bin/bash` detected; override sticks for the window. |
+| 2.5 | Light/dark syntax themes | Colors switch live with the system appearance. |
+| 2.6 | Word wrap toggle (⌥⌘W) | Off → horizontal scrolling; gutter still correct. |
+| 2.7 | Invisible characters (`NSLayoutManager` subclass: · → ¬, distinct marks for LF/CRLF/CR) | Toggle shows spaces/tabs/line breaks without changing text or caret. |
+| 2.8 | Go to Line (⌘L) | Jumps and centers; invalid input rejected. |
+| 2.9 | Caret/scroll restore | Relaunch restores the caret. |
+
+### Phase 3 — v0.3 (pure functions in Core, tests first)
+
+| # | Task | Done when |
+|---|---|---|
+| 3.1 | Transformation framework: selection or whole document, one undo step, error with line | ⌘Z undoes in one step; malformed input never changes text. Line-based utilities keep each line's own break; new breaks use the document style. |
+| 3.2 | JSON prettify/minify (tokenizer) | Key order and number literals preserved; errors report line:column. |
+| 3.3 | Base64 / URL encode-decode | RFC 4648 / RFC 3986 vectors pass; invalid input or non-UTF-8 result → error. |
+| 3.4 | SHA-256/SHA-1/MD5 (CryptoKit), replace or copy | Whole-document hash equals `shasum -a 256 file`. |
+| 3.5 | Case: UPPER, lower, Title, camel, snake, kebab | Tests incl. Czech diacritics and acronyms (`HTTPServer` → `http_server`). |
+| 3.6 | Sort A→Z/Z→A (Czech collation), dedupe (keep first), trim trailing whitespace | Tests incl. "ch" after "h"; trimming never removes `\r` of a CRLF. |
+
+### Phase 4 — v0.4
+
+YAML, JS/TS, C/C++, HTML/XML grammars · regex find/replace panel (`NSRegularExpression`, capture groups, replace-all as one undo step) · SwiftUI Settings (font, tab width, tabs vs spaces, wrap default) · auto-indent · printing · app icon.
+
+### Later
+
+iOS app on `NotepadSCore` · `.editorconfig` · Swift 6 language mode · distribution (after buying the developer account).
+
+---
+
+## 5. Phase 0 change list (spec for Claude Code)
+
+**Build loop**
+
+```sh
+swift test --package-path Packages/NotepadSCore
+xcodegen generate
+xcodebuild -project NotepadS.xcodeproj -scheme NotepadS -configuration Debug \
+           -destination 'platform=macOS' -derivedDataPath build build
+open build/Build/Products/Debug/NotepadS.app
+log stream --predicate 'process == "NotepadS"' --level error     # runtime errors
+```
+
+**`project.yml`** — local signing without a team: `CODE_SIGN_IDENTITY: "-"`, `DEVELOPMENT_TEAM: ""` (if Automatic signing still asks for a team, use `CODE_SIGN_STYLE: Manual`). Keep hardened runtime and the sandbox entitlements.
+
+**Core — line breaks as on disk (0.3)**
+- `TextFile.decode`: return the text **unchanged** (no LF normalization) plus encoding, dominant line ending (LF if none) and "mixed". `TextFile.encode`: encode the text as is.
+- `LineEnding`: keep `detect`, `normalizeToLF`, `convert(fromLF:to:)`; add `convertAll(_:to:)` (= normalize, then convert) for pasted text and Convert Line Endings.
+- `LineIndex`: a line break is `\r\n`, `\r` or `\n`; line starts follow each break. Store each break's style (parallel array) so per-style counts — and therefore dominant/mixed — update without rescanning. `applyEdit` must widen the rescanned range so it never splits a `\r\n` pair (an edit can join `\r` + `\n` into one break or split one apart). Add `contentRange(ofLine:)` (without the break). `column(of:in:)` treats `\r\n` as one character.
+- Tests: randomized edits with alphabet incl. `\r`, `\n`, `ř`, `😀`, compared against a full rebuild (break styles included); byte-exact decode → encode for mixed, CRLF, CR files.
+
+**App — line breaks (0.3)**
+- `TextDocument`: no normalization on read; `data(ofType:)` encodes the text unchanged; `lineEnding` = style for new breaks (dominant at open). Remove `hadMixedLineEndings` (the status bar gets "mixed" live from `LineIndex`). Replace `setLineEnding(_:)` with state that the editor's Convert command updates in the same undo group as the text change.
+- `EditorTextView`: override `insertNewline(_:)`, `insertNewlineIgnoringFieldEditor(_:)`, `insertLineBreak(_:)`, `insertParagraphSeparator(_:)` to insert the document's break string (via `insertText`, so undo works).
+- `EditorViewController` gatekeeper: if inserted text contains any break, convert it with `LineEnding.convertAll(_:to: document.lineEnding)`; if the result differs, insert it via `insertText(_:replacementRange:)` and return false (check bytes, not `Character`s). New action **Convert Line Endings to LF/CRLF/CR**: one undo group = whole-text replacement through `shouldChangeText`/`didChangeText` + document `lineEnding` change, action name "Convert Line Endings".
+- `StatusBarView`: line-ending menu items become "Convert to LF / CRLF / CR"; title = dominant + "(mixed)" from `LineIndex` counts.
+- `LineNumberRulerView`: no change expected (it uses `LineIndex` line starts); verify with CR-only files.
+
+**App — encodability dialog (0.4)**
+- Gatekeeper: when `document.encoding` can't encode the inserted text, return false, remember range + text, show a sheet: message *"“X” can't be saved in <encoding>."*, buttons **Convert to UTF-8 and Insert** (default) / **Cancel**. On confirm: `undoManager.beginUndoGrouping()` → `document.convert(to: .utf8)` → `textView.insertText(text, replacementRange: range)` → `endUndoGrouping()`, action name "Convert to UTF-8". The sheet is window-modal, so the range stays valid.
+- `TextDocument.rejectionReason(forInserting:)` → returns the first unencodable character (or nil) for the message.
+
+**App — menu bar without private API (0.5)**
+- In Xcode: *File › New › File from Template › macOS › User Interface › Main Menu*, save as `NotepadS/App/MainMenu.xib` (a human does this step; XIB XML should not be hand-written). Remove any app-delegate object/outlet the template contains — the delegate is created in `main.swift`.
+- `Config/Info.plist`: add `NSMainNibFile` = `MainMenu`.
+- `MainMenu.swift`: instead of building the menu, adjust the loaded `NSApp.mainMenu` in `applicationWillFinishLaunching`: replace the template's placeholder app name, remove the Format menu, Print/Page Setup and the Spelling/Substitutions/Transformations/Speech submenus, add the font-size items (incl. hidden ⌘= alias) to View, point Find items at the find bar if needed. Delete `_setMenuName:` and the menu-building code.
+- `AppDelegate`: stop assigning `NSApp.mainMenu`; call the adjustment function.
+- Fallback only if the XIB route fails: option B from risk 14, tested with the sandbox on.
+
+**Verification note.** The `LineIndex` update algorithm (LF only, 20 000 random edits) and the Windows-1250/ISO-8859-2 byte tables were cross-checked in Python; nothing else has been run.

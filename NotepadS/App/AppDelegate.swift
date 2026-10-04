@@ -1,0 +1,28 @@
+import AppKit
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
+
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // The first NSDocumentController ever created becomes `NSDocumentController.shared`.
+        // Creating ours here, before AppKit asks for the shared one, installs the subclass.
+        _ = DocumentController()
+
+        // "Never lose text": reopen all windows — including autosaved untitled documents —
+        // on the next launch, even when "Close windows when quitting an application" is on
+        // in System Settings › Desktop & Dock. A value in the app's own defaults domain
+        // overrides the global setting for this app only.
+        UserDefaults.standard.set(true, forKey: "NSQuitAlwaysKeepsWindows")
+
+        NSApp.mainMenu = MainMenu.make()
+    }
+
+    /// Opt in to secure coding for window restoration (AppKit logs a warning otherwise).
+    func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+        true
+    }
+
+    /// Open an empty document when the app starts with nothing to restore, like TextEdit.
+    func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
+        true
+    }
+}
