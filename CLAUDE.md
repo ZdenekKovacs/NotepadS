@@ -21,12 +21,15 @@ Where the code and `docs/DESIGN.md` disagree, the document wins.
 swift test --package-path Packages/NotepadSCore          # Core logic — run first, fastest feedback
 xcodegen generate                                        # after adding/removing/renaming files
 xcodebuild -project NotepadS.xcodeproj -scheme NotepadS -configuration Debug \
-           -destination 'platform=macOS' -derivedDataPath build build
-open build/Build/Products/Debug/NotepadS.app
+           -destination 'platform=macOS' -derivedDataPath ~/Library/Developer/Xcode/DerivedData/NotepadS build
+open ~/Library/Developer/Xcode/DerivedData/NotepadS/Build/Products/Debug/NotepadS.app
 log stream --predicate 'process == "NotepadS"' --level error   # runtime errors while testing
 ```
 
 - `NotepadS.xcodeproj` is generated and git-ignored. Never edit it; change `project.yml`.
+- Build products go to `~/Library/Developer/Xcode/DerivedData/NotepadS`, not into the project folder:
+  the folder is on the iCloud-synced Desktop, which adds Finder metadata to the `.app` and makes code signing fail
+  ("resource fork, Finder information, or similar detritus not allowed").
 - No paid Apple Developer account yet: builds are signed locally (ad-hoc, no team). The sandbox stays on.
 - You can't see the app's window. After UI-related changes, list the manual checks from
   `docs/DESIGN.md` §4 the developer should click through.
@@ -97,7 +100,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 ## Phase checklist
 
 ### Phase 0 — build and align (first task)
-- [ ] 0.1 Core compiles, `swift test` green
+- [x] 0.1 Core compiles, `swift test` green
 - [ ] 0.2 App compiles with local ad-hoc signing and launches
 - [ ] 0.3 Line breaks preserved as on disk (Core + app), Convert Line Endings, tests
 - [ ] 0.4 Encodability dialog ("Convert to UTF-8 and Insert" / "Cancel")

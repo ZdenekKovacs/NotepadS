@@ -66,7 +66,7 @@ final class TextDocument: NSDocument {
 
         encoding = decoded.encoding
         lineEnding = decoded.lineEnding
-        hadMixedLineEndings = decoded.hadMixedLineEndings
+        hadMixedLineEndings = decoded.hasMixedLineEndings
         // Loading is not an edit: change the storage directly, so nothing is recorded for undo,
         // and drop undo steps that refer to the old text (relevant when reverting).
         textStorage.replaceCharacters(in: NSRange(location: 0, length: textStorage.length), with: decoded.text)
@@ -79,7 +79,7 @@ final class TextDocument: NSDocument {
     /// Used for Save, Save As, Duplicate and autosave. Runs on the main thread
     /// (`canAsynchronouslyWrite` is not overridden), so reading the text storage is safe.
     override func data(ofType typeName: String) throws -> Data {
-        try TextFile.encode(textStorage.string, encoding: encoding, lineEnding: lineEnding)
+        try TextFile.encode(textStorage.string, encoding: encoding)
     }
 
     // MARK: - Save panel

@@ -105,7 +105,7 @@ final class EditorViewController: NSViewController {
 
         document.onTextReplaced = { [weak self] in self?.documentTextWasReplaced() }
         document.onSettingsChanged = { [weak self] in self?.updateStatusBar() }
-        NotificationCenter.default.addObserver(self, selector: #selector(textStorageDidProcessEditing(_:)),
+        NotificationCenter.default.addObserver(self, selector: #selector(documentTextDidProcessEditing(_:)),
                                                name: NSTextStorage.didProcessEditingNotification,
                                                object: document.textStorage)
 
@@ -169,7 +169,9 @@ final class EditorViewController: NSViewController {
 
     // MARK: - Text changes
 
-    @objc private func textStorageDidProcessEditing(_ notification: Notification) {
+    // Not named `textStorageDidProcessEditing(_:)`: since the macOS 26 SDK, NSViewController
+    // has a method with that name, and a private method can't override it.
+    @objc private func documentTextDidProcessEditing(_ notification: Notification) {
         let storage = document.textStorage
         guard storage.editedMask.contains(.editedCharacters) else { return }   // ignore font/color changes
 

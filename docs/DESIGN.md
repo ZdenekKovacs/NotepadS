@@ -294,8 +294,8 @@ iOS app on `NotepadSCore` · `.editorconfig` · Swift 6 language mode · distrib
 swift test --package-path Packages/NotepadSCore
 xcodegen generate
 xcodebuild -project NotepadS.xcodeproj -scheme NotepadS -configuration Debug \
-           -destination 'platform=macOS' -derivedDataPath build build
-open build/Build/Products/Debug/NotepadS.app
+           -destination 'platform=macOS' -derivedDataPath ~/Library/Developer/Xcode/DerivedData/NotepadS build
+open ~/Library/Developer/Xcode/DerivedData/NotepadS/Build/Products/Debug/NotepadS.app
 log stream --predicate 'process == "NotepadS"' --level error     # runtime errors
 ```
 

@@ -15,7 +15,11 @@ settings:
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.0"               # Swift 6 language mode later (see docs/DESIGN.md)
-    DEVELOPMENT_TEAM: ""               # TODO: your Team ID (Xcode › Settings › Accounts)
+    # No paid Apple Developer account yet: sign locally ("Sign to Run Locally", ad-hoc).
+    # The app runs on this Mac with the sandbox on, but can't be given to others.
+    # When the account exists: set DEVELOPMENT_TEAM, CODE_SIGN_STYLE: Automatic, remove CODE_SIGN_IDENTITY.
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_IDENTITY: "-"
 
 packages:
   NotepadSCore:
@@ -38,7 +42,7 @@ targets:
         INFOPLIST_FILE: Config/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_ENTITLEMENTS: Config/NotepadS.entitlements
-        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_STYLE: Manual          # ad-hoc signing needs no team (see CODE_SIGN_IDENTITY above)
         ENABLE_HARDENED_RUNTIME: YES
         SWIFT_STRICT_CONCURRENCY: minimal
 
