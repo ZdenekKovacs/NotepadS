@@ -26,6 +26,10 @@ final class LineNumberRulerView: NSRulerView {
         clientView = textView
         reservedThicknessForMarkers = 0
         reservedThicknessForAccessoryView = 0
+        // Since the macOS 14 SDK, views don't clip their drawing to their bounds by default, and
+        // `draw(_:)` may get a dirty rect larger than the view. Without this, filling the gutter
+        // background would paint over the whole text area and make the text invisible.
+        clipsToBounds = true
         updateThickness()
 
         // Redraw when the visible text changes: scrolling, or re-wrapping after a resize.
