@@ -109,7 +109,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] 0.1 Core compiles, `swift test` green
 - [x] 0.2 App compiles with local ad-hoc signing and launches
 - [x] 0.3 Line breaks preserved as on disk (Core + app), Convert Line Endings, tests
-- [ ] 0.4 Encodability dialog ("Convert to UTF-8 and Insert" / "Cancel")
+- [x] 0.4 Encodability dialog ("Convert to UTF-8 and Insert" / "Cancel")
 - [x] 0.5 Menu bar from `MainMenu.xib`, private API removed
 
 ### Phase 1 — MVP acceptance (manual checks in DESIGN.md §4)
