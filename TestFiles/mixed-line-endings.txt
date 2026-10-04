@@ -1,0 +1,4 @@
+Line one ends with LF
+Line two ends with CRLF
+Line three ends with CRLine four ends with CRLF
+Line five ends with LF

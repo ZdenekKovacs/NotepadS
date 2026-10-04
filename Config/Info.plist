@@ -22,9 +22,11 @@
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.developer-tools</string>
-	<!-- No storyboard / MainMenu.xib: the app is set up in main.swift. -->
+	<!-- The delegate is created in main.swift; the menu bar comes from MainMenu.xib. -->
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSMainNibFile</key>
+	<string>MainMenu</string>
 	<!--
 	Document types. Both entries use the same NSDocument subclass.
 	- public.text covers plain text, source code, scripts, JSON, YAML, XML, HTML, Markdown...

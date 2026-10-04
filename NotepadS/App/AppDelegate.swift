@@ -13,7 +13,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // overrides the global setting for this app only.
         UserDefaults.standard.set(true, forKey: "NSQuitAlwaysKeepsWindows")
 
-        NSApp.mainMenu = MainMenu.make()
+        // AppKit has already loaded the menu bar from MainMenu.xib (NSMainNibFile in Info.plist).
+        MainMenu.adjust()
     }
 
     /// Opt in to secure coding for window restoration (AppKit logs a warning otherwise).

@@ -1,7 +1,7 @@
 import AppKit
 
-// NotepadS has no storyboard or XIB: the application, its delegate and the menu bar
-// are created in code, so everything is visible and reviewable in Swift files.
+// The application delegate is created in code. NSApplicationMain then loads the menu bar from
+// MainMenu.xib (NSMainNibFile in Info.plist); MainMenu.swift adjusts it.
 //
 // NSApplication.delegate is a weak reference, so the delegate is kept alive by this global.
 let appDelegate = AppDelegate()

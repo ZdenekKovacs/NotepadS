@@ -1,170 +1,155 @@
 import AppKit
 
-/// Builds the menu bar in code (no MainMenu.xib).
+/// Adjusts the menu bar loaded from `MainMenu.xib`.
 ///
-/// Standard actions are referenced by their Objective-C selector names ("saveDocument:")
-/// because several have confusing Swift names (e.g. NSDocument's `duplicateDocument:` is
-/// `duplicate(_:)` in Swift). Menu items with no target go through the responder chain:
+/// The XIB is Xcode's standard "Main Menu" template. It comes from a XIB, not code, because
+/// that is the only public way to get a working Open Recent menu: the template marks that
+/// submenu as the system's recent-documents menu, and AppKit fills it (also in the sandbox).
+/// Here we only remove what a plain-text editor doesn't need and add our own items.
+///
+/// Items are found by their action, not their title, so this keeps working once the menu is
+/// translated. Items without a target go through the responder chain:
 /// text view → … → EditorViewController → window → window controller → document → app.
 enum MainMenu {
 
-    static func make() -> NSMenu {
-        let mainMenu = NSMenu(title: "Main Menu")
-        for submenu in [appMenu(), fileMenu(), editMenu(), viewMenu(), windowMenu(), helpMenu()] {
-            let item = NSMenuItem(title: submenu.title, action: nil, keyEquivalent: "")
-            item.submenu = submenu
-            mainMenu.addItem(item)
+    /// Call in `applicationWillFinishLaunching`, after AppKit has loaded the XIB.
+    static func adjust() {
+        guard let mainMenu = NSApp.mainMenu else {
+            assertionFailure("MainMenu.xib was not loaded (NSMainNibFile in Info.plist)")
+            return
         }
-        return mainMenu
+        replaceTemplateAppName(in: mainMenu)
+
+        // Rich-text features that make no sense in a plain-text editor.
+        removeTopLevelMenu(containing: "orderFrontFontPanel:", from: mainMenu)          // Format menu
+        removeItem(withSubmenuContaining: "showGuessPanel:", from: mainMenu)            // Spelling and Grammar
+        removeItem(withSubmenuContaining: "orderFrontSubstitutionsPanel:", from: mainMenu)  // Substitutions
+        removeItem(withSubmenuContaining: "uppercaseWord:", from: mainMenu)             // Transformations
+        removeItem(withSubmenuContaining: "startSpeaking:", from: mainMenu)             // Speech
+        // Printing arrives in v0.4. No toolbar or sidebar, and no Settings window yet (v0.4).
+        for action in ["runPageLayout:", "print:", "printDocument:",
+                       "toggleToolbarShown:", "runToolbarCustomizationPalette:", "toggleSidebar:"] {
+            removeItems(withAction: action, from: mainMenu)
+        }
+        // The template's Preferences item has no action, so it can only be found by title.
+        removeItems(withTitle: "Preferences…", from: mainMenu)
+        removeDuplicateSeparators(in: mainMenu)
+
+        if let viewMenu = submenu(containing: "toggleFullScreen:", in: mainMenu) {
+            addFontSizeItems(to: viewMenu)
+        }
     }
 
-    private static var appName: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "NotepadS"
-    }
+    // MARK: - Our items
 
-    // MARK: - Menus
-
-    private static func appMenu() -> NSMenu {
-        let menu = NSMenu(title: appName)
-        menu.addItem(title: "About \(appName)", action: "orderFrontStandardAboutPanel:")
-        menu.addItem(.separator())
-        let services = NSMenu(title: "Services")
-        NSApp.servicesMenu = services
-        menu.addItem(title: "Services", submenu: services)
-        menu.addItem(.separator())
-        menu.addItem(title: "Hide \(appName)", action: "hide:", key: "h")
-        menu.addItem(title: "Hide Others", action: "hideOtherApplications:", key: "h", modifiers: [.command, .option])
-        menu.addItem(title: "Show All", action: "unhideAllApplications:")
-        menu.addItem(.separator())
-        menu.addItem(title: "Quit \(appName)", action: "terminate:", key: "q")
-        return menu
-    }
-
-    private static func fileMenu() -> NSMenu {
-        let menu = NSMenu(title: "File")
-        menu.addItem(title: "New", action: "newDocument:", key: "n")
-        menu.addItem(title: "Open…", action: "openDocument:", key: "o")
-        menu.addItem(title: "Open Recent", submenu: openRecentMenu())
-        menu.addItem(.separator())
-        menu.addItem(title: "Close", action: "performClose:", key: "w")
-        menu.addItem(title: "Save…", action: "saveDocument:", key: "s")
-        // With autosave in place, macOS uses "Duplicate"; "Save As…" appears while holding ⌥.
-        menu.addItem(title: "Duplicate", action: "duplicateDocument:", key: "s", modifiers: [.command, .shift])
-        let saveAs = menu.addItem(title: "Save As…", action: "saveDocumentAs:", key: "s", modifiers: [.command, .shift, .option])
-        saveAs.isAlternate = true
-        menu.addItem(title: "Rename…", action: "renameDocument:")
-        menu.addItem(title: "Move To…", action: "moveDocument:")
-        menu.addItem(title: "Revert To Saved", action: "revertDocumentToSaved:")
-        return menu
-    }
-
-    private static func editMenu() -> NSMenu {
-        // AppKit adds "AutoFill", "Start Dictation" and "Emoji & Symbols" to a menu titled "Edit".
-        let menu = NSMenu(title: "Edit")
-        menu.addItem(title: "Undo", action: "undo:", key: "z")
-        menu.addItem(title: "Redo", action: "redo:", key: "z", modifiers: [.command, .shift])
-        menu.addItem(.separator())
-        menu.addItem(title: "Cut", action: "cut:", key: "x")
-        menu.addItem(title: "Copy", action: "copy:", key: "c")
-        menu.addItem(title: "Paste", action: "paste:", key: "v")
-        menu.addItem(title: "Delete", action: "delete:")
-        menu.addItem(title: "Select All", action: "selectAll:", key: "a")
-        menu.addItem(.separator())
-        menu.addItem(title: "Find", submenu: findMenu())
-        return menu
-    }
-
-    /// Drives NSTextView's built-in find bar (`usesFindBar = true`). The tag selects the action.
-    private static func findMenu() -> NSMenu {
-        let menu = NSMenu(title: "Find")
-        let action = "performTextFinderAction:"
-        menu.addItem(title: "Find…", action: action, key: "f", tag: NSTextFinder.Action.showFindInterface.rawValue)
-        menu.addItem(title: "Find and Replace…", action: action, key: "f", modifiers: [.command, .option],
-                     tag: NSTextFinder.Action.showReplaceInterface.rawValue)
-        menu.addItem(title: "Find Next", action: action, key: "g", tag: NSTextFinder.Action.nextMatch.rawValue)
-        menu.addItem(title: "Find Previous", action: action, key: "g", modifiers: [.command, .shift],
-                     tag: NSTextFinder.Action.previousMatch.rawValue)
-        menu.addItem(title: "Use Selection for Find", action: action, key: "e",
-                     tag: NSTextFinder.Action.setSearchString.rawValue)
-        menu.addItem(title: "Jump to Selection", action: "centerSelectionInVisibleArea:", key: "j")
-        return menu
-    }
-
-    private static func viewMenu() -> NSMenu {
-        // AppKit adds "Show Tab Bar", "Show All Tabs" and "Enter Full Screen" here automatically.
-        let menu = NSMenu(title: "View")
+    /// ⌘+ / ⌘− / ⌘0 at the top of the View menu, handled by EditorViewController.
+    private static func addFontSizeItems(to menu: NSMenu) {
         let increase = #selector(EditorViewController.increaseFontSize(_:))
-        menu.addItem(title: "Increase Font Size", selector: increase, key: "+")
-        // ⌘= is what people press on many keyboards for ⌘+; keep it working without a visible duplicate.
-        let alias = menu.addItem(title: "Increase Font Size", selector: increase, key: "=")
-        alias.isHidden = true
-        alias.allowsKeyEquivalentWhenHidden = true
-        menu.addItem(title: "Decrease Font Size", selector: #selector(EditorViewController.decreaseFontSize(_:)), key: "-")
-        menu.addItem(title: "Actual Size", selector: #selector(EditorViewController.resetFontSize(_:)), key: "0")
-        return menu
-    }
-
-    private static func windowMenu() -> NSMenu {
-        // AppKit adds the window list and the tab commands (Show Next Tab, Merge All Windows, …).
-        let menu = NSMenu(title: "Window")
-        menu.addItem(title: "Minimize", action: "performMiniaturize:", key: "m")
-        menu.addItem(title: "Zoom", action: "performZoom:")
-        menu.addItem(.separator())
-        menu.addItem(title: "Bring All to Front", action: "arrangeInFront:")
-        NSApp.windowsMenu = menu
-        return menu
-    }
-
-    private static func helpMenu() -> NSMenu {
-        // An empty Help menu still gets the system's menu search field.
-        let menu = NSMenu(title: "Help")
-        NSApp.helpMenu = menu
-        return menu
-    }
-
-    private static func openRecentMenu() -> NSMenu {
-        let menu = NSMenu(title: "Open Recent")
-        menu.addItem(title: "Clear Menu", action: "clearRecentDocuments:")
-        // NSDocumentController fills this menu only if it carries the internal name
-        // "NSRecentDocumentsMenu". Interface Builder sets that name for you; there is no public
-        // API to do it in code, so we call the long-standing private setter if it exists.
-        // This is the only private API in the project. If it ever disappears, Open Recent
-        // stays empty and nothing else breaks. (Fallback: move the menu bar into a XIB.)
-        let setMenuName = NSSelectorFromString("_setMenuName:")
-        if menu.responds(to: setMenuName) {
-            menu.perform(setMenuName, with: "NSRecentDocumentsMenu")
+        let items = [
+            NSMenuItem(title: String(localized: "Increase Font Size", comment: "View menu item"),
+                       action: increase, keyEquivalent: "+"),
+            // ⌘= is what people press for ⌘+ on keyboards where "+" needs Shift or sits on a digit
+            // key. The hidden alias makes it work without a visible duplicate item.
+            hiddenAlias(NSMenuItem(title: String(localized: "Increase Font Size", comment: "View menu item"),
+                                   action: increase, keyEquivalent: "=")),
+            NSMenuItem(title: String(localized: "Decrease Font Size", comment: "View menu item"),
+                       action: #selector(EditorViewController.decreaseFontSize(_:)), keyEquivalent: "-"),
+            NSMenuItem(title: String(localized: "Actual Size", comment: "View menu item: default font size"),
+                       action: #selector(EditorViewController.resetFontSize(_:)), keyEquivalent: "0"),
+            NSMenuItem.separator(),
+        ]
+        for (index, item) in items.enumerated() {
+            menu.insertItem(item, at: index)
         }
-        return menu
-    }
-}
-
-// MARK: - Small helpers to keep the menu definitions readable
-
-private extension NSMenu {
-
-    /// Adds an item for a standard AppKit action given by its Objective-C selector name.
-    @discardableResult
-    func addItem(title: String, action: String, key: String = "",
-                 modifiers: NSEvent.ModifierFlags = .command, tag: Int = 0) -> NSMenuItem {
-        addItem(title: title, selector: NSSelectorFromString(action), key: key, modifiers: modifiers, tag: tag)
     }
 
-    /// Adds an item for one of our own `@objc` actions.
-    @discardableResult
-    func addItem(title: String, selector: Selector, key: String = "",
-                 modifiers: NSEvent.ModifierFlags = .command, tag: Int = 0) -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: selector, keyEquivalent: key)
-        item.keyEquivalentModifierMask = modifiers
-        item.tag = tag
-        addItem(item)
+    private static func hiddenAlias(_ item: NSMenuItem) -> NSMenuItem {
+        item.isHidden = true
+        item.allowsKeyEquivalentWhenHidden = true
         return item
     }
 
-    @discardableResult
-    func addItem(title: String, submenu: NSMenu) -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        item.submenu = submenu
-        addItem(item)
-        return item
+    // MARK: - Helpers
+
+    /// The template says "NewApplication" (About, Hide, Quit, Help); use the real app name.
+    private static func replaceTemplateAppName(in menu: NSMenu) {
+        let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "NotepadS"
+        for item in menu.items {
+            item.title = item.title.replacingOccurrences(of: "NewApplication", with: appName)
+            if let submenu = item.submenu {
+                submenu.title = submenu.title.replacingOccurrences(of: "NewApplication", with: appName)
+                replaceTemplateAppName(in: submenu)
+            }
+        }
+    }
+
+    /// The submenu (at any depth) that directly contains an item with `action`.
+    private static func submenu(containing action: String, in menu: NSMenu) -> NSMenu? {
+        let selector = NSSelectorFromString(action)
+        if menu.items.contains(where: { $0.action == selector }) {
+            return menu
+        }
+        for item in menu.items {
+            if let submenu = item.submenu, let found = Self.submenu(containing: action, in: submenu) {
+                return found
+            }
+        }
+        return nil
+    }
+
+    /// Removes the menu-bar menu (e.g. Format) that contains `action` at any depth.
+    private static func removeTopLevelMenu(containing action: String, from mainMenu: NSMenu) {
+        for item in mainMenu.items {
+            if let submenu = item.submenu, Self.submenu(containing: action, in: submenu) != nil {
+                mainMenu.removeItem(item)
+            }
+        }
+    }
+
+    /// Removes the item whose submenu directly contains an item with `action`.
+    private static func removeItem(withSubmenuContaining action: String, from menu: NSMenu) {
+        guard let submenu = submenu(containing: action, in: menu),
+              let parent = submenu.supermenu,
+              let item = parent.items.first(where: { $0.submenu === submenu }) else { return }
+        parent.removeItem(item)
+    }
+
+    private static func removeItems(withAction action: String, from menu: NSMenu) {
+        let selector = NSSelectorFromString(action)
+        for item in menu.items {
+            if item.action == selector {
+                menu.removeItem(item)
+            } else if let submenu = item.submenu {
+                removeItems(withAction: action, from: submenu)
+            }
+        }
+    }
+
+    private static func removeItems(withTitle title: String, from menu: NSMenu) {
+        for item in menu.items {
+            if item.title == title {
+                menu.removeItem(item)
+            } else if let submenu = item.submenu {
+                removeItems(withTitle: title, from: submenu)
+            }
+        }
+    }
+
+    /// After removing items, two separators may follow each other or end a menu.
+    private static func removeDuplicateSeparators(in menu: NSMenu) {
+        var previousWasSeparator = true   // also removes a separator at the top
+        for item in menu.items {
+            if item.isSeparatorItem && previousWasSeparator {
+                menu.removeItem(item)
+                continue
+            }
+            previousWasSeparator = item.isSeparatorItem
+            if let submenu = item.submenu {
+                removeDuplicateSeparators(in: submenu)
+            }
+        }
+        if let last = menu.items.last, last.isSeparatorItem {
+            menu.removeItem(last)
+        }
     }
 }

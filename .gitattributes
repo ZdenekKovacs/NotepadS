@@ -1,0 +1,2 @@
+# Manual test files must keep their exact bytes (line endings, legacy encodings).
+TestFiles/** -text
