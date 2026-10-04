@@ -2,6 +2,7 @@
 NotepadS.xcodeproj/
 
 # Build products and local state
+build/
 .build/
 .swiftpm/
 DerivedData/
