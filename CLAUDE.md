@@ -113,12 +113,12 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] 0.5 Menu bar from `MainMenu.xib`, private API removed
 
 ### Phase 1 — MVP acceptance (manual checks in DESIGN.md §4)
-- [ ] 1.1 Skeleton and menu bar
+- [x] 1.1 Skeleton and menu bar
 - [x] 1.2 Plain-text view, smart features off
 - [x] 1.3 Core tests
 - [x] 1.4 Open/save any extension, hidden files, binary/size guard, byte-exact saves
 - [ ] 1.5 Edit gatekeeper
-- [ ] 1.6 Autosave + restore (⌘Q, crash, restart, "close windows" setting on)
+- [x] 1.6 Autosave + restore (⌘Q, crash, restart, "close windows" setting on)
 - [x] 1.7 Font, ⌘+ / ⌘− / ⌘0
 - [x] 1.8 Line-number gutter
 - [ ] 1.9 Status bar: Ln/Col, selection, encoding (reopen/convert), line endings (mixed, convert)
