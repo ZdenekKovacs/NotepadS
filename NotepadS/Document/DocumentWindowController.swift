@@ -9,7 +9,7 @@ final class DocumentWindowController: NSWindowController {
     private static let defaultContentSize = NSSize(width: 900, height: 650)
 
     init(document: TextDocument) {
-        let window = NSWindow(
+        let window = DocumentWindow(
             contentRect: NSRect(origin: .zero, size: Self.defaultContentSize),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
@@ -36,6 +36,12 @@ final class DocumentWindowController: NSWindowController {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) is not supported")
+    }
+
+    override func showWindow(_ sender: Any?) {
+        super.showWindow(sender)
+        // Only now is the window part of a tab group, so the tab bar can be shown.
+        (window as? DocumentWindow)?.showTabBarUnlessHiddenByUser()
     }
 
     /// Implementing this makes the "+" button appear in the tab bar.
