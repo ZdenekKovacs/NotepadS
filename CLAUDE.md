@@ -6,6 +6,8 @@ Read this file before every task. Reasoning and full specs: `docs/DESIGN.md`.
 
 A fast, native macOS plain-text editor: a lighter Notepad++ with developer utilities.
 Opens and saves any file, detects encodings, preserves line endings byte for byte, never loses text.
+For English-speaking users: English UI, every user-facing string localizable (`String(localized:)`, String Catalog,
+English only for now); legacy encodings are Western (Windows-1252, ISO 8859-1).
 The developer is new to Swift/AppKit: code must be readable and explain *why* where AppKit is non-obvious.
 
 ## Current state
@@ -88,7 +90,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - **Fix compiler errors at their cause**, not by deleting functionality or adding force casts.
   If an API doesn't exist in the SDK, find the documented replacement and say what changed.
 - **Pure logic goes into `NotepadSCore` with unit tests in the same change.** Text utilities: tests first,
-  including invalid input, CRLF/CR/mixed line breaks and Czech characters.
+  including invalid input, CRLF/CR/mixed line breaks and non-ASCII text (accented letters, emoji).
 - **No new dependencies** (packages, frameworks, tools) without explicit approval.
 - **Don't touch unrelated code**; no drive-by refactors or reformatting.
 - **Explain non-obvious AppKit behaviour** in a short comment and in the reply.

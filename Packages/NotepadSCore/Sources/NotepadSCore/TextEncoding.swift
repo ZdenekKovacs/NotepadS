@@ -9,18 +9,18 @@ public enum TextEncoding: String, CaseIterable, Hashable, Sendable {
     case utf8WithBOM
     case utf16LittleEndian
     case utf16BigEndian
-    case windows1250
-    case isoLatin2
+    case windows1252
+    case isoLatin1
 
-    /// Label for menus, e.g. "Central European (Windows-1250)".
+    /// Label for menus, e.g. "Western (Windows-1252)".
     public var displayName: String {
         switch self {
         case .utf8: return "Unicode (UTF-8)"
         case .utf8WithBOM: return "Unicode (UTF-8 with BOM)"
         case .utf16LittleEndian: return "Unicode (UTF-16 LE)"
         case .utf16BigEndian: return "Unicode (UTF-16 BE)"
-        case .windows1250: return "Central European (Windows-1250)"
-        case .isoLatin2: return "Central European (ISO 8859-2)"
+        case .windows1252: return "Western (Windows-1252)"
+        case .isoLatin1: return "Western (ISO 8859-1)"
         }
     }
 
@@ -31,8 +31,8 @@ public enum TextEncoding: String, CaseIterable, Hashable, Sendable {
         case .utf8WithBOM: return "UTF-8 with BOM"
         case .utf16LittleEndian: return "UTF-16 LE"
         case .utf16BigEndian: return "UTF-16 BE"
-        case .windows1250: return "Windows-1250"
-        case .isoLatin2: return "ISO 8859-2"
+        case .windows1252: return "Windows-1252"
+        case .isoLatin1: return "ISO 8859-1"
         }
     }
 
@@ -42,7 +42,7 @@ public enum TextEncoding: String, CaseIterable, Hashable, Sendable {
         case .utf8WithBOM: return [0xEF, 0xBB, 0xBF]
         case .utf16LittleEndian: return [0xFF, 0xFE]
         case .utf16BigEndian: return [0xFE, 0xFF]
-        case .utf8, .windows1250, .isoLatin2: return []
+        case .utf8, .windows1252, .isoLatin1: return []
         }
     }
 
@@ -60,7 +60,7 @@ public enum TextEncoding: String, CaseIterable, Hashable, Sendable {
     }
 
     /// The first character of `text` this encoding can't store, or nil if there is none.
-    /// Used for error messages ("“😀” can't be saved in Windows-1250").
+    /// Used for error messages ("“😀” can't be saved in Windows-1252").
     public func firstUnencodableCharacter(in text: String) -> UnencodableCharacter? {
         guard let table = singleByteTable else { return nil }
         var utf16Offset = 0
@@ -91,7 +91,7 @@ public enum TextEncoding: String, CaseIterable, Hashable, Sendable {
         case .utf8, .utf8WithBOM: foundationEncoding = .utf8
         case .utf16LittleEndian: foundationEncoding = .utf16LittleEndian
         case .utf16BigEndian: foundationEncoding = .utf16BigEndian
-        case .windows1250, .isoLatin2: return nil   // handled by the table above
+        case .windows1252, .isoLatin1: return nil   // handled by the table above
         }
         // UTF-16 data must have an even number of bytes.
         if !isUTF8 && bytes.count % 2 != 0 { return nil }
@@ -107,7 +107,7 @@ public enum TextEncoding: String, CaseIterable, Hashable, Sendable {
         case .utf8, .utf8WithBOM: return Data(text.utf8)
         case .utf16LittleEndian: return text.data(using: .utf16LittleEndian)
         case .utf16BigEndian: return text.data(using: .utf16BigEndian)
-        case .windows1250, .isoLatin2: return nil
+        case .windows1252, .isoLatin1: return nil
         }
     }
 
@@ -117,8 +117,8 @@ public enum TextEncoding: String, CaseIterable, Hashable, Sendable {
 
     private var singleByteTable: SingleByteTable? {
         switch self {
-        case .windows1250: return SingleByteTable.windows1250
-        case .isoLatin2: return SingleByteTable.isoLatin2
+        case .windows1252: return SingleByteTable.windows1252
+        case .isoLatin1: return SingleByteTable.isoLatin1
         default: return nil
         }
     }
@@ -136,7 +136,7 @@ public struct UnencodableCharacter: Equatable, Sendable {
 /// Byte ↔ Unicode table for an 8-bit encoding.
 ///
 /// Why our own table instead of `String(data:encoding:)`: Foundation refuses the bytes that
-/// Windows-1250 leaves undefined (0x81, 0x83, 0x88, 0x90, 0x98), so a file containing one of
+/// Windows-1252 leaves undefined (0x81, 0x8D, 0x8F, 0x90, 0x9D), so a file containing one of
 /// them couldn't be opened at all, and Foundation's encoder may substitute look-alike
 /// characters. Here every byte decodes to exactly one character and back, so opening and
 /// saving is byte-exact for any file. The table is built once from Foundation's own mapping;
@@ -146,8 +146,8 @@ struct SingleByteTable: Sendable {
     let scalarForByte: [Unicode.Scalar]          // 256 entries
     let byteForScalar: [UInt32: UInt8]
 
-    static let windows1250 = SingleByteTable(foundationEncoding: .windowsCP1250)
-    static let isoLatin2 = SingleByteTable(foundationEncoding: .isoLatin2)
+    static let windows1252 = SingleByteTable(foundationEncoding: .windowsCP1252)
+    static let isoLatin1 = SingleByteTable(foundationEncoding: .isoLatin1)
 
     init(foundationEncoding: String.Encoding) {
         var scalars: [Unicode.Scalar] = []

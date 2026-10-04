@@ -18,7 +18,8 @@ Contents: 1. Critique of the brief and decisions · 2. Architecture · 3. Projec
 | Xcode project | — | **XcodeGen (`project.yml`)**, `.xcodeproj` not committed | `.pbxproj` edits are the most common source of broken AI diffs. XcodeGen is a dev tool, not an app dependency. |
 | Never lose text | Autosave + restoration | **Follow + one override** (`NSQuitAlwaysKeepsWindows`) | Restoration alone fails under a default macOS setting (risk 1). |
 | Line endings | Detect & preserve | **Store line breaks exactly as on disk**; new breaks use the document's style; unify only on explicit "Convert Line Endings" | Editing one line must not change other lines (no whole-file Git diffs). See risk 2. |
-| Encoding | Detect UTF-8/BOM/UTF-16/1250/8859-2 | **Follow + binary detection + "every character is saveable" invariant**; unencodable input → immediate dialog offering conversion to UTF-8 | See risks 3–4. |
+| Encoding | Detect UTF-8/BOM/UTF-16/1250/8859-2 | **Unicode + Western legacy encodings (Windows-1252, ISO 8859-1)** instead of Central European ones; binary detection; "every character is saveable" invariant; unencodable input → immediate dialog offering conversion to UTF-8 | The app targets English-speaking users (decided 2026-10-04). See risks 3–4. |
+| Language | — | **English UI, localizable from day one**: every user-facing string goes through `String(localized:)` and a String Catalog that contains only English for now | Adding a language later means adding translations, not touching code. |
 | Distribution | Undecided | **Deferred** until a paid Apple Developer account exists. Sandbox stays on; local ad-hoc signing | See §2.4. |
 | Highlighting | Regex, edited paragraphs | **Follow, with per-line state + temporary attributes** | See risk 5. |
 | JSON prettify | (implied `JSONSerialization`) | **Own token-based formatter** | See risk 7. |
@@ -36,16 +37,16 @@ Contents: 1. Critique of the brief and decisions · 2. Architecture · 3. Projec
    - **Rejected alternative:** LF in memory plus a per-line map of original endings. Its flaw is undo: deleting a minority-style line break and pressing ⌘Z would bring it back in the *dominant* style, because the map is not part of `NSTextView`'s undo. With raw storage, undo, redo, find/replace and save are byte-exact automatically.
    - **Cost:** every piece of code that splits text into lines must understand all three styles. This is concentrated in `LineIndex` (which also records each break's style) and one Core helper for line-based utilities. `NSTextView`/`NSLayoutManager` already treat `\r\n` as one paragraph break and one caret step.
 
-3. **Saving can lose characters.** A Windows-1250 file plus an emoji: `data(using:)` fails, and an *autosave* failure is the worst place to find out.
+3. **Saving can lose characters.** A Windows-1252 file plus an emoji: `data(using:)` fails, and an *autosave* failure is the worst place to find out.
    - **Invariant kept:** every character in the document can be represented in its encoding, so saving and autosaving never fail or replace characters.
-   - **UX decision:** when typed/pasted/dropped text contains characters the encoding can't store, show a sheet immediately: *"“😀” can't be saved in Windows-1250."* — **[Convert to UTF-8 and Insert]** (default) / **[Cancel]**. Nothing is inserted until the user decides. Confirming converts the document and inserts the text as one undo step. (A third button "Insert without unsupported characters" is optional, later.)
+   - **UX decision:** when typed/pasted/dropped text contains characters the encoding can't store, show a sheet immediately: *"“😀” can't be saved in Western (Windows-1252)."* — **[Convert to UTF-8 and Insert]** (default) / **[Cancel]**. Nothing is inserted until the user decides. Confirming converts the document and inserts the text as one undo step. (A third button "Insert without unsupported characters" is optional, later.)
    - **Why not "allow it and ask when saving":** with autosave in place there is no save moment — the file is rewritten in the background every few seconds. Deferring the question means either autosave errors at random times, or pausing autosave, which breaks "never lose text". And by then the user no longer knows which paste caused it.
 
-4. **Windows-1250 vs ISO-8859-2 is undecidable in general.** Both decode any byte sequence; they share á č ď é ě í ň ó ř ú ů ý and differ only in 0x80–0xBF. Heuristic (implemented): any byte 0x80–0x9F → Windows-1250; else ISO-8859-2 letters (š=0xB9, ž=0xBE, …) → ISO-8859-2; else Windows-1250. Good for Czech, wrong for Western-European legacy files (never guessed). "Reopen with Encoding" is the escape hatch. UTF-16 is always written with a BOM.
+4. **Legacy 8-bit files are guessed, not detected.** Any byte sequence is valid in an 8-bit encoding, so a file that isn't valid UTF-8 is opened as **Windows-1252**. ISO 8859-1 decodes 0xA0–0xFF identically and has only control characters in 0x80–0x9F, so a Latin-1 file shows the same text and still saves byte for byte. Both use one-to-one byte tables (undefined Windows-1252 bytes map to the C1 control with the same number), so every file round-trips exactly. Files in other legacy encodings (e.g. Central European) show wrong characters but are never damaged; "Reopen with Encoding" is the escape hatch. UTF-16 is always written with a BOM.
 
 5. **"Highlight only edited paragraphs" breaks multi-line constructs** (block comments, Python `"""`, Markdown fences). Grammars get single-line rules plus begin/end rules; the highlighter caches the "state at line start" per line and re-highlights from the edit until the state stabilizes. Tokenize line *contents* (without the break characters). Apply colors with `NSLayoutManager.addTemporaryAttribute` — no effect on text storage, undo or autosave.
 
-6. **"Any file" includes binary and huge files.** Claiming `public.data` makes images and archives openable, and ISO-8859-2 decodes anything, so a PNG would open as garbage and might not round-trip. Implemented: NUL bytes in the first 8 KB (and not UTF-16) → refused as binary. Files over 100 MB → refused.
+6. **"Any file" includes binary and huge files.** Claiming `public.data` makes images and archives openable, and Windows-1252 decodes anything, so a PNG would open as garbage and might not round-trip. Implemented: NUL bytes in the first 8 KB (and not UTF-16) → refused as binary. Files over 100 MB → refused.
 
 7. **JSON prettify via `JSONSerialization`/`Codable` is destructive:** key order lost, numbers rewritten (`1.0` → `1`, big integers lose precision). Use a small tokenizer-based formatter that only changes whitespace and reports exact error line/column.
 
@@ -75,11 +76,11 @@ Contents: 1. Critique of the brief and decisions · 2. Architecture · 3. Projec
 - **Command-line launch:** `open -a NotepadS file.txt`. A real CLI can't be installed by a sandboxed App Store app.
 - **Root-owned files** (`/etc/hosts`): impossible in the sandbox.
 - **Per-document vs global settings** (font size, wrap, tabs): define in v0.4.
-- **`.editorconfig`**, app icon, Czech localization.
+- **`.editorconfig`**, app icon, translations (the String Catalog is ready; English only for now).
 
 ### Cut or postpone
 
-XML prettify/minify · custom regex find/replace panel stays in v0.4 · Title Case kept simple (`cs` locale, capitalize words).
+XML prettify/minify · custom regex find/replace panel stays in v0.4 · Title Case kept simple (English rules, capitalize words).
 
 ### Assumptions
 
@@ -233,7 +234,7 @@ Details per file in §5. Commit after each green step.
 | 0.1 | Core compiles, tests pass | `swift test --package-path Packages/NotepadSCore` green. |
 | 0.2 | App compiles with local signing | `project.yml` uses ad-hoc signing; `xcodegen generate` + `xcodebuild … build` succeed; the app launches and ⌘N opens a window [manual]; the TextKit 1 assertion doesn't fire. |
 | 0.3 | Preserve line breaks (Core + app) | New Core tests green (CR/CRLF/mixed, randomized `LineIndex` edits incl. `\r` and `\n`, decode/encode byte-exact for mixed files). [manual] Open a mixed file, edit one line, save → `git diff` shows only that line; Enter inserts the document's style; pasting CRLF into an LF file inserts LF; Convert Line Endings unifies and ⌘Z restores the mixed file exactly. |
-| 0.4 | Encodability dialog | [manual] In a Windows-1250 doc, pasting an emoji shows the sheet; "Convert to UTF-8 and Insert" converts and inserts; one ⌘Z undoes both; Cancel inserts nothing. |
+| 0.4 | Encodability dialog | [manual] In a Windows-1252 doc, pasting an emoji shows the sheet; "Convert to UTF-8 and Insert" converts and inserts; one ⌘Z undoes both; Cancel inserts nothing. |
 | 0.5 | Menu bar from XIB, no private API | `grep -rn "_setMenuName\|NSSelectorFromString(\"_" NotepadS` finds nothing. [manual] Open Recent lists files after opening some, also after relaunch; font-size items work; no Format/Print menus. |
 
 ### Phase 1 — MVP acceptance (code exists after Phase 0)
@@ -243,12 +244,12 @@ Details per file in §5. Commit after each green step.
 | 1.1 | Skeleton | Full menu bar; ⌘Q quits. |
 | 1.2 | Text view | Typing `"--"` stays `"--"`; no spell-check underlines; no inline predictions. |
 | 1.3 | Core | `swift test` green. |
-| 1.4 | Open/save any file | Open `.env` (⇧⌘. in the panel), `x.yml`, `Makefile`; edit; save → `git diff`/`cmp` shows only the edit. Untitled saved as `Makefile` gets no extension. Windows-1250 stays Windows-1250 (`file -I`). CRLF and mixed files keep their bytes except edited lines. Binary file → clear error. |
+| 1.4 | Open/save any file | Open `.env` (⇧⌘. in the panel), `x.yml`, `Makefile`; edit; save → `git diff`/`cmp` shows only the edit. Untitled saved as `Makefile` gets no extension. Windows-1252 stays Windows-1252 (`cmp` against the original). CRLF and mixed files keep their bytes except edited lines. Binary file → clear error. |
 | 1.5 | Edit gatekeeper | Pasted line breaks get the document style; unencodable input → dialog (0.4). |
 | 1.6 | Autosave + restore | (a) Untitled doc, ⌘Q, relaunch → restored. (b) Same with "Close windows when quitting" **on**. (c) Type, wait 30 s, `kill -9 <pid>`, relaunch → restored. (d) Restart the Mac → restored. |
 | 1.7 | Font | ⌘+ / ⌘= / ⌘− / ⌘0; size persists for new windows; tabs align at 4 spaces. |
 | 1.8 | Gutter | Correct numbers with wrapping, CRLF/CR files, trailing break; current line highlighted; widens at 1 000 / 10 000 lines; 100 000-line file scrolls smoothly. |
-| 1.9 | Status bar | Ln/Col and selection live; Reopen with Windows-1250 fixes a mis-detected Czech file; Convert to ISO-8859-2 with an emoji → error naming the line; line-ending "(mixed)" appears/disappears live; Convert Line Endings is undoable. |
+| 1.9 | Status bar | Ln/Col and selection live; Reopen with ISO 8859-1 / UTF-8 works and is byte-exact; Convert to ISO 8859-1 with an emoji or € → error naming the line; line-ending "(mixed)" appears/disappears live; Convert Line Endings is undoable. |
 | 1.10 | Find, tabs, external changes | ⌘F/⌘G/⌥⌘F; ⌘N opens a tab, "+" works, tabs restored after relaunch; `echo x >> file` while open & unedited → reloads; while edited → conflict dialog on save. |
 
 ### Phase 2 — v0.2
@@ -273,8 +274,8 @@ Details per file in §5. Commit after each green step.
 | 3.2 | JSON prettify/minify (tokenizer) | Key order and number literals preserved; errors report line:column. |
 | 3.3 | Base64 / URL encode-decode | RFC 4648 / RFC 3986 vectors pass; invalid input or non-UTF-8 result → error. |
 | 3.4 | SHA-256/SHA-1/MD5 (CryptoKit), replace or copy | Whole-document hash equals `shasum -a 256 file`. |
-| 3.5 | Case: UPPER, lower, Title, camel, snake, kebab | Tests incl. Czech diacritics and acronyms (`HTTPServer` → `http_server`). |
-| 3.6 | Sort A→Z/Z→A (Czech collation), dedupe (keep first), trim trailing whitespace | Tests incl. "ch" after "h"; trimming never removes `\r` of a CRLF. |
+| 3.5 | Case: UPPER, lower, Title, camel, snake, kebab | Tests incl. accented letters (é, ß, ñ) and acronyms (`HTTPServer` → `http_server`). |
+| 3.6 | Sort A→Z/Z→A (locale-aware collation), dedupe (keep first), trim trailing whitespace | Tests incl. accented letters sorting next to their base letter; trimming never removes `\r` of a CRLF. |
 
 ### Phase 4 — v0.4
 
@@ -325,4 +326,4 @@ log stream --predicate 'process == "NotepadS"' --level error     # runtime error
 - `AppDelegate`: stop assigning `NSApp.mainMenu`; call the adjustment function.
 - Fallback only if the XIB route fails: option B from risk 14, tested with the sandbox on.
 
-**Verification note.** The `LineIndex` update algorithm (LF only, 20 000 random edits) and the Windows-1250/ISO-8859-2 byte tables were cross-checked in Python; nothing else has been run.
+**Verification note.** Phase 0.1–0.4 are implemented: `NotepadSCore` is compiled and unit-tested (incl. 20 000 random `LineIndex` edits with `\r`/`\n` against a full rebuild, and byte tables built from Foundation and checked to be one-to-one), and the app builds and runs.

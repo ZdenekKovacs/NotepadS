@@ -7,7 +7,7 @@ public enum TextCodecError: Error, Equatable, LocalizedError {
     /// The file is larger than the editor can handle.
     case fileTooLarge(byteCount: Int, limit: Int)
     /// The bytes are not valid in the requested encoding (e.g. "Reopen with UTF-8" on a
-    /// Windows-1250 file).
+    /// Windows-1252 file).
     case cannotDecode(TextEncoding)
     /// Some character can't be stored in the encoding.
     case cannotEncode(TextEncoding, UnencodableCharacter?)
