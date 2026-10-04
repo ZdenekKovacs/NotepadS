@@ -276,17 +276,48 @@ final class EditorViewController: NSViewController {
         }
     }
 
-    private func showInsertionRejected(_ message: String) {
-        NSSound.beep()
-        guard let window = view.window, window.attachedSheet == nil else { return }
-        // Present after the current editing event has finished.
-        DispatchQueue.main.async {
+    /// Invariant 2: `text` contains `character`, which the document's encoding can't store.
+    /// Nothing has been inserted. Asks whether to convert the document to UTF-8 and insert.
+    private func offerConversionToUTF8(inserting text: String, in range: NSRange,
+                                       character: UnencodableCharacter) {
+        guard let window = view.window, window.attachedSheet == nil else {
+            NSSound.beep()
+            return
+        }
+        let characterName = "“\(character.character)”"
+        let encodingName = document.encoding.displayName
+        // Present after the current editing event has finished. The sheet is window-modal,
+        // so the user can't edit the text meanwhile and `range` stays valid.
+        DispatchQueue.main.async { [weak self] in
             let alert = NSAlert()
             alert.alertStyle = .warning
-            alert.messageText = "Character not supported by the current encoding"
-            alert.informativeText = message
-            alert.beginSheetModal(for: window)
+            alert.messageText = "\(characterName) can’t be saved in \(encodingName)."
+            alert.informativeText = "Convert the document to UTF-8 to insert it. One Undo reverts both."
+            alert.addButton(withTitle: "Convert to UTF-8 and Insert")   // first button = default (Return)
+            alert.addButton(withTitle: "Cancel")                        // Esc
+            alert.beginSheetModal(for: window) { response in
+                guard response == .alertFirstButtonReturn else { return }
+                self?.convertToUTF8AndInsert(text, in: range)
+            }
         }
+    }
+
+    /// Converts the document to UTF-8 and inserts `text`, as one undo step.
+    private func convertToUTF8AndInsert(_ text: String, in range: NSRange) {
+        guard let undoManager = document.undoManager,
+              NSMaxRange(range) <= document.textStorage.length else { return }
+        textView.breakUndoCoalescing()
+        undoManager.beginUndoGrouping()
+        do {
+            try document.convert(to: .utf8)   // UTF-8 can store any text, so this doesn't throw
+            // Goes through the gatekeeper again: the text now passes the encoding check, and
+            // its line breaks still get the document's style.
+            textView.insertText(text, replacementRange: range)
+        } catch {
+            showError(error)
+        }
+        undoManager.setActionName("Convert to UTF-8")
+        undoManager.endUndoGrouping()
     }
 }
 
@@ -310,9 +341,10 @@ extension EditorViewController: NSTextViewDelegate {
             return true
         }
 
-        // Invariant 2: never accept characters the document's encoding can't save.
-        if let reason = document.rejectionReason(forInserting: replacement) {
-            showInsertionRejected(reason)
+        // Invariant 2: never accept characters the document's encoding can't save. Insert
+        // nothing now; the dialog offers to convert the document to UTF-8 and then insert.
+        if let character = document.rejectionReason(forInserting: replacement) {
+            offerConversionToUTF8(inserting: replacement, in: affectedCharRange, character: character)
             return false
         }
 

@@ -156,11 +156,11 @@ final class TextDocument: NSDocument {
         onSettingsChanged?()
     }
 
-    /// Returns a user-facing message if `text` can't be represented in the current encoding
-    /// (invariant 2), or nil if it may be inserted.
-    func rejectionReason(forInserting text: String) -> String? {
+    /// The first character of `text` that the current encoding can't store, or nil if `text`
+    /// may be inserted as is (invariant 2). The editor then offers to convert to UTF-8.
+    func rejectionReason(forInserting text: String) -> UnencodableCharacter? {
+        // Checking the scalars first is faster than building Characters for every keystroke.
         guard !encoding.canEncode(text) else { return nil }
-        let character = encoding.firstUnencodableCharacter(in: text).map { "“\($0.character)”" } ?? "This text"
-        return "\(character) can’t be saved in \(encoding.displayName). To use it, convert the document to UTF-8 with the encoding menu in the status bar."
+        return encoding.firstUnencodableCharacter(in: text)
     }
 }
