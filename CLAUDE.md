@@ -122,7 +122,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] 1.7 Font, ⌘+ / ⌘− / ⌘0
 - [x] 1.8 Line-number gutter
 - [x] 1.9 Status bar: Ln/Col, selection, encoding (reopen/convert), line endings (mixed, convert)
-- [ ] 1.10 Find bar, native tabs, external-change handling
+- [x] 1.10 Find bar, native tabs, external-change handling
 
 ### Phase 2 — v0.2
 - [ ] Grammar model + highlighter with per-line state (Core, tested)
