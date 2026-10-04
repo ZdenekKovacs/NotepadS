@@ -4,7 +4,7 @@ import NotepadSCore
 protocol StatusBarViewDelegate: AnyObject {
     func statusBar(_ statusBar: StatusBarView, reopenWith encoding: TextEncoding)
     func statusBar(_ statusBar: StatusBarView, convertTo encoding: TextEncoding)
-    func statusBar(_ statusBar: StatusBarView, didSelect lineEnding: LineEnding)
+    func statusBar(_ statusBar: StatusBarView, convertLineEndingsTo lineEnding: LineEnding)
 }
 
 /// Bottom bar: caret position, selection size, language, encoding and line endings.
@@ -37,9 +37,12 @@ final class StatusBarView: NSView {
         fatalError("init(coder:) is not supported")
     }
 
+    /// - Parameters:
+    ///   - lineEndingCounts: line breaks of each style in the text, kept live by `LineIndex`.
+    ///   - newLineEnding: the document's style for inserted line breaks.
     func update(line: Int, column: Int, selectedCharacters: Int,
-                encoding: TextEncoding, lineEnding: LineEnding,
-                hadMixedLineEndings: Bool, canReopen: Bool) {
+                encoding: TextEncoding, lineEndingCounts: LineEndingCounts,
+                newLineEnding: LineEnding, canReopen: Bool) {
         positionLabel.stringValue = "Ln \(line), Col \(column)"
         selectionLabel.stringValue = selectedCharacters > 0 ? "\(selectedCharacters) selected" : ""
 
@@ -51,12 +54,16 @@ final class StatusBarView: NSView {
             item.state = (item.representedObject as? TextEncoding) == encoding ? .on : .off
         }
 
-        setTitle(hadMixedLineEndings ? "\(lineEnding.shortName) (mixed)" : lineEnding.shortName, of: lineEndingButton)
-        lineEndingButton.toolTip = hadMixedLineEndings
-            ? "The file mixed line endings when it was opened. Saving writes \(lineEnding.shortName) everywhere."
-            : "Line endings"
+        // Show the most frequent style in the text; a text without breaks shows the style
+        // that Enter will insert.
+        let shownLineEnding = lineEndingCounts.dominant ?? newLineEnding
+        let isMixed = lineEndingCounts.isMixed
+        setTitle(isMixed ? "\(shownLineEnding.shortName) (mixed)" : shownLineEnding.shortName, of: lineEndingButton)
+        lineEndingButton.toolTip = isMixed
+            ? "This text mixes line-break styles. New line breaks use \(newLineEnding.shortName). Choose “Convert to …” to unify them."
+            : "Line endings: \(shownLineEnding.displayName)"
         for item in lineEndingItems {
-            item.state = (item.representedObject as? LineEnding) == lineEnding ? .on : .off
+            item.state = !isMixed && (item.representedObject as? LineEnding) == shownLineEnding ? .on : .off
         }
     }
 
@@ -74,7 +81,7 @@ final class StatusBarView: NSView {
 
     @objc private func lineEndingItemChosen(_ sender: NSMenuItem) {
         guard let lineEnding = sender.representedObject as? LineEnding else { return }
-        delegate?.statusBar(self, didSelect: lineEnding)
+        delegate?.statusBar(self, convertLineEndingsTo: lineEnding)
     }
 
     // MARK: - Setup
@@ -100,7 +107,7 @@ final class StatusBarView: NSView {
         lineEndingMenu.autoenablesItems = false
         lineEndingMenu.addItem(NSMenuItem())
         for lineEnding in LineEnding.allCases {
-            lineEndingItems.append(addItem(lineEnding.displayName, value: lineEnding,
+            lineEndingItems.append(addItem("Convert to \(lineEnding.displayName)", value: lineEnding,
                                            action: #selector(lineEndingItemChosen(_:)), to: lineEndingMenu))
         }
         configure(lineEndingButton, menu: lineEndingMenu, toolTip: "Line endings")

@@ -24,6 +24,8 @@ final class EditorViewController: NSViewController {
     /// Where each line starts; shared with the gutter and the status bar.
     private var lineIndex = LineIndex()
     private var fontSize = EditorDefaults.fontSize
+    /// True while one of our own commands changes the text; the gatekeeper lets it through.
+    private var isPerformingProgrammaticEdit = false
 
     init(document: TextDocument) {
         self.document = document
@@ -104,7 +106,7 @@ final class EditorViewController: NSViewController {
         assert(textView.textLayoutManager == nil, "The editor must use TextKit 1 (see CLAUDE.md).")
 
         document.onTextReplaced = { [weak self] in self?.documentTextWasReplaced() }
-        document.onSettingsChanged = { [weak self] in self?.updateStatusBar() }
+        document.onSettingsChanged = { [weak self] in self?.documentSettingsDidChange() }
         NotificationCenter.default.addObserver(self, selector: #selector(documentTextDidProcessEditing(_:)),
                                                name: NSTextStorage.didProcessEditingNotification,
                                                object: document.textStorage)
@@ -112,7 +114,7 @@ final class EditorViewController: NSViewController {
         lineIndex.rebuild(from: document.textStorage.mutableString)
         applyFont()
         lineNumberView.lineCountDidChange(lineIndex.lineCount)
-        updateStatusBar()
+        documentSettingsDidChange()
     }
 
     override func viewDidAppear() {
@@ -198,7 +200,46 @@ final class EditorViewController: NSViewController {
         let caret = min(textView.selectedRange().location, document.textStorage.length)
         textView.setSelectedRange(NSRange(location: caret, length: 0))
         lineNumberView.needsDisplay = true
+        documentSettingsDidChange()   // reading the file may have changed the line-break style
+    }
+
+    /// The document's encoding or line-break style changed.
+    private func documentSettingsDidChange() {
+        textView.lineBreakToInsert = document.lineEnding
         updateStatusBar()
+    }
+
+    // MARK: - Line endings
+
+    /// "Convert Line Endings": rewrites every line break as `lineEnding` and makes it the style
+    /// for new breaks. Text and style change in one undo group, so one ⌘Z restores the
+    /// original (possibly mixed) line breaks exactly.
+    private func convertLineEndings(to lineEnding: LineEnding) {
+        let storage = document.textStorage
+        let original = storage.string
+        let converted = LineEnding.convertAll(original, to: lineEnding)
+        guard converted != original || lineEnding != document.lineEnding,
+              let undoManager = document.undoManager else { return }
+
+        // Don't merge this step with the typing before it.
+        textView.breakUndoCoalescing()
+        undoManager.beginUndoGrouping()
+        document.setLineEnding(lineEnding)
+        if converted != original {
+            let caret = textView.selectedRange().location
+            let fullRange = NSRange(location: 0, length: storage.length)
+            // shouldChangeText/didChangeText make NSTextView record the change for undo and
+            // mark the document edited, exactly like typing.
+            isPerformingProgrammaticEdit = true
+            if textView.shouldChangeText(in: fullRange, replacementString: converted) {
+                storage.replaceCharacters(in: fullRange, with: converted)
+                textView.didChangeText()
+            }
+            isPerformingProgrammaticEdit = false
+            textView.setSelectedRange(NSRange(location: min(caret, storage.length), length: 0))
+        }
+        undoManager.setActionName("Convert Line Endings")
+        undoManager.endUndoGrouping()
     }
 
     // MARK: - Status bar
@@ -212,8 +253,8 @@ final class EditorViewController: NSViewController {
             column: lineIndex.column(of: caret, in: text),
             selectedCharacters: characterCount(in: selection, of: text),
             encoding: document.encoding,
-            lineEnding: document.lineEnding,
-            hadMixedLineEndings: document.hadMixedLineEndings,
+            lineEndingCounts: lineIndex.counts,
+            newLineEnding: document.lineEnding,
             canReopen: document.fileURL != nil
         )
     }
@@ -259,18 +300,32 @@ extension EditorViewController: NSTextViewDelegate {
                   replacementString: String?) -> Bool {
         guard let replacement = replacementString, !replacement.isEmpty else { return true }
 
+        // Our own commands prepare their text themselves. Undo and redo restore earlier text
+        // exactly; converting it here would make ⌘Z after "Convert Line Endings" lose the
+        // original line breaks.
+        if isPerformingProgrammaticEdit {
+            return true
+        }
+        if let undoManager = textView.undoManager, undoManager.isUndoing || undoManager.isRedoing {
+            return true
+        }
+
         // Invariant 2: never accept characters the document's encoding can't save.
         if let reason = document.rejectionReason(forInserting: replacement) {
             showInsertionRejected(reason)
             return false
         }
 
-        // Invariant 1: the storage contains only LF. Pasted or dropped text may contain CRLF/CR;
-        // insert a normalized copy instead (registered for undo like normal typing).
-        // Check bytes, not Characters: in Swift "\r\n" is a single Character.
-        if replacement.utf8.contains(0x0D) {
-            textView.insertText(LineEnding.normalizeToLF(replacement), replacementRange: affectedCharRange)
-            return false
+        // Invariant 1: line breaks the user inserts (paste, drop) use the document's style;
+        // existing breaks are never touched. If the text needs converting, cancel this change and
+        // insert the converted copy instead (it comes back here, passes, and is recorded for
+        // undo like normal typing). Check bytes, not Characters: in Swift "\r\n" is one Character.
+        if replacement.utf8.contains(where: { $0 == 0x0A || $0 == 0x0D }) {
+            let converted = LineEnding.convertAll(replacement, to: document.lineEnding)
+            if converted != replacement {
+                textView.insertText(converted, replacementRange: affectedCharRange)
+                return false
+            }
         }
         return true
     }
@@ -315,8 +370,8 @@ extension EditorViewController: StatusBarViewDelegate {
         }
     }
 
-    func statusBar(_ statusBar: StatusBarView, didSelect lineEnding: LineEnding) {
-        document.setLineEnding(lineEnding)
+    func statusBar(_ statusBar: StatusBarView, convertLineEndingsTo lineEnding: LineEnding) {
+        convertLineEndings(to: lineEnding)
     }
 
     private func reopen(with encoding: TextEncoding) {

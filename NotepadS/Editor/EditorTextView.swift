@@ -1,4 +1,5 @@
 import AppKit
+import NotepadSCore
 
 /// The text view, configured as a plain-text code editor.
 ///
@@ -20,6 +21,38 @@ final class EditorTextView: NSTextView {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) is not supported")
     }
+
+    // MARK: - Line breaks
+
+    /// The line break the editor inserts: the document's style (set by EditorViewController).
+    var lineBreakToInsert: LineEnding = .lf
+
+    // NSTextView maps Enter, ⌥Enter, ⌃Enter and similar keys to these four actions. By default
+    // they insert "\n", or the Unicode line/paragraph separators U+2028/U+2029, which don't
+    // belong in a plain-text file. All of them insert the document's line break instead.
+    // `insertText` goes through the normal edit path, so undo and the delegate work as for typing.
+
+    override func insertNewline(_ sender: Any?) {
+        insertLineBreakOfDocumentStyle()
+    }
+
+    override func insertNewlineIgnoringFieldEditor(_ sender: Any?) {
+        insertLineBreakOfDocumentStyle()
+    }
+
+    override func insertLineBreak(_ sender: Any?) {
+        insertLineBreakOfDocumentStyle()
+    }
+
+    override func insertParagraphSeparator(_ sender: Any?) {
+        insertLineBreakOfDocumentStyle()
+    }
+
+    private func insertLineBreakOfDocumentStyle() {
+        insertText(lineBreakToInsert.string, replacementRange: selectedRange())
+    }
+
+    // MARK: - Setup
 
     private func configureForPlainText() {
         isRichText = false

@@ -5,19 +5,20 @@ import NotepadSCore
 ///
 /// The document owns the `NSTextStorage`; the editor's layout manager attaches to it.
 /// Two invariants keep saving safe (see CLAUDE.md):
-/// 1. `textStorage` contains only LF line breaks. The file's style (`lineEnding`) is
-///    restored when saving.
+/// 1. `textStorage` keeps every line break exactly as in the file (`\n`, `\r\n`, `\r`,
+///    possibly mixed), and saving writes them unchanged. `lineEnding` is only the style for
+///    line breaks the editor inserts.
 /// 2. Every character in `textStorage` can be represented in `encoding`, so saving and
 ///    autosaving can never fail or silently replace characters.
 final class TextDocument: NSDocument {
 
-    /// The text, always with LF line breaks.
+    /// The text, with line breaks exactly as in the file.
     let textStorage = NSTextStorage()
 
     private(set) var encoding: TextEncoding = .utf8   // new documents: UTF-8 without BOM
+    /// Style for line breaks the editor inserts (Enter, paste, drop). Set to the file's dominant
+    /// style when it is read; changed only by "Convert Line Endings".
     private(set) var lineEnding: LineEnding = .lf
-    /// True if the file mixed LF/CRLF/CR when it was opened. Saving writes `lineEnding` everywhere.
-    private(set) var hadMixedLineEndings = false
 
     /// Called after the text was replaced from disk (revert, external change, reopen with encoding).
     var onTextReplaced: (() -> Void)?
@@ -66,7 +67,6 @@ final class TextDocument: NSDocument {
 
         encoding = decoded.encoding
         lineEnding = decoded.lineEnding
-        hadMixedLineEndings = decoded.hasMixedLineEndings
         // Loading is not an edit: change the storage directly, so nothing is recorded for undo,
         // and drop undo steps that refer to the old text (relevant when reverting).
         textStorage.replaceCharacters(in: NSRange(location: 0, length: textStorage.length), with: decoded.text)
@@ -141,14 +141,17 @@ final class TextDocument: NSDocument {
         onSettingsChanged?()
     }
 
-    /// Changes the line ending written on save. Undoable.
+    /// Changes the style for inserted line breaks. Undoable.
+    ///
+    /// Only the editor's "Convert Line Endings" command calls this, inside the same undo group
+    /// as the text change, so one ⌘Z restores both the text and the style. The caller sets the
+    /// undo action name.
     func setLineEnding(_ newLineEnding: LineEnding) {
         guard newLineEnding != lineEnding else { return }
         let oldLineEnding = lineEnding
         undoManager?.registerUndo(withTarget: self) { document in
             document.setLineEnding(oldLineEnding)
         }
-        undoManager?.setActionName("Change Line Endings")
         lineEnding = newLineEnding
         onSettingsChanged?()
     }
