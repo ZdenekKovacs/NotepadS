@@ -129,7 +129,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Temporary-attribute highlighting, debounced, size/long-line thresholds
 - [x] JSON, Python, Shell, Markdown; detection by extension + shebang; status-bar override
 - [x] Light/dark syntax themes
-- [ ] Word wrap toggle, invisible characters, Go to Line (⌘L), caret restore
+- [x] Word wrap toggle (⌃⌘W), invisible characters, Go to Line (⌘L), caret restore
 
 ### Phase 3 — v0.3
 - [ ] Transformation framework (selection or document, one undo step, errors with line)

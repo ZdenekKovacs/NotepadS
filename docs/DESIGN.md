@@ -261,7 +261,7 @@ Details per file in §5. Commit after each green step.
 | 2.3 | Temporary-attribute highlighting, debounced, thresholds §2.5 | Smooth typing in a 5 MB JSON; > 10 MB or long lines show "Highlighting off". |
 | 2.4 | JSON, Python, Shell, Markdown; detection by extension + shebang; status-bar override | `.py` and `#!/bin/bash` detected; override sticks for the window. |
 | 2.5 | Light/dark syntax themes | Colors switch live with the system appearance. |
-| 2.6 | Word wrap toggle (⌥⌘W) | Off → horizontal scrolling; gutter still correct. |
+| 2.6 | Word wrap toggle (⌃⌘W; ⌥⌘W is AppKit's Close Other Tabs) | Off → horizontal scrolling; gutter still correct. |
 | 2.7 | Invisible characters (`NSLayoutManager` subclass: · → ¬, distinct marks for LF/CRLF/CR) | Toggle shows spaces/tabs/line breaks without changing text or caret. |
 | 2.8 | Go to Line (⌘L) | Jumps and centers; invalid input rejected. |
 | 2.9 | Caret/scroll restore | Relaunch restores the caret. |
