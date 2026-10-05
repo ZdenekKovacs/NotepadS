@@ -25,6 +25,21 @@ final class TextDocument: NSDocument {
     /// Called after the encoding or line ending changed.
     var onSettingsChanged: (() -> Void)?
 
+    /// Where the user was in the text: saved with window restoration, so a relaunch puts the
+    /// caret and the scroll position back.
+    struct EditorPosition: Equatable {
+        var selection: NSRange
+        /// The first character at the top of the visible area.
+        var firstVisibleCharacter: Int
+    }
+
+    /// Set by the editor; asked when AppKit saves the restorable state.
+    var editorPositionProvider: (() -> EditorPosition?)?
+    /// Set by the editor; called when AppKit restores the state after the editor exists.
+    var onRestoreEditorPosition: ((EditorPosition) -> Void)?
+    /// A restored position that arrived before the editor existed.
+    private var pendingEditorPosition: EditorPosition?
+
     /// Set by `reopen(with:)` right before reverting; consumed by `read(from:ofType:)`.
     private var encodingForNextRead: TextEncoding?
 
@@ -114,6 +129,45 @@ final class TextDocument: NSDocument {
     override func fileNameExtension(forType typeName: String, saveOperation: NSDocument.SaveOperationType) -> String? {
         guard let pathExtension = fileURL?.pathExtension, !pathExtension.isEmpty else { return nil }
         return pathExtension
+    }
+
+    // MARK: - Restoring the caret and scroll position
+
+    private enum RestorationKey {
+        static let selectionLocation = "NotepadSSelectionLocation"
+        static let selectionLength = "NotepadSSelectionLength"
+        static let firstVisibleCharacter = "NotepadSFirstVisibleCharacter"
+    }
+
+    /// AppKit calls this after `invalidateRestorableState()`, and when the app quits.
+    override func encodeRestorableState(with coder: NSCoder) {
+        super.encodeRestorableState(with: coder)
+        guard let position = editorPositionProvider?() else { return }
+        coder.encode(position.selection.location, forKey: RestorationKey.selectionLocation)
+        coder.encode(position.selection.length, forKey: RestorationKey.selectionLength)
+        coder.encode(position.firstVisibleCharacter, forKey: RestorationKey.firstVisibleCharacter)
+    }
+
+    /// AppKit calls this after reopening the document at launch. The editor may or may not exist
+    /// yet, depending on the order AppKit restores things in; both cases are handled.
+    override func restoreState(with coder: NSCoder) {
+        super.restoreState(with: coder)
+        guard coder.containsValue(forKey: RestorationKey.selectionLocation) else { return }
+        let position = EditorPosition(
+            selection: NSRange(location: max(coder.decodeInteger(forKey: RestorationKey.selectionLocation), 0),
+                               length: max(coder.decodeInteger(forKey: RestorationKey.selectionLength), 0)),
+            firstVisibleCharacter: max(coder.decodeInteger(forKey: RestorationKey.firstVisibleCharacter), 0))
+        if let onRestoreEditorPosition {
+            onRestoreEditorPosition(position)
+        } else {
+            pendingEditorPosition = position
+        }
+    }
+
+    /// A position restored before the editor existed, once.
+    func takePendingEditorPosition() -> EditorPosition? {
+        defer { pendingEditorPosition = nil }
+        return pendingEditorPosition
     }
 
     // MARK: - Encoding and line endings

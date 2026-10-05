@@ -132,12 +132,51 @@ final class EditorViewController: NSViewController {
         lineNumberView.lineCountDidChange(lineIndex.lineCount)
         documentSettingsDidChange()
         highlighting.onStateChanged = { [weak self] in self?.updateLanguageInStatusBar() }
+        document.editorPositionProvider = { [weak self] in self?.currentPosition() }
+        document.onRestoreEditorPosition = { [weak self] position in self?.restore(position) }
         highlighting.setLanguage(detectedLanguage())
     }
 
     override func viewDidAppear() {
         super.viewDidAppear()
         view.window?.makeFirstResponder(textView)
+        if let position = document.takePendingEditorPosition() {
+            restore(position)
+        }
+    }
+
+    // MARK: - Caret and scroll position across relaunches
+
+    /// The current caret, selection and scroll position, for window restoration.
+    private func currentPosition() -> TextDocument.EditorPosition {
+        TextDocument.EditorPosition(selection: textView.selectedRange(),
+                                    firstVisibleCharacter: visibleCharacterRange().location)
+    }
+
+    private func restore(_ position: TextDocument.EditorPosition) {
+        let length = document.textStorage.length
+        // The file may have changed since the position was saved: stay inside the text.
+        let location = min(position.selection.location, length)
+        textView.setSelectedRange(NSRange(location: location, length: min(position.selection.length, length - location)))
+
+        let firstCharacter = min(position.firstVisibleCharacter, length)
+        guard firstCharacter < length else { return }
+        // Lay out up to that character so its position is exact, then scroll it to the top.
+        // Line fragments are in text-container coordinates, offset by `textContainerOrigin`.
+        layoutManager.ensureLayout(forCharacterRange: NSRange(location: 0, length: firstCharacter + 1))
+        let glyph = layoutManager.glyphIndexForCharacter(at: firstCharacter)
+        let lineFragment = layoutManager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
+        textView.scroll(NSPoint(x: 0, y: lineFragment.minY + textView.textContainerOrigin.y))
+    }
+
+    /// The characters currently visible in the text view.
+    private func visibleCharacterRange() -> NSRange {
+        guard let textContainer = textView.textContainer else { return NSRange(location: 0, length: 0) }
+        var visibleRect = textView.visibleRect
+        visibleRect.origin.x -= textView.textContainerOrigin.x
+        visibleRect.origin.y -= textView.textContainerOrigin.y
+        let glyphRange = layoutManager.glyphRange(forBoundingRect: visibleRect, in: textContainer)
+        return layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
     }
 
     // MARK: - Word wrap (View menu)
@@ -326,6 +365,7 @@ final class EditorViewController: NSViewController {
 
     @objc private func visibleTextDidChange(_ notification: Notification) {
         highlighting.visibleTextDidChange()
+        document.invalidateRestorableState()   // the scroll position is part of the saved state
     }
 
     private func updateLanguageInStatusBar() {
@@ -497,6 +537,7 @@ extension EditorViewController: NSTextViewDelegate {
 
     func textViewDidChangeSelection(_ notification: Notification) {
         updateStatusBar()
+        document.invalidateRestorableState()   // AppKit saves the new caret position soon
         lineNumberView.needsDisplay = true   // the highlighted current-line number may change
     }
 
