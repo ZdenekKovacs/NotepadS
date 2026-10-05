@@ -37,6 +37,18 @@
     "Decrease Font Size" : {
       "comment" : "View menu item"
     },
+    "Enter a line number from 1 to %lld." : {
+      "comment" : "Go to Line dialog"
+    },
+    "Go" : {
+      "comment" : "Go to Line dialog button"
+    },
+    "Go to Line" : {
+      "comment" : "Go to Line dialog title"
+    },
+    "Go to Line…" : {
+      "comment" : "Edit menu item"
+    },
     "Increase Font Size" : {
       "comment" : "View menu item"
     },
@@ -45,6 +57,9 @@
     },
     "Line endings: %@" : {
       "comment" : "Status bar tooltip"
+    },
+    "Line number" : {
+      "comment" : "Go to Line: text field placeholder"
     },
     "Ln %lld, Col %lld" : {
       "comment" : "Status bar: caret line and column",
@@ -94,6 +109,17 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "“%1$@” can’t be saved in %2$@."
+          }
+        }
+      }
+    },
+    "“%@” isn’t a line number from 1 to %lld." : {
+      "comment" : "Go to Line dialog: invalid input",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "“%1$@” isn’t a line number from 1 to %2$lld."
           }
         }
       }

@@ -174,6 +174,51 @@ final class EditorViewController: NSViewController {
         lineNumberView?.needsDisplay = true
     }
 
+    // MARK: - Go to Line (Edit menu)
+
+    @objc func goToLine(_ sender: Any?) {
+        guard let window = view.window, window.attachedSheet == nil else { return }
+        askForLine(in: window, message: nil)
+    }
+
+    /// Shows the Go to Line sheet. `message` explains why the previous input was rejected.
+    private func askForLine(in window: NSWindow, message: String?) {
+        let lineCount = lineIndex.lineCount
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 220, height: 24))
+        field.placeholderString = String(localized: "Line number", comment: "Go to Line: text field placeholder")
+
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Go to Line", comment: "Go to Line dialog title")
+        alert.informativeText = message
+            ?? String(localized: "Enter a line number from 1 to \(lineCount).", comment: "Go to Line dialog")
+        alert.accessoryView = field
+        alert.addButton(withTitle: String(localized: "Go", comment: "Go to Line dialog button"))
+        alert.addButton(withTitle: String(localized: "Cancel", comment: "Dialog button"))
+        // Typing goes straight into the field.
+        alert.window.initialFirstResponder = field
+
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard let self, response == .alertFirstButtonReturn else { return }
+            guard let line = LineNumberInput.line(from: field.stringValue, lineCount: self.lineIndex.lineCount) else {
+                NSSound.beep()
+                // A sheet can't present another one while it is still closing; ask again next turn.
+                DispatchQueue.main.async {
+                    self.askForLine(in: window, message: String(localized: "“\(field.stringValue)” isn’t a line number from 1 to \(self.lineIndex.lineCount).",
+                                                                comment: "Go to Line dialog: invalid input"))
+                }
+                return
+            }
+            self.moveCaret(toLine: line)
+        }
+    }
+
+    /// Puts the caret at the start of `line` and scrolls it to the middle of the window.
+    private func moveCaret(toLine line: Int) {
+        textView.setSelectedRange(NSRange(location: lineIndex.lineStart(of: line), length: 0))
+        textView.centerSelectionInVisibleArea(nil)
+        view.window?.makeFirstResponder(textView)
+    }
+
     // MARK: - Invisible characters (View menu)
 
     @objc func toggleInvisibles(_ sender: Any?) {

@@ -38,6 +38,11 @@ enum MainMenu {
         if let viewMenu = submenu(containing: "toggleFullScreen:", in: mainMenu) {
             addFontSizeItems(to: viewMenu)
         }
+        if let editMenu = submenu(containing: "selectAll:", in: mainMenu) {
+            editMenu.addItem(.separator())
+            editMenu.addItem(NSMenuItem(title: String(localized: "Go to Line…", comment: "Edit menu item"),
+                                        action: #selector(EditorViewController.goToLine(_:)), keyEquivalent: "l"))
+        }
     }
 
     // MARK: - Our items
