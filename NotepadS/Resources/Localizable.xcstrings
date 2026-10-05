@@ -66,6 +66,9 @@
     "Reopen with Encoding" : {
       "comment" : "Encoding menu section"
     },
+    "Show Invisibles" : {
+      "comment" : "View menu item: marks for spaces, tabs and line breaks"
+    },
     "Syntax highlighting is off: the file is very large or has very long lines." : {
       "comment" : "Status bar tooltip"
     },

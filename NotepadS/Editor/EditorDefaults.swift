@@ -10,6 +10,7 @@ enum EditorDefaults {
 
     private static let fontSizeKey = "EditorFontSize"
     private static let wrapsLinesKey = "EditorWrapsLines"
+    private static let showsInvisiblesKey = "EditorShowsInvisibles"
 
     /// Font size for new windows: the size the user chose last.
     static var fontSize: CGFloat {
@@ -26,5 +27,11 @@ enum EditorDefaults {
     static var wrapsLines: Bool {
         get { UserDefaults.standard.object(forKey: wrapsLinesKey) as? Bool ?? true }
         set { UserDefaults.standard.set(newValue, forKey: wrapsLinesKey) }
+    }
+
+    /// Invisible-character marks for new windows: the user's last choice, off by default.
+    static var showsInvisibles: Bool {
+        get { UserDefaults.standard.bool(forKey: showsInvisiblesKey) }
+        set { UserDefaults.standard.set(newValue, forKey: showsInvisiblesKey) }
     }
 }

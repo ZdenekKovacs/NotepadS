@@ -15,7 +15,7 @@ final class EditorViewController: NSViewController {
 
     let document: TextDocument
 
-    private let layoutManager: NSLayoutManager
+    private let layoutManager: InvisiblesLayoutManager
     private let textView: EditorTextView
     private let scrollView = NSScrollView()
     private let statusBar = StatusBarView(frame: .zero)
@@ -37,9 +37,10 @@ final class EditorViewController: NSViewController {
         // Build the TextKit 1 stack explicitly: storage → layout manager → container → view.
         // Because the container belongs to an NSLayoutManager, the text view is TextKit 1 from
         // the start, and using `layoutManager` later can never trigger a TextKit 2 fallback.
-        let layoutManager = NSLayoutManager()
+        let layoutManager = InvisiblesLayoutManager()
         // Lay out only what is visible (plus a margin). This is what keeps multi-MB files fast.
         layoutManager.allowsNonContiguousLayout = true
+        layoutManager.showsInvisibles = EditorDefaults.showsInvisibles
         document.textStorage.addLayoutManager(layoutManager)
 
         let textContainer = NSTextContainer(size: NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
@@ -171,6 +172,13 @@ final class EditorViewController: NSViewController {
         // Let the text view take its new size from the laid-out text right away.
         textView.sizeToFit()
         lineNumberView?.needsDisplay = true
+    }
+
+    // MARK: - Invisible characters (View menu)
+
+    @objc func toggleInvisibles(_ sender: Any?) {
+        layoutManager.showsInvisibles.toggle()
+        EditorDefaults.showsInvisibles = layoutManager.showsInvisibles   // new windows start the same
     }
 
     // MARK: - Font size (View menu; reached through the responder chain)
@@ -509,6 +517,8 @@ extension EditorViewController: NSMenuItemValidation {
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         if menuItem.action == #selector(toggleWordWrap(_:)) {
             menuItem.state = wrapsLines ? .on : .off
+        } else if menuItem.action == #selector(toggleInvisibles(_:)) {
+            menuItem.state = layoutManager.showsInvisibles ? .on : .off
         }
         return true
     }

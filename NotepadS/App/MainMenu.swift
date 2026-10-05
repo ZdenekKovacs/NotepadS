@@ -61,6 +61,9 @@ enum MainMenu {
             withModifiers([.control, .command], NSMenuItem(title: String(localized: "Wrap Lines", comment: "View menu item"),
                                                            action: #selector(EditorViewController.toggleWordWrap(_:)),
                                                            keyEquivalent: "w")),
+            withModifiers([.option, .command], NSMenuItem(title: String(localized: "Show Invisibles", comment: "View menu item: marks for spaces, tabs and line breaks"),
+                                                          action: #selector(EditorViewController.toggleInvisibles(_:)),
+                                                          keyEquivalent: "i")),
             NSMenuItem.separator(),
         ]
         for (index, item) in items.enumerated() {
