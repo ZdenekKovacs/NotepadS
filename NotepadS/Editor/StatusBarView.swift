@@ -5,10 +5,11 @@ protocol StatusBarViewDelegate: AnyObject {
     func statusBar(_ statusBar: StatusBarView, reopenWith encoding: TextEncoding)
     func statusBar(_ statusBar: StatusBarView, convertTo encoding: TextEncoding)
     func statusBar(_ statusBar: StatusBarView, convertLineEndingsTo lineEnding: LineEnding)
+    func statusBar(_ statusBar: StatusBarView, didSelect language: Language)
 }
 
 /// Bottom bar: caret position, selection size, language, encoding and line endings.
-/// Encoding and line endings are pull-down menus; the view only reports choices to its delegate.
+/// Language, encoding and line endings are pull-down menus; the view only reports choices to its delegate.
 final class StatusBarView: NSView {
 
     static let height: CGFloat = 24
@@ -17,19 +18,20 @@ final class StatusBarView: NSView {
 
     private let positionLabel = StatusBarView.makeLabel()
     private let selectionLabel = StatusBarView.makeLabel()
-    private let languageLabel = StatusBarView.makeLabel()
+    private let languageButton = NSPopUpButton(frame: .zero, pullsDown: true)
     private let encodingButton = NSPopUpButton(frame: .zero, pullsDown: true)
     private let lineEndingButton = NSPopUpButton(frame: .zero, pullsDown: true)
 
     private var reopenItems: [NSMenuItem] = []
     private var convertItems: [NSMenuItem] = []
     private var lineEndingItems: [NSMenuItem] = []
+    private var languageItems: [NSMenuItem] = []
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         buildMenus()
         setUpLayout()
-        languageLabel.stringValue = String(localized: "Plain Text", comment: "Status bar: syntax language")   // languages arrive in v0.2
+        setLanguage(.plainText, isHighlightingOff: false)
     }
 
     @available(*, unavailable)
@@ -87,9 +89,39 @@ final class StatusBarView: NSView {
         delegate?.statusBar(self, convertLineEndingsTo: lineEnding)
     }
 
+    @objc private func languageItemChosen(_ sender: NSMenuItem) {
+        guard let language = sender.representedObject as? Language else { return }
+        delegate?.statusBar(self, didSelect: language)
+    }
+
+    /// Shows the document's language; `isHighlightingOff` adds a note when the file is too large.
+    func setLanguage(_ language: Language, isHighlightingOff: Bool) {
+        let title = isHighlightingOff
+            ? String(localized: "\(language.displayName) (highlighting off)",
+                     comment: "Status bar: language name, highlighting disabled for a very large file")
+            : language.displayName
+        setTitle(title, of: languageButton)
+        languageButton.toolTip = isHighlightingOff
+            ? String(localized: "Syntax highlighting is off: the file is very large or has very long lines.",
+                     comment: "Status bar tooltip")
+            : String(localized: "Syntax highlighting language", comment: "Status bar tooltip")
+        for item in languageItems {
+            item.state = (item.representedObject as? Language) == language ? .on : .off
+        }
+    }
+
     // MARK: - Setup
 
     private func buildMenus() {
+        let languageMenu = NSMenu()
+        languageMenu.autoenablesItems = false
+        languageMenu.addItem(NSMenuItem())   // item 0 of a pull-down is its title, not a choice
+        for language in Language.allCases {
+            languageItems.append(addItem(language.displayName, value: language,
+                                         action: #selector(languageItemChosen(_:)), to: languageMenu))
+        }
+        configure(languageButton, menu: languageMenu, toolTip: "")
+
         let encodingMenu = NSMenu()
         encodingMenu.autoenablesItems = false
         encodingMenu.addItem(NSMenuItem())   // item 0 of a pull-down is its title, not a choice
@@ -147,7 +179,7 @@ final class StatusBarView: NSView {
         stack.spacing = 16
         stack.edgeInsets = NSEdgeInsets(top: 0, left: 10, bottom: 0, right: 8)
         stack.setViews([positionLabel, selectionLabel], in: .leading)
-        stack.setViews([languageLabel, encodingButton, lineEndingButton], in: .trailing)
+        stack.setViews([languageButton, encodingButton, lineEndingButton], in: .trailing)
 
         for subview in [separator, stack] as [NSView] {
             subview.translatesAutoresizingMaskIntoConstraints = false

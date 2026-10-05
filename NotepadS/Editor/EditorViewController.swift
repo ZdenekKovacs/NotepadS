@@ -20,6 +20,9 @@ final class EditorViewController: NSViewController {
     private let scrollView = NSScrollView()
     private let statusBar = StatusBarView(frame: .zero)
     private var lineNumberView: LineNumberRulerView!
+    private var highlighting: SyntaxHighlightingController!
+    /// True once the user picked a language in the status bar; it then sticks for this window.
+    private var isLanguageChosenByUser = false
 
     /// Where each line starts; shared with the gutter and the status bar.
     private var lineIndex = LineIndex()
@@ -77,6 +80,8 @@ final class EditorViewController: NSViewController {
 
         // The gutter must be created after the text view is inside the scroll view.
         lineNumberView = LineNumberRulerView(textView: textView) { [unowned self] in self.lineIndex }
+        highlighting = SyntaxHighlightingController(layoutManager: layoutManager, textView: textView,
+                                                    text: document.textStorage) { [unowned self] in self.lineIndex }
         scrollView.verticalRulerView = lineNumberView
         scrollView.hasVerticalRuler = true
         scrollView.rulersVisible = true
@@ -111,10 +116,20 @@ final class EditorViewController: NSViewController {
                                                name: NSTextStorage.didProcessEditingNotification,
                                                object: document.textStorage)
 
+        // Recolor when other text becomes visible: scrolling moves the clip view's bounds,
+        // resizing or re-wrapping changes the text view's frame. (The gutter already asked both
+        // views to post these notifications.)
+        NotificationCenter.default.addObserver(self, selector: #selector(visibleTextDidChange(_:)),
+                                               name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
+        NotificationCenter.default.addObserver(self, selector: #selector(visibleTextDidChange(_:)),
+                                               name: NSView.frameDidChangeNotification, object: textView)
+
         lineIndex.rebuild(from: document.textStorage.mutableString)
         applyFont()
         lineNumberView.lineCountDidChange(lineIndex.lineCount)
         documentSettingsDidChange()
+        highlighting.onStateChanged = { [weak self] in self?.updateLanguageInStatusBar() }
+        highlighting.setLanguage(detectedLanguage())
     }
 
     override func viewDidAppear() {
@@ -179,9 +194,10 @@ final class EditorViewController: NSViewController {
 
         let previousLineCount = lineIndex.lineCount
         // `mutableString` avoids copying the whole text, which `storage.string` would do.
-        lineIndex.applyEdit(editedRange: storage.editedRange,
-                            changeInLength: storage.changeInLength,
-                            in: storage.mutableString)
+        let change = lineIndex.applyEditReportingLines(editedRange: storage.editedRange,
+                                                       changeInLength: storage.changeInLength,
+                                                       in: storage.mutableString)
+        highlighting.textDidChange(change)
         lineNumberView.needsDisplay = true
 
         if lineIndex.lineCount != previousLineCount {
@@ -201,6 +217,31 @@ final class EditorViewController: NSViewController {
         textView.setSelectedRange(NSRange(location: caret, length: 0))
         lineNumberView.needsDisplay = true
         documentSettingsDidChange()   // reading the file may have changed the line-break style
+        if isLanguageChosenByUser {
+            highlighting.restart()
+        } else {
+            highlighting.setLanguage(detectedLanguage())
+        }
+    }
+
+    // MARK: - Syntax highlighting
+
+    /// The language from the file name, or from a `#!` line for files without a known extension.
+    private func detectedLanguage() -> Language {
+        let firstLineRange = lineIndex.contentRange(ofLine: 0)
+        // Only the start of the first line matters; never copy a huge first line.
+        let firstLine = document.textStorage.mutableString.substring(
+            with: NSRange(location: 0, length: min(firstLineRange.length, 200)))
+        return Language.detect(fileName: document.fileURL?.lastPathComponent, firstLine: firstLine)
+    }
+
+    @objc private func visibleTextDidChange(_ notification: Notification) {
+        highlighting.visibleTextDidChange()
+    }
+
+    private func updateLanguageInStatusBar() {
+        statusBar.setLanguage(highlighting.language,
+                              isHighlightingOff: highlighting.isTurnedOffForSize && highlighting.language.grammar != nil)
     }
 
     /// The document's encoding or line-break style changed.
@@ -404,6 +445,11 @@ extension EditorViewController: StatusBarViewDelegate {
         } catch {
             showError(error)
         }
+    }
+
+    func statusBar(_ statusBar: StatusBarView, didSelect language: Language) {
+        isLanguageChosenByUser = true
+        highlighting.setLanguage(language)
     }
 
     func statusBar(_ statusBar: StatusBarView, convertLineEndingsTo lineEnding: LineEnding) {

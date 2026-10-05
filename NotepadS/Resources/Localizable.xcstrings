@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ (highlighting off)" : {
+      "comment" : "Status bar: language name, highlighting disabled for a very large file"
+    },
     "%lld selected" : {
       "comment" : "Status bar: number of selected characters"
     },
@@ -54,9 +57,6 @@
         }
       }
     },
-    "Plain Text" : {
-      "comment" : "Status bar: syntax language"
-    },
     "Reopen" : {
       "comment" : "Dialog button"
     },
@@ -65,6 +65,12 @@
     },
     "Reopen with Encoding" : {
       "comment" : "Encoding menu section"
+    },
+    "Syntax highlighting is off: the file is very large or has very long lines." : {
+      "comment" : "Status bar tooltip"
+    },
+    "Syntax highlighting language" : {
+      "comment" : "Status bar tooltip"
     },
     "Text encoding" : {
       "comment" : "Status bar tooltip"
