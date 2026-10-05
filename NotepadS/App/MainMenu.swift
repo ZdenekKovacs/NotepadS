@@ -57,10 +57,20 @@ enum MainMenu {
             NSMenuItem(title: String(localized: "Actual Size", comment: "View menu item: default font size"),
                        action: #selector(EditorViewController.resetFontSize(_:)), keyEquivalent: "0"),
             NSMenuItem.separator(),
+            // ⌃⌘W, because AppKit already uses ⌥⌘W for "Close Other Tabs".
+            withModifiers([.control, .command], NSMenuItem(title: String(localized: "Wrap Lines", comment: "View menu item"),
+                                                           action: #selector(EditorViewController.toggleWordWrap(_:)),
+                                                           keyEquivalent: "w")),
+            NSMenuItem.separator(),
         ]
         for (index, item) in items.enumerated() {
             menu.insertItem(item, at: index)
         }
+    }
+
+    private static func withModifiers(_ modifiers: NSEvent.ModifierFlags, _ item: NSMenuItem) -> NSMenuItem {
+        item.keyEquivalentModifierMask = modifiers
+        return item
     }
 
     private static func hiddenAlias(_ item: NSMenuItem) -> NSMenuItem {

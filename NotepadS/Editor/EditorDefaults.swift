@@ -9,6 +9,7 @@ enum EditorDefaults {
     static let tabWidth = 4
 
     private static let fontSizeKey = "EditorFontSize"
+    private static let wrapsLinesKey = "EditorWrapsLines"
 
     /// Font size for new windows: the size the user chose last.
     static var fontSize: CGFloat {
@@ -19,5 +20,11 @@ enum EditorDefaults {
         set {
             UserDefaults.standard.set(Double(newValue), forKey: fontSizeKey)
         }
+    }
+
+    /// Word wrap for new windows: the user's last choice, on by default.
+    static var wrapsLines: Bool {
+        get { UserDefaults.standard.object(forKey: wrapsLinesKey) as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: wrapsLinesKey) }
     }
 }

@@ -81,6 +81,9 @@
     "Unsaved changes will be discarded and the file will be read again from disk." : {
       "comment" : "Reopen-with-encoding dialog"
     },
+    "Wrap Lines" : {
+      "comment" : "View menu item"
+    },
     "“%@” can’t be saved in %@." : {
       "comment" : "Dialog title; character in quotes, then encoding name",
       "localizations" : {

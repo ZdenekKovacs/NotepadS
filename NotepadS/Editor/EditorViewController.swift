@@ -27,6 +27,7 @@ final class EditorViewController: NSViewController {
     /// Where each line starts; shared with the gutter and the status bar.
     private var lineIndex = LineIndex()
     private var fontSize = EditorDefaults.fontSize
+    private var wrapsLines = EditorDefaults.wrapsLines
     /// True while one of our own commands changes the text; the gatekeeper lets it through.
     private var isPerformingProgrammaticEdit = false
 
@@ -77,6 +78,7 @@ final class EditorViewController: NSViewController {
         textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
         scrollView.documentView = textView
+        applyWordWrap()
 
         // The gutter must be created after the text view is inside the scroll view.
         lineNumberView = LineNumberRulerView(textView: textView) { [unowned self] in self.lineIndex }
@@ -135,6 +137,40 @@ final class EditorViewController: NSViewController {
     override func viewDidAppear() {
         super.viewDidAppear()
         view.window?.makeFirstResponder(textView)
+    }
+
+    // MARK: - Word wrap (View menu)
+
+    @objc func toggleWordWrap(_ sender: Any?) {
+        wrapsLines.toggle()
+        EditorDefaults.wrapsLines = wrapsLines   // new windows start with the last choice
+        applyWordWrap()
+    }
+
+    /// Wrap on: the text container is as wide as the text view, which follows the visible width.
+    /// Wrap off: the container is practically infinitely wide, so lines never break, and the text
+    /// view grows sideways with the longest line; the horizontal scroller appears.
+    /// (Apple's "Text System User Interface Layer" guide describes both setups.)
+    private func applyWordWrap() {
+        guard let textContainer = textView.textContainer else { return }
+        // FLT_MAX, not CGFloat.greatestFiniteMagnitude: TextKit 1 computes with Float precision
+        // in places and misbehaves with larger widths.
+        let unlimited = CGFloat(Float.greatestFiniteMagnitude)
+        scrollView.hasHorizontalScroller = !wrapsLines
+        textView.isHorizontallyResizable = !wrapsLines
+        textContainer.widthTracksTextView = wrapsLines
+        if wrapsLines {
+            // The visible width, without the part of the clip view under the line-number gutter.
+            let clipView = scrollView.contentView
+            let visibleWidth = clipView.frame.width - clipView.contentInsets.left - clipView.contentInsets.right
+            textView.setFrameSize(NSSize(width: visibleWidth, height: textView.frame.height))
+            textContainer.containerSize = NSSize(width: textView.frame.width, height: unlimited)
+        } else {
+            textContainer.containerSize = NSSize(width: unlimited, height: unlimited)
+        }
+        // Let the text view take its new size from the laid-out text right away.
+        textView.sizeToFit()
+        lineNumberView?.needsDisplay = true
     }
 
     // MARK: - Font size (View menu; reached through the responder chain)
@@ -462,5 +498,18 @@ extension EditorViewController: StatusBarViewDelegate {
         } catch {
             showError(error)
         }
+    }
+}
+
+// MARK: - NSMenuItemValidation
+
+extension EditorViewController: NSMenuItemValidation {
+
+    /// AppKit asks before showing a menu; we use it to put a checkmark on toggles.
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(toggleWordWrap(_:)) {
+            menuItem.state = wrapsLines ? .on : .off
+        }
+        return true
     }
 }
