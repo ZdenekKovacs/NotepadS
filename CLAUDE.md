@@ -125,7 +125,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] 1.10 Find bar, native tabs, external-change handling
 
 ### Phase 2 — v0.2
-- [ ] Grammar model + highlighter with per-line state (Core, tested)
+- [x] Grammar model + highlighter with per-line state (Core, tested)
 - [ ] Temporary-attribute highlighting, debounced, size/long-line thresholds
 - [ ] JSON, Python, Shell, Markdown; detection by extension + shebang; status-bar override
 - [ ] Light/dark syntax themes
