@@ -157,11 +157,26 @@ final class EditorViewController: NSViewController {
         let length = document.textStorage.length
         // The file may have changed since the position was saved: stay inside the text.
         let location = min(position.selection.location, length)
-        textView.setSelectedRange(NSRange(location: location, length: min(position.selection.length, length - location)))
-
+        let selection = NSRange(location: location, length: min(position.selection.length, length - location))
         let firstCharacter = min(position.firstVisibleCharacter, length)
-        guard firstCharacter < length else { return }
+        guard firstCharacter < length else {
+            textView.setSelectedRange(selection)
+            return
+        }
+
+        // When the window is first drawn, the layout manager resizes the text view to the real
+        // text height and then scrolls the *selection* into view (AppKit does this by itself).
+        // With the caret elsewhere, that would undo the restored scroll position. So until that
+        // first drawing is done, park the caret on the top visible line, then put the real
+        // selection back (setting a selection doesn't scroll) and correct the scroll once more.
+        textView.setSelectedRange(NSRange(location: firstCharacter, length: 0))
         scrollToTop(character: firstCharacter)
+        DispatchQueue.main.async { [weak self] in
+            guard let self, NSMaxRange(selection) <= self.document.textStorage.length,
+                  firstCharacter < self.document.textStorage.length else { return }
+            self.scrollToTop(character: firstCharacter)
+            self.textView.setSelectedRange(selection)
+        }
     }
 
     /// Scrolls so that the line containing `character` is at the top of the visible area.
