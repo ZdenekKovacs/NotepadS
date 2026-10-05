@@ -126,9 +126,9 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 
 ### Phase 2 — v0.2
 - [x] Grammar model + highlighter with per-line state (Core, tested)
-- [ ] Temporary-attribute highlighting, debounced, size/long-line thresholds
-- [ ] JSON, Python, Shell, Markdown; detection by extension + shebang; status-bar override
-- [ ] Light/dark syntax themes
+- [x] Temporary-attribute highlighting, debounced, size/long-line thresholds
+- [x] JSON, Python, Shell, Markdown; detection by extension + shebang; status-bar override
+- [x] Light/dark syntax themes
 - [ ] Word wrap toggle, invisible characters, Go to Line (⌘L), caret restore
 
 ### Phase 3 — v0.3
