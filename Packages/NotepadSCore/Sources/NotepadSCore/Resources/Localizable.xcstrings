@@ -16,6 +16,9 @@
     "NotepadS edits text files only." : {
       "comment" : "Advice after the binary-file error"
     },
+    "Plain Text" : {
+      "comment" : "Language name: no highlighting"
+    },
     "Remove the character, or choose a Unicode encoding such as UTF-8." : {
       "comment" : "Advice after the unsupported-character error"
     },

@@ -4,6 +4,9 @@
     "%lld selected" : {
       "comment" : "Status bar: number of selected characters"
     },
+    "Actual Size" : {
+      "comment" : "View menu item: default font size"
+    },
     "Cancel" : {
       "comment" : "Dialog button"
     },
@@ -27,6 +30,12 @@
     },
     "Convert to UTF-8 and Insert" : {
       "comment" : "Unsupported-character dialog button"
+    },
+    "Decrease Font Size" : {
+      "comment" : "View menu item"
+    },
+    "Increase Font Size" : {
+      "comment" : "View menu item"
     },
     "Line endings" : {
       "comment" : "Status bar tooltip"
