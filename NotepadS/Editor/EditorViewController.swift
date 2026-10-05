@@ -161,12 +161,36 @@ final class EditorViewController: NSViewController {
 
         let firstCharacter = min(position.firstVisibleCharacter, length)
         guard firstCharacter < length else { return }
-        // Lay out up to that character so its position is exact, then scroll it to the top.
-        // Line fragments are in text-container coordinates, offset by `textContainerOrigin`.
-        layoutManager.ensureLayout(forCharacterRange: NSRange(location: 0, length: firstCharacter + 1))
-        let glyph = layoutManager.glyphIndexForCharacter(at: firstCharacter)
-        let lineFragment = layoutManager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
-        textView.scroll(NSPoint(x: 0, y: lineFragment.minY + textView.textContainerOrigin.y))
+        scrollToTop(character: firstCharacter)
+    }
+
+    /// Scrolls so that the line containing `character` is at the top of the visible area.
+    ///
+    /// With non-contiguous layout (on for speed), the layout manager only estimates the height of
+    /// text it hasn't laid out yet. Scrolling to a line's position can therefore land a few lines
+    /// off, because laying out the newly visible text corrects the estimates. Each round below
+    /// measures where the line really is now and scrolls again; it settles after a round or two.
+    private func scrollToTop(character: Int) {
+        let clipView = scrollView.contentView
+        let glyph = layoutManager.glyphIndexForCharacter(at: character)
+        for _ in 0..<4 {
+            layoutManager.ensureLayout(forGlyphRange: NSRange(location: glyph, length: 1))
+            let lineFragment = layoutManager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
+            // Line fragments are in text-container coordinates, offset by `textContainerOrigin`.
+            // Scroll the clip view directly, keeping its x origin: it extends under the gutter
+            // (its bounds start at a negative x), which `NSView.scroll(_:)` doesn't account for.
+            let target = NSPoint(x: clipView.bounds.origin.x, y: lineFragment.minY + textView.textContainerOrigin.y)
+            clipView.scroll(to: clipView.constrainBoundsRect(NSRect(origin: target, size: clipView.bounds.size)).origin)
+            scrollView.reflectScrolledClipView(clipView)
+            if visibleCharacterRange().location >= lineFragmentStart(ofGlyph: glyph) { break }
+        }
+    }
+
+    /// The first character of the line fragment containing `glyph`.
+    private func lineFragmentStart(ofGlyph glyph: Int) -> Int {
+        var fragmentGlyphs = NSRange()
+        layoutManager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: &fragmentGlyphs)
+        return layoutManager.characterIndexForGlyph(at: fragmentGlyphs.location)
     }
 
     /// The characters currently visible in the text view.
