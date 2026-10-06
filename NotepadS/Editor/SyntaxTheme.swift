@@ -24,6 +24,8 @@ enum SyntaxTheme {
         case .strong: return .systemOrange
         case .code: return .systemBrown
         case .link: return .linkColor
+        case .inserted: return .systemGreen
+        case .deleted: return .systemRed
         }
     }
 }

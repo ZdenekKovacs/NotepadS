@@ -60,14 +60,12 @@ extension Grammar {
                 // The span's color covers its end delimiter too.
                 colorSpanText(upTo: matchEnd)
                 openSpans.removeLast()
-                search.rulesChanged()
             case .match(let scope):
                 colorSpanText(upTo: next.range.location)
                 tokens.append(SyntaxToken(range: next.range, scope: scope))
             case .spanBegin(let span):
                 colorSpanText(upTo: next.range.location)
                 openSpans.append(span)
-                search.rulesChanged()
             }
             // The begin delimiter belongs to the new span; after an end or a match, coloring
             // of the enclosing span resumes here.
@@ -101,6 +99,7 @@ extension Grammar {
     private func earliestMatch(from position: Int, openSpan: SpanID?, rules: [CompiledRule],
                                search: inout MatchSearch) -> FoundMatch? {
         var best: FoundMatch?
+        let ruleList = openSpan ?? -1
 
         func consider(_ range: NSRange?, _ kind: MatchKind) {
             guard let range else { return }
@@ -110,14 +109,17 @@ extension Grammar {
 
         if let openSpan {
             // An end pattern may match empty text (e.g. `$`): closing a span is always progress.
-            consider(search.firstMatch(of: spans[openSpan].end, key: .end, from: position, allowEmpty: true), .spanEnd)
+            consider(search.firstMatch(of: spans[openSpan].end, key: .end(openSpan), from: position, allowEmpty: true),
+                     .spanEnd)
         }
         for (index, rule) in rules.enumerated() {
             switch rule {
             case .match(let regex, let scope):
-                consider(search.firstMatch(of: regex, key: .rule(index), from: position, allowEmpty: false), .match(scope))
+                consider(search.firstMatch(of: regex, key: .rule(list: ruleList, index: index), from: position,
+                                           allowEmpty: false), .match(scope))
             case .span(let span):
-                consider(search.firstMatch(of: spans[span].begin, key: .rule(index), from: position, allowEmpty: false),
+                consider(search.firstMatch(of: spans[span].begin, key: .rule(list: ruleList, index: index), from: position,
+                                           allowEmpty: false),
                          .spanBegin(span))
             }
         }
@@ -128,9 +130,14 @@ extension Grammar {
 /// Runs regex searches on one line and remembers results, so each rule's regex runs about once
 /// per line instead of once per token.
 private struct MatchSearch {
+    /// Results are kept per regex, across spans opening and closing: after a string closes,
+    /// the line's other rules don't need to be searched again (a line with thousands of short
+    /// strings would otherwise take seconds).
     enum Key: Hashable {
-        case end
-        case rule(Int)
+        /// The end pattern of a span.
+        case end(SpanID)
+        /// Rule `index` of a rule list: the top level (`list` -1) or a span's own rules.
+        case rule(list: Int, index: Int)
     }
 
     let line: NSString
@@ -139,11 +146,6 @@ private struct MatchSearch {
 
     init(line: NSString) {
         self.line = line
-    }
-
-    /// The set of active rules changed (a span opened or closed); cached results are for other rules.
-    mutating func rulesChanged() {
-        cache.removeAll(keepingCapacity: true)
     }
 
     mutating func firstMatch(of regex: NSRegularExpression, key: Key, from position: Int, allowEmpty: Bool) -> NSRange? {

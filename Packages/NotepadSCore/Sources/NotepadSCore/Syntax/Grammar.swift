@@ -23,6 +23,10 @@ public enum SyntaxScope: String, CaseIterable, Hashable, Sendable {
     /// Inline code and code blocks in Markdown.
     case code
     case link
+    /// Added lines in a diff.
+    case inserted
+    /// Removed lines in a diff.
+    case deleted
 }
 
 /// A language's highlighting rules, written as data.

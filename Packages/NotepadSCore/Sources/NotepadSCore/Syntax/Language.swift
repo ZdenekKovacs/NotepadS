@@ -5,12 +5,25 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
     case plainText
     case c
     case cpp
+    case css
+    case diff
+    case dockerfile
+    case go
     case html
+    case ini
+    case java
     case javaScript
     case json
+    case makefile
     case markdown
+    case php
     case python
+    case ruby
+    case rust
     case shell
+    case sql
+    case swift
+    case toml
     case typeScript
     case xml
     case yaml
@@ -19,6 +32,19 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
     public var grammar: Grammar? {
         switch self {
         case .plainText: return nil
+        case .css: return .css
+        case .diff: return .diff
+        case .dockerfile: return .dockerfile
+        case .go: return .go
+        case .ini: return .ini
+        case .java: return .java
+        case .makefile: return .makefile
+        case .php: return .php
+        case .ruby: return .ruby
+        case .rust: return .rust
+        case .sql: return .sql
+        case .swift: return .swift
+        case .toml: return .toml
         case .c: return .c
         case .cpp: return .cpp
         case .html: return .html
@@ -39,6 +65,19 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
         case .plainText:
             return String(localized: "Plain Text", bundle: .module, comment: "Language name: no highlighting")
         case .json: return "JSON"
+        case .css: return "CSS"
+        case .diff: return "Diff"
+        case .dockerfile: return "Dockerfile"
+        case .go: return "Go"
+        case .ini: return "INI"
+        case .java: return "Java"
+        case .makefile: return "Makefile"
+        case .php: return "PHP"
+        case .ruby: return "Ruby"
+        case .rust: return "Rust"
+        case .sql: return "SQL"
+        case .swift: return "Swift"
+        case .toml: return "TOML"
         case .c: return "C"
         case .cpp: return "C++"
         case .html: return "HTML"
@@ -94,6 +133,12 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
         if program == "node" || program == "deno" || program == "bun" {
             return .javaScript
         }
+        if program.hasPrefix("ruby") {
+            return .ruby
+        }
+        if program == "php" {
+            return .php
+        }
         return ["sh", "bash", "zsh", "ksh", "dash"].contains(program) ? .shell : nil
     }
 
@@ -111,6 +156,19 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
         "html": .html, "htm": .html, "xhtml": .html,
         "xml": .xml, "plist": .xml, "svg": .xml, "xsd": .xml, "xsl": .xml, "xslt": .xml, "rss": .xml,
         "atom": .xml, "xib": .xml, "storyboard": .xml, "csproj": .xml, "entitlements": .xml,
+        "css": .css, "scss": .css, "less": .css,
+        "sql": .sql,
+        "swift": .swift,
+        "java": .java,
+        "go": .go,
+        "rs": .rust,
+        "php": .php, "phtml": .php,
+        "rb": .ruby, "rake": .ruby, "gemspec": .ruby,
+        "toml": .toml,
+        "ini": .ini, "cfg": .ini, "conf": .ini, "properties": .ini,
+        "mk": .makefile, "mak": .makefile,
+        "dockerfile": .dockerfile, "containerfile": .dockerfile,
+        "diff": .diff, "patch": .diff,
     ]
 
     /// Files recognized by their whole name (lowercased).
@@ -118,5 +176,10 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
         ".bashrc": .shell, ".bash_profile": .shell, ".bash_login": .shell, ".bash_logout": .shell,
         ".profile": .shell, ".zshrc": .shell, ".zshenv": .shell, ".zprofile": .shell, ".zlogin": .shell,
         ".zlogout": .shell,
+        "makefile": .makefile, "gnumakefile": .makefile,
+        "dockerfile": .dockerfile, "containerfile": .dockerfile,
+        "gemfile": .ruby, "rakefile": .ruby, "podfile": .ruby, "fastfile": .ruby,
+        ".editorconfig": .ini, ".gitconfig": .ini, ".npmrc": .ini,
+        "cargo.lock": .toml, "pipfile": .toml,
     ]
 }
