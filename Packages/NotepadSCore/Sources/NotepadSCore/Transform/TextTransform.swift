@@ -6,10 +6,13 @@ public struct TransformContext: Sendable {
     public var lineEnding: LineEnding
     /// For sorting and case conversion.
     public var locale: Locale
+    /// One level of indentation, for formatters (e.g. four spaces).
+    public var indentation: String
 
-    public init(lineEnding: LineEnding, locale: Locale = .current) {
+    public init(lineEnding: LineEnding, locale: Locale = .current, indentation: String = "    ") {
         self.lineEnding = lineEnding
         self.locale = locale
+        self.indentation = indentation
     }
 }
 
@@ -41,6 +44,8 @@ public struct TransformError: Error, Equatable, LocalizedError {
 /// The editor applies it to the selection, or to the whole document when nothing is selected,
 /// as one undo step. Line-based transformations work on whole lines.
 public enum TextTransform: String, CaseIterable, Sendable {
+    case formatJSON
+    case minifyJSON
     case sortLinesAscending
     case sortLinesDescending
     case removeDuplicateLines
@@ -49,6 +54,10 @@ public enum TextTransform: String, CaseIterable, Sendable {
     /// Menu title.
     public var name: String {
         switch self {
+        case .formatJSON:
+            return String(localized: "Format JSON", bundle: .module, comment: "Text menu item: pretty-print JSON")
+        case .minifyJSON:
+            return String(localized: "Minify JSON", bundle: .module, comment: "Text menu item: remove whitespace from JSON")
         case .sortLinesAscending:
             return String(localized: "Sort Lines Ascending", bundle: .module, comment: "Text menu item")
         case .sortLinesDescending:
@@ -66,12 +75,18 @@ public enum TextTransform: String, CaseIterable, Sendable {
         switch self {
         case .sortLinesAscending, .sortLinesDescending, .removeDuplicateLines, .trimTrailingWhitespace:
             return true
+        case .formatJSON, .minifyJSON:
+            return false
         }
     }
 
     /// Transforms `text`. Throws `TransformError` if the text isn't valid input.
     public func apply(to text: String, context: TransformContext) throws -> String {
         switch self {
+        case .formatJSON:
+            return try JSONFormatter.format(text, indent: context.indentation, lineEnding: context.lineEnding)
+        case .minifyJSON:
+            return try JSONFormatter.minify(text, lineEnding: context.lineEnding)
         case .sortLinesAscending:
             return LineTools.sort(text, ascending: true, context: context)
         case .sortLinesDescending:

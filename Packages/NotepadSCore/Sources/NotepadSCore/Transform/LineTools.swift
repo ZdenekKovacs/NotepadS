@@ -5,17 +5,32 @@ enum LineTools {
 
     /// Sorts lines the way people expect in their language: "é" next to "e", "a" before "B",
     /// "file2" before "file10". The sort is stable, so equal lines keep their order.
+    ///
+    /// Locale-aware comparison is slow (microseconds each), so only *distinct* lines are sorted:
+    /// lines are grouped by text, the groups are sorted, and each group is written out in its
+    /// original order. Files with many repeated lines (formatted JSON, logs) sort much faster.
     static func sort(_ text: String, ascending: Bool, context: TransformContext) -> String {
         let lines = TextLines(text)
-        let sorted = lines.lines.enumerated().sorted { left, right in
-            let order = left.element.content.compare(right.element.content,
-                                                     options: [.caseInsensitive, .numeric],
-                                                     range: nil, locale: context.locale)
-            if order == .orderedSame {
-                return left.offset < right.offset   // stable
+        var groups: [String: [Int]] = [:]
+        var distinct: [String] = []   // in order of first appearance, which breaks ties
+        for (index, line) in lines.lines.enumerated() {
+            if groups[line.content] == nil {
+                distinct.append(line.content)
             }
-            return ascending ? order == .orderedAscending : order == .orderedDescending
-        }.map(\.element)
+            groups[line.content, default: []].append(index)
+        }
+        // Bridge once: comparing Swift strings with a locale converts them to NSString each time.
+        let keys = distinct.map { $0 as NSString }
+        let order = keys.indices.sorted { left, right in
+            let result = keys[left].compare(keys[right] as String, options: [.caseInsensitive, .numeric],
+                                            range: NSRange(location: 0, length: keys[left].length),
+                                            locale: context.locale)
+            if result == .orderedSame {
+                return left < right   // stable: first appearance first
+            }
+            return ascending ? result == .orderedAscending : result == .orderedDescending
+        }
+        let sorted = order.flatMap { groups[distinct[$0], default: []] }.map { lines.lines[$0] }
         return lines.reordered(sorted, lineEnding: context.lineEnding).text
     }
 
