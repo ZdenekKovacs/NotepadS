@@ -61,6 +61,9 @@
     "Find:" : {
       "comment" : "Find panel label"
     },
+    "Font" : {
+      "comment" : "Settings section\nSettings: font picker"
+    },
     "Go" : {
       "comment" : "Go to Line dialog button"
     },
@@ -78,6 +81,15 @@
     },
     "Increase Font Size" : {
       "comment" : "View menu item"
+    },
+    "Indentation" : {
+      "comment" : "Settings section"
+    },
+    "Insert spaces when pressing Tab" : {
+      "comment" : "Settings"
+    },
+    "Keep indentation on new lines" : {
+      "comment" : "Settings: auto-indent"
     },
     "Line %lld, column %lld: %@" : {
       "comment" : "Transformation error with its position in the document",
@@ -109,6 +121,9 @@
           }
         }
       }
+    },
+    "New Windows" : {
+      "comment" : "Settings section"
     },
     "Next" : {
       "comment" : "Find panel button"
@@ -155,14 +170,29 @@
     "Replacement ($1 for groups, \\n for a line break)" : {
       "comment" : "Find panel placeholder"
     },
+    "Settings" : {
+      "comment" : "Settings window title"
+    },
+    "Settings…" : {
+      "comment" : "App menu item"
+    },
     "Show Invisibles" : {
       "comment" : "View menu item: marks for spaces, tabs and line breaks"
+    },
+    "Size: %lld pt" : {
+      "comment" : "Settings: font size"
     },
     "Syntax highlighting is off: the file is very large or has very long lines." : {
       "comment" : "Status bar tooltip"
     },
     "Syntax highlighting language" : {
       "comment" : "Status bar tooltip"
+    },
+    "System Monospaced" : {
+      "comment" : "Settings: the default font (SF Mono)"
+    },
+    "Tab width: %lld spaces" : {
+      "comment" : "Settings"
     },
     "Text" : {
       "comment" : "Menu bar: text transformations"
@@ -184,6 +214,9 @@
     },
     "Wrap around" : {
       "comment" : "Find panel option"
+    },
+    "Wrap lines" : {
+      "comment" : "Settings: word wrap default"
     },
     "“%@” can’t be saved in %@." : {
       "comment" : "Dialog title; character in quotes, then encoding name",

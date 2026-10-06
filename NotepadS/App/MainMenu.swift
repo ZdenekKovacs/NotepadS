@@ -36,6 +36,14 @@ enum MainMenu {
         removeItems(withTitle: "Preferences…", from: mainMenu)
         removeDuplicateSeparators(in: mainMenu)
 
+        // Settings… after About, where macOS apps have it. (The template's Preferences item was removed above.)
+        if let appMenu = mainMenu.items.first?.submenu,
+           let aboutIndex = appMenu.items.firstIndex(where: { $0.action == NSSelectorFromString("orderFrontStandardAboutPanel:") }) {
+            appMenu.insertItem(.separator(), at: aboutIndex + 1)
+            appMenu.insertItem(NSMenuItem(title: String(localized: "Settings…", comment: "App menu item"),
+                                          action: #selector(AppDelegate.showSettings(_:)), keyEquivalent: ","),
+                               at: aboutIndex + 2)
+        }
         if let viewMenu = submenu(containing: "toggleFullScreen:", in: mainMenu) {
             addFontSizeItems(to: viewMenu)
         }

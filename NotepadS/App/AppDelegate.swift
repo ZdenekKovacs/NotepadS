@@ -17,6 +17,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainMenu.adjust()
     }
 
+    /// NotepadS › Settings… (⌘,)
+    @objc func showSettings(_ sender: Any?) {
+        SettingsWindowController.shared.showWindow(sender)
+    }
+
     /// Opt in to secure coding for window restoration (AppKit logs a warning otherwise).
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
         true

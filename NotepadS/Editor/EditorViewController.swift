@@ -28,6 +28,8 @@ final class EditorViewController: NSViewController {
     private var lineIndex = LineIndex()
     private var fontSize = EditorDefaults.fontSize
     private var wrapsLines = EditorDefaults.wrapsLines
+    /// Font settings the text currently uses, to notice when the Settings window changes them.
+    private var appliedFontSettings = ""
     /// True while one of our own commands changes the text; the gatekeeper lets it through.
     private var isPerformingProgrammaticEdit = false
 
@@ -126,6 +128,10 @@ final class EditorViewController: NSViewController {
                                                name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
         NotificationCenter.default.addObserver(self, selector: #selector(visibleTextDidChange(_:)),
                                                name: NSView.frameDidChangeNotification, object: textView)
+
+        // The Settings window writes to UserDefaults; follow font and tab-width changes live.
+        NotificationCenter.default.addObserver(self, selector: #selector(userDefaultsDidChange(_:)),
+                                               name: UserDefaults.didChangeNotification, object: nil)
 
         lineIndex.rebuild(from: document.textStorage.mutableString)
         applyFont()
@@ -308,7 +314,8 @@ final class EditorViewController: NSViewController {
         let range = targetRange(lineBased: transform.isLineBased)
         let original = document.textStorage.mutableString.substring(with: range)
         let context = TransformContext(lineEnding: document.lineEnding, locale: Self.textLocale,
-                                       indentation: String(repeating: " ", count: EditorDefaults.tabWidth))
+                                       indentation: EditorDefaults.insertsSpacesForTab
+                                           ? String(repeating: " ", count: EditorDefaults.tabWidth) : "\t")
         do {
             let result = try transform.apply(to: original, context: context)
             guard result != original else { return }   // nothing to change, no undo step
@@ -459,6 +466,21 @@ final class EditorViewController: NSViewController {
         EditorDefaults.showsInvisibles = layoutManager.showsInvisibles   // new windows start the same
     }
 
+    // MARK: - Settings
+
+    /// What `applyFont()` depends on, as one comparable value.
+    private var currentFontSettings: String {
+        "\(EditorDefaults.fontName)|\(EditorDefaults.fontSize)|\(EditorDefaults.tabWidth)"
+    }
+
+    /// UserDefaults posts this for every change in the app (also unrelated ones), so only
+    /// re-apply the font when one of its settings really changed.
+    @objc private func userDefaultsDidChange(_ notification: Notification) {
+        guard currentFontSettings != appliedFontSettings else { return }
+        fontSize = EditorDefaults.fontSize
+        applyFont()
+    }
+
     // MARK: - Font size (View menu; reached through the responder chain)
 
     @objc func increaseFontSize(_ sender: Any?) {
@@ -482,7 +504,8 @@ final class EditorViewController: NSViewController {
     /// Applies font, color and tab width to the whole text and to newly typed text.
     /// Attribute changes are not edits: no undo step, the document stays unmodified.
     private func applyFont() {
-        let font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+        let font = EditorDefaults.font(ofSize: fontSize)
+        appliedFontSettings = currentFontSettings
         let paragraphStyle = NSMutableParagraphStyle()
         // Tab stops every `tabWidth` spaces (NSTextView's default is every 28 points).
         let spaceWidth = (" " as NSString).size(withAttributes: [.font: font]).width

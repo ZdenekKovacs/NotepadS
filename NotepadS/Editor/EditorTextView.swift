@@ -48,8 +48,51 @@ final class EditorTextView: NSTextView {
         insertLineBreakOfDocumentStyle()
     }
 
+    /// Inserts the document's line break, followed by the current line's indentation when
+    /// auto-indent is on (Settings).
     private func insertLineBreakOfDocumentStyle() {
-        insertText(lineBreakToInsert.string, replacementRange: selectedRange())
+        let selection = selectedRange()
+        let indentation = EditorDefaults.autoIndents ? leadingWhitespace(ofLineBefore: selection.location) : ""
+        insertText(lineBreakToInsert.string + indentation, replacementRange: selection)
+    }
+
+    /// Spaces and tabs at the start of the line containing `location`, up to `location`.
+    private func leadingWhitespace(ofLineBefore location: Int) -> String {
+        let text = textStorage?.mutableString ?? NSMutableString()
+        var lineStart = location
+        while lineStart > 0 {
+            let unit = text.character(at: lineStart - 1)
+            if unit == 0x0A || unit == 0x0D { break }
+            lineStart -= 1
+        }
+        var end = lineStart
+        while end < location, [0x20, 0x09].contains(text.character(at: end)) {
+            end += 1
+        }
+        return text.substring(with: NSRange(location: lineStart, length: end - lineStart))
+    }
+
+    // MARK: - Tab key
+
+    /// With "Insert spaces when pressing Tab" (Settings), Tab inserts spaces up to the next tab
+    /// stop. A tab character in the line counts as reaching its tab stop.
+    override func insertTab(_ sender: Any?) {
+        guard EditorDefaults.insertsSpacesForTab else {
+            super.insertTab(sender)
+            return
+        }
+        let selection = selectedRange()
+        let text = textStorage?.mutableString ?? NSMutableString()
+        let tabWidth = EditorDefaults.tabWidth
+        var lineStart = selection.location
+        while lineStart > 0, ![0x0A, 0x0D].contains(text.character(at: lineStart - 1)) {
+            lineStart -= 1
+        }
+        var column = 0
+        for index in lineStart..<selection.location {
+            column = text.character(at: index) == 0x09 ? (column / tabWidth + 1) * tabWidth : column + 1
+        }
+        insertText(String(repeating: " ", count: tabWidth - column % tabWidth), replacementRange: selection)
     }
 
     // MARK: - Setup
