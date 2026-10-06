@@ -1,7 +1,8 @@
 // Draws the app icon and writes the AppIcon asset catalog images.
 //   swift scripts/make-app-icon.swift
 // The design: a blue rounded square (macOS icon grid: 824 of 1024 points) with a white sheet
-// of paper, a folded corner, a few "code" lines and a pair of braces.
+// of paper, a folded corner, a few "code" lines and a pair of braces. Everything is drawn from
+// basic shapes here; no images, fonts or other outside material are used.
 import AppKit
 
 let outputFolder = "NotepadS/Resources/Assets.xcassets/AppIcon.appiconset"
@@ -63,12 +64,26 @@ func drawIcon(size: CGFloat) -> NSBitmapImageRep {
         NSBezierPath(roundedRect: NSRect(x: line.x, y: y, width: line.width, height: 30), xRadius: 15, yRadius: 15).fill()
     }
 
-    // Braces in the bottom-right corner of the sheet.
-    let braces = NSAttributedString(string: "{ }", attributes: [
-        .font: NSFont.monospacedSystemFont(ofSize: 150, weight: .bold),
-        .foregroundColor: NSColor(calibratedRed: 0.10, green: 0.38, blue: 0.86, alpha: 1),
-    ])
-    braces.draw(at: NSPoint(x: 470, y: 225))
+    // Braces in the bottom-right corner of the sheet, drawn as curves (no font is used, so the
+    // icon contains nothing but our own shapes).
+    let braceColor = NSColor(calibratedRed: 0.10, green: 0.38, blue: 0.86, alpha: 1)
+    braceColor.setStroke()
+    for (centerX, direction) in [(CGFloat(540), CGFloat(1)), (CGFloat(660), CGFloat(-1))] {
+        // `direction` 1 draws "{", -1 mirrors it into "}". Height 170 points, middle at y = 310.
+        func point(_ dx: CGFloat, _ y: CGFloat) -> NSPoint { NSPoint(x: centerX + dx * direction, y: y) }
+        let brace = NSBezierPath()
+        brace.move(to: point(24, 395))
+        brace.curve(to: point(0, 368), controlPoint1: point(6, 395), controlPoint2: point(0, 386))
+        brace.line(to: point(0, 334))
+        brace.curve(to: point(-26, 310), controlPoint1: point(0, 318), controlPoint2: point(-12, 310))
+        brace.curve(to: point(0, 286), controlPoint1: point(-12, 310), controlPoint2: point(0, 302))
+        brace.line(to: point(0, 252))
+        brace.curve(to: point(24, 225), controlPoint1: point(0, 234), controlPoint2: point(6, 225))
+        brace.lineWidth = 24
+        brace.lineCapStyle = .round
+        brace.lineJoinStyle = .round
+        brace.stroke()
+    }
 
     NSGraphicsContext.restoreGraphicsState()
     return rep
