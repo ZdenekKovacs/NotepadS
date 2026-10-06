@@ -131,6 +131,41 @@ final class TextDocument: NSDocument {
         return pathExtension
     }
 
+    // MARK: - Printing
+
+    /// File › Print… (⌘P): the text in the editor font, wrapped to the page width.
+    ///
+    /// Prints a separate text view, not the one on screen: the window's view is as wide as the
+    /// window, not the paper. It is built like the editor (storage → layout manager → container
+    /// → text view) so it is TextKit 1 too (CLAUDE.md, invariant 3).
+    override func printOperation(withSettings printSettings: [NSPrintInfo.AttributeKey: Any]) throws -> NSPrintOperation {
+        let printInfo = (self.printInfo.copy() as? NSPrintInfo) ?? NSPrintInfo.shared
+        printInfo.dictionary().addEntries(from: printSettings)
+        printInfo.horizontalPagination = .fit
+        printInfo.verticalPagination = .automatic
+        printInfo.isHorizontallyCentered = false
+        printInfo.isVerticallyCentered = false
+        let pageWidth = printInfo.paperSize.width - printInfo.leftMargin - printInfo.rightMargin
+
+        let storage = NSTextStorage(attributedString: textStorage)
+        let layoutManager = NSLayoutManager()
+        storage.addLayoutManager(layoutManager)
+        let textContainer = NSTextContainer(size: NSSize(width: pageWidth, height: CGFloat.greatestFiniteMagnitude))
+        layoutManager.addTextContainer(textContainer)
+        let view = NSTextView(frame: NSRect(x: 0, y: 0, width: pageWidth, height: 0), textContainer: textContainer)
+        view.isVerticallyResizable = true
+        view.maxSize = NSSize(width: pageWidth, height: CGFloat.greatestFiniteMagnitude)
+        view.textContainerInset = .zero
+        // The text is colored with `.textColor`; in Light appearance that is black on white.
+        view.appearance = NSAppearance(named: .aqua)
+        layoutManager.ensureLayout(for: textContainer)
+        view.sizeToFit()
+
+        let operation = NSPrintOperation(view: view, printInfo: printInfo)
+        operation.jobTitle = displayName
+        return operation
+    }
+
     // MARK: - Restoring the caret and scroll position
 
     private enum RestorationKey {

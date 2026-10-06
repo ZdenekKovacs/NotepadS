@@ -27,10 +27,14 @@ enum MainMenu {
         removeItem(withSubmenuContaining: "orderFrontSubstitutionsPanel:", from: mainMenu)  // Substitutions
         removeItem(withSubmenuContaining: "uppercaseWord:", from: mainMenu)             // Transformations
         removeItem(withSubmenuContaining: "startSpeaking:", from: mainMenu)             // Speech
-        // Printing arrives in v0.4. No toolbar or sidebar, and no Settings window yet (v0.4).
-        for action in ["runPageLayout:", "print:", "printDocument:",
-                       "toggleToolbarShown:", "runToolbarCustomizationPalette:", "toggleSidebar:"] {
+        // No toolbar or sidebar.
+        for action in ["toggleToolbarShown:", "runToolbarCustomizationPalette:", "toggleSidebar:"] {
             removeItems(withAction: action, from: mainMenu)
+        }
+        // The template's Print… sends `print:`, which would print the window's text view as it
+        // looks on screen. `printDocument:` asks TextDocument, which lays the text out for paper.
+        for item in allItems(in: mainMenu) where item.action == NSSelectorFromString("print:") {
+            item.action = NSSelectorFromString("printDocument:")
         }
         // The template's Preferences item has no action, so it can only be found by title.
         removeItems(withTitle: "Preferences…", from: mainMenu)
@@ -169,6 +173,11 @@ enum MainMenu {
                 replaceTemplateAppName(in: submenu)
             }
         }
+    }
+
+    /// Every item of `menu` and its submenus.
+    private static func allItems(in menu: NSMenu) -> [NSMenuItem] {
+        menu.items.flatMap { item in [item] + (item.submenu.map(allItems(in:)) ?? []) }
     }
 
     /// The submenu (at any depth) that directly contains an item with `action`.
