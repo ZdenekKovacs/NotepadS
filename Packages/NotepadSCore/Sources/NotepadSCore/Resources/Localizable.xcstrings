@@ -16,6 +16,9 @@
     "Choose a different encoding with “Reopen with Encoding” in the status bar." : {
       "comment" : "Advice after the wrong-encoding error"
     },
+    "Enter text to find." : {
+      "comment" : "Search error"
+    },
     "Expected %@ but found “%@”." : {
       "comment" : "JSON error",
       "localizations" : {
@@ -105,6 +108,9 @@
     },
     "The file isn’t valid %@ text." : {
       "comment" : "Error when reopening a file with the wrong encoding"
+    },
+    "The regular expression isn’t valid." : {
+      "comment" : "Search error"
     },
     "The string is never closed." : {
       "comment" : "JSON error"

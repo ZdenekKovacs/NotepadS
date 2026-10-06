@@ -52,6 +52,15 @@
     "Enter a line number from 1 to %lld." : {
       "comment" : "Go to Line dialog"
     },
+    "Find and Replace" : {
+      "comment" : "Find panel title"
+    },
+    "Find and Replace with Regular Expressions…" : {
+      "comment" : "Edit › Find menu item"
+    },
+    "Find:" : {
+      "comment" : "Find panel label"
+    },
     "Go" : {
       "comment" : "Go to Line dialog button"
     },
@@ -63,6 +72,9 @@
     },
     "Hash" : {
       "comment" : "Text menu: submenu with SHA-256, SHA-1, MD5"
+    },
+    "Ignore case" : {
+      "comment" : "Find panel option"
     },
     "Increase Font Size" : {
       "comment" : "View menu item"
@@ -98,6 +110,18 @@
         }
       }
     },
+    "Next" : {
+      "comment" : "Find panel button"
+    },
+    "Not found" : {
+      "comment" : "Find panel status"
+    },
+    "Previous" : {
+      "comment" : "Find panel button"
+    },
+    "Regular expression" : {
+      "comment" : "Find panel option"
+    },
     "Reopen" : {
       "comment" : "Dialog button"
     },
@@ -107,11 +131,29 @@
     "Reopen with Encoding" : {
       "comment" : "Encoding menu section"
     },
+    "Replace" : {
+      "comment" : "Find panel button\nUndo action name"
+    },
+    "Replace All" : {
+      "comment" : "Find panel button\nUndo action name"
+    },
+    "Replace All in selection only" : {
+      "comment" : "Find panel option"
+    },
     "Replace Selection with %@" : {
       "comment" : "Text › Hash menu item"
     },
     "Replace with %@" : {
       "comment" : "Undo action name; e.g. SHA-256"
+    },
+    "Replace:" : {
+      "comment" : "Find panel label"
+    },
+    "Replaced %lld matches" : {
+      "comment" : "Find panel status"
+    },
+    "Replacement ($1 for groups, \\n for a line break)" : {
+      "comment" : "Find panel placeholder"
     },
     "Show Invisibles" : {
       "comment" : "View menu item: marks for spaces, tabs and line breaks"
@@ -128,6 +170,9 @@
     "Text encoding" : {
       "comment" : "Status bar tooltip"
     },
+    "Text or regular expression" : {
+      "comment" : "Find panel placeholder"
+    },
     "This text mixes line-break styles. New line breaks use %@. Choose “Convert to …” to unify them." : {
       "comment" : "Status bar tooltip; the style is LF, CRLF or CR"
     },
@@ -136,6 +181,9 @@
     },
     "Wrap Lines" : {
       "comment" : "View menu item"
+    },
+    "Wrap around" : {
+      "comment" : "Find panel option"
     },
     "“%@” can’t be saved in %@." : {
       "comment" : "Dialog title; character in quotes, then encoding name",

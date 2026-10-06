@@ -39,6 +39,12 @@ enum MainMenu {
         if let viewMenu = submenu(containing: "toggleFullScreen:", in: mainMenu) {
             addFontSizeItems(to: viewMenu)
         }
+        if let findMenu = submenu(containing: "performFindPanelAction:", in: mainMenu) {
+            let item = NSMenuItem(title: String(localized: "Find and Replace with Regular Expressions…", comment: "Edit › Find menu item"),
+                                  action: #selector(EditorViewController.showRegexFindPanel(_:)), keyEquivalent: "f")
+            item.keyEquivalentModifierMask = [.shift, .option, .command]
+            findMenu.insertItem(item, at: 2)   // after Find… and Find and Replace…
+        }
         if let editMenu = submenu(containing: "selectAll:", in: mainMenu),
            let editItem = mainMenu.items.first(where: { $0.submenu === editMenu }) {
             let textItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")

@@ -374,7 +374,7 @@ final class EditorViewController: NSViewController {
 
     /// Replaces `range` with `text` as one undo step named `actionName`, and selects the result.
     /// If the document's encoding can't store the new text, asks to convert to UTF-8 first.
-    private func replaceText(in range: NSRange, with text: String, actionName: String) {
+    func replaceText(in range: NSRange, with text: String, actionName: String) {
         if let character = document.rejectionReason(forInserting: text) {
             offerConversionToUTF8(character: character) { [weak self] in
                 guard let self, NSMaxRange(range) <= self.document.textStorage.length else { return }
@@ -430,6 +430,26 @@ final class EditorViewController: NSViewController {
         } else {
             alert.runModal()
         }
+    }
+
+    // MARK: - Find and replace with regular expressions (used by FindReplacePanelController)
+
+    @objc func showRegexFindPanel(_ sender: Any?) {
+        let selection = textView.selectedRange()
+        let selected = selection.length > 0 ? document.textStorage.mutableString.substring(with: selection) : nil
+        FindReplacePanelController.shared.show(selectedText: selected)
+    }
+
+    /// The document's text, without copying it.
+    var searchableText: NSString { document.textStorage.mutableString }
+    var currentSelection: NSRange { textView.selectedRange() }
+    var documentLineEnding: LineEnding { document.lineEnding }
+
+    /// Selects a match, scrolls to it and briefly highlights it, as the find bar does.
+    func showMatch(_ range: NSRange) {
+        textView.setSelectedRange(range)
+        textView.scrollRangeToVisible(range)
+        textView.showFindIndicator(for: range)
     }
 
     // MARK: - Invisible characters (View menu)
