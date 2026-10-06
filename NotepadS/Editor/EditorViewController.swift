@@ -117,6 +117,7 @@ final class EditorViewController: NSViewController {
 
         document.onTextReplaced = { [weak self] in self?.documentTextWasReplaced() }
         document.onSettingsChanged = { [weak self] in self?.documentSettingsDidChange() }
+        document.onFileURLChanged = { [weak self] in self?.documentFileDidChange() }
         NotificationCenter.default.addObserver(self, selector: #selector(documentTextDidProcessEditing(_:)),
                                                name: NSTextStorage.didProcessEditingNotification,
                                                object: document.textStorage)
@@ -578,6 +579,15 @@ final class EditorViewController: NSViewController {
         let firstLine = document.textStorage.mutableString.substring(
             with: NSRange(location: 0, length: min(firstLineRange.length, 200)))
         return Language.detect(fileName: document.fileURL?.lastPathComponent, firstLine: firstLine)
+    }
+
+    /// Saved under a new name (e.g. an untitled document saved as "script.py"): pick the
+    /// language for the new name, unless the user chose one in the status bar.
+    private func documentFileDidChange() {
+        updateStatusBar()   // "Reopen with Encoding" needs a file
+        let language = detectedLanguage()
+        guard !isLanguageChosenByUser, language != highlighting.language else { return }
+        highlighting.setLanguage(language)
     }
 
     @objc private func visibleTextDidChange(_ notification: Notification) {

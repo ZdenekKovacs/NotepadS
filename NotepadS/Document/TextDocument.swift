@@ -24,6 +24,17 @@ final class TextDocument: NSDocument {
     var onTextReplaced: (() -> Void)?
     /// Called after the encoding or line ending changed.
     var onSettingsChanged: (() -> Void)?
+    /// Called when the document's file changes: first save of an untitled document, Save As,
+    /// Rename, Move To.
+    var onFileURLChanged: (() -> Void)?
+
+    override var fileURL: URL? {
+        didSet {
+            guard fileURL != oldValue else { return }
+            // AppKit may set this off the main thread while saving; the editor is main-thread only.
+            DispatchQueue.main.async { [weak self] in self?.onFileURLChanged?() }
+        }
+    }
 
     /// Where the user was in the text: saved with window restoration, so a relaunch puts the
     /// caret and the scroll position back.

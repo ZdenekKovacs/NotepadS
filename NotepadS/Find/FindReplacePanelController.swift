@@ -159,7 +159,11 @@ final class FindReplacePanelController: NSWindowController {
         findField.placeholderString = String(localized: "Text or regular expression", comment: "Find panel placeholder")
         replaceField.placeholderString = String(localized: "Replacement ($1 = group, \\n = line break)",
                                                 comment: "Find panel placeholder")
-        wrapCheckbox.state = .on
+        restoreOptions()
+        for checkbox in [regexCheckbox, ignoreCaseCheckbox, wrapCheckbox, selectionOnlyCheckbox] {
+            checkbox.target = self
+            checkbox.action = #selector(optionChanged(_:))
+        }
         statusLabel.textColor = .secondaryLabelColor
 
         let grid = NSGridView(views: [
@@ -205,6 +209,27 @@ final class FindReplacePanelController: NSWindowController {
         ])
         panel.contentView = content
         panel.setContentSize(content.fittingSize)
+    }
+
+    // MARK: - Remembered options
+
+    /// The checkboxes keep their state across panel openings and app launches.
+    private var optionKeys: [(NSButton, String, Bool)] {
+        [(regexCheckbox, "FindUsesRegularExpression", false), (ignoreCaseCheckbox, "FindIgnoresCase", false),
+         (wrapCheckbox, "FindWrapsAround", true), (selectionOnlyCheckbox, "FindReplacesInSelectionOnly", false)]
+    }
+
+    private func restoreOptions() {
+        for (checkbox, key, defaultValue) in optionKeys {
+            let isOn = UserDefaults.standard.object(forKey: key) as? Bool ?? defaultValue
+            checkbox.state = isOn ? .on : .off
+        }
+    }
+
+    @objc private func optionChanged(_ sender: NSButton) {
+        for (checkbox, key, _) in optionKeys where checkbox === sender {
+            UserDefaults.standard.set(checkbox.state == .on, forKey: key)
+        }
     }
 
     private func hiddenCloseButton() -> NSButton {
