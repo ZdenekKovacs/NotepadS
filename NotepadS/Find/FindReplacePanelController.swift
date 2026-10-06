@@ -38,6 +38,7 @@ final class FindReplacePanelController: NSWindowController {
         // commands act on.
         panel.isRestorable = false
         super.init(window: panel)
+        panelForClosing = panel
         buildContent(in: panel)
         panel.center()
     }
@@ -144,11 +145,19 @@ final class FindReplacePanelController: NSWindowController {
     private func buildContent(in panel: NSPanel) {
         for field in [findField, replaceField] {
             field.font = NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+            // `NSTextField()` starts without a border or background; make it look like an input
+            // box so it stands out from the panel.
+            field.isBezeled = true
+            field.bezelStyle = .roundedBezel
+            field.drawsBackground = true
+            field.backgroundColor = .textBackgroundColor
+            field.isEditable = true
+            field.isSelectable = true
             field.translatesAutoresizingMaskIntoConstraints = false
-            field.widthAnchor.constraint(greaterThanOrEqualToConstant: 360).isActive = true
+            field.widthAnchor.constraint(equalToConstant: 380).isActive = true
         }
         findField.placeholderString = String(localized: "Text or regular expression", comment: "Find panel placeholder")
-        replaceField.placeholderString = String(localized: "Replacement ($1 for groups, \\n for a line break)",
+        replaceField.placeholderString = String(localized: "Replacement ($1 = group, \\n = line break)",
                                                 comment: "Find panel placeholder")
         wrapCheckbox.state = .on
         statusLabel.textColor = .secondaryLabelColor
@@ -169,21 +178,49 @@ final class FindReplacePanelController: NSWindowController {
             button(String(localized: "Replace", comment: "Find panel button"), #selector(replace(_:))),
             button(String(localized: "Previous", comment: "Find panel button"), #selector(findPrevious(_:))),
             defaultButton(String(localized: "Next", comment: "Find panel button"), #selector(findNext(_:))),
+            // Esc closes the panel, as in other Mac panels; the button itself is invisible.
+            hiddenCloseButton(),
         ])
         buttons.orientation = .horizontal
         buttons.spacing = 8
         statusLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        statusLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let content = NSStackView(views: [grid, buttons])
-        content.orientation = .vertical
-        content.alignment = .trailing
-        content.spacing = 14
-        content.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
-        content.translatesAutoresizingMaskIntoConstraints = false
-        buttons.translatesAutoresizingMaskIntoConstraints = false
+        // Grid and buttons are pinned to a content view with the same 20-point margin on every
+        // side; the panel takes its size from that.
+        let content = NSView()
+        for view in [grid, buttons] as [NSView] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            content.addSubview(view)
+        }
+        let margin: CGFloat = 20
+        NSLayoutConstraint.activate([
+            grid.topAnchor.constraint(equalTo: content.topAnchor, constant: margin),
+            grid.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: margin),
+            grid.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -margin),
+            buttons.topAnchor.constraint(equalTo: grid.bottomAnchor, constant: 16),
+            buttons.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: margin),
+            buttons.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -margin),
+            buttons.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -margin),
+        ])
         panel.contentView = content
-        buttons.widthAnchor.constraint(equalTo: grid.widthAnchor).isActive = true
+        panel.setContentSize(content.fittingSize)
     }
+
+    private func hiddenCloseButton() -> NSButton {
+        let button = NSButton(title: "", target: panelForClosing, action: #selector(NSWindow.performClose(_:)))
+        button.keyEquivalent = "\u{1b}"
+        // Not hidden: hidden buttons ignore their key equivalent. Transparent and zero-width
+        // instead, so it takes no space and draws nothing.
+        button.isTransparent = true
+        button.isBordered = false
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.widthAnchor.constraint(equalToConstant: 0).isActive = true
+        return button
+    }
+
+    /// Target for the Esc button (set before the content is built).
+    private weak var panelForClosing: NSWindow?
 
     private func optionsRow() -> NSView {
         let row = NSStackView(views: [regexCheckbox, ignoreCaseCheckbox, wrapCheckbox])

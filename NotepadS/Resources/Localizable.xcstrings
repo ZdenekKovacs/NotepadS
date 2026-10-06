@@ -167,7 +167,7 @@
     "Replaced %lld matches" : {
       "comment" : "Find panel status"
     },
-    "Replacement ($1 for groups, \\n for a line break)" : {
+    "Replacement ($1 = group, \\n = line break)" : {
       "comment" : "Find panel placeholder"
     },
     "Settings" : {
