@@ -46,6 +46,10 @@ public struct TransformError: Error, Equatable, LocalizedError {
 public enum TextTransform: String, CaseIterable, Sendable {
     case formatJSON
     case minifyJSON
+    case base64Encode
+    case base64Decode
+    case urlEncode
+    case urlDecode
     case sortLinesAscending
     case sortLinesDescending
     case removeDuplicateLines
@@ -58,6 +62,14 @@ public enum TextTransform: String, CaseIterable, Sendable {
             return String(localized: "Format JSON", bundle: .module, comment: "Text menu item: pretty-print JSON")
         case .minifyJSON:
             return String(localized: "Minify JSON", bundle: .module, comment: "Text menu item: remove whitespace from JSON")
+        case .base64Encode:
+            return String(localized: "Base64 Encode", bundle: .module, comment: "Text menu item")
+        case .base64Decode:
+            return String(localized: "Base64 Decode", bundle: .module, comment: "Text menu item")
+        case .urlEncode:
+            return String(localized: "URL Encode", bundle: .module, comment: "Text menu item: percent-encoding")
+        case .urlDecode:
+            return String(localized: "URL Decode", bundle: .module, comment: "Text menu item: percent-encoding")
         case .sortLinesAscending:
             return String(localized: "Sort Lines Ascending", bundle: .module, comment: "Text menu item")
         case .sortLinesDescending:
@@ -75,7 +87,7 @@ public enum TextTransform: String, CaseIterable, Sendable {
         switch self {
         case .sortLinesAscending, .sortLinesDescending, .removeDuplicateLines, .trimTrailingWhitespace:
             return true
-        case .formatJSON, .minifyJSON:
+        case .formatJSON, .minifyJSON, .base64Encode, .base64Decode, .urlEncode, .urlDecode:
             return false
         }
     }
@@ -87,6 +99,14 @@ public enum TextTransform: String, CaseIterable, Sendable {
             return try JSONFormatter.format(text, indent: context.indentation, lineEnding: context.lineEnding)
         case .minifyJSON:
             return try JSONFormatter.minify(text, lineEnding: context.lineEnding)
+        case .base64Encode:
+            return Codecs.base64Encode(text)
+        case .base64Decode:
+            return try Codecs.base64Decode(text, context: context)
+        case .urlEncode:
+            return Codecs.urlEncode(text)
+        case .urlDecode:
+            return try Codecs.urlDecode(text, context: context)
         case .sortLinesAscending:
             return LineTools.sort(text, ascending: true, context: context)
         case .sortLinesDescending:
