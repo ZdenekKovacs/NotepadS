@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Find and replace</title>
+<meta name="description" content="Search with the find bar, or with regular expressions in the Find and Replace panel.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="back"><a href="index.html">NotepadS Help</a></nav>
+<h1>Find and replace</h1>
+<p class="lead">Search with the find bar, or with regular expressions in the Find and Replace panel.</p>
+
+<h2>Find bar</h2>
+<p><b>Edit › Find › Find…</b> (<kbd>⌘F</kbd>) shows the find bar above the text; <kbd>⌘G</kbd> finds the next match and <kbd>⇧⌘G</kbd> the previous one. <kbd>⌥⌘F</kbd> adds a replace field.</p>
+<h2>Find and Replace panel</h2>
+<p><b>Edit › Find › Find and Replace with Regular Expressions…</b> (<kbd>⇧⌥⌘F</kbd>) opens a panel that works on the document in front.</p>
+<ul>
+<li><b>Regular expression</b> — treat the search text as a regular expression. Without it, the text is searched for literally.</li>
+<li><b>Ignore case</b>, <b>Wrap around</b> — as their names say.</li>
+<li><b>Replace All in selection only</b> — limit Replace All to the selected text.</li>
+</ul>
+<p>In the replacement, <code>$1</code>, <code>$2</code> … insert the groups in parentheses, <code>\n</code> a line break and <code>\t</code> a tab. <b>Replace All</b> is a single Undo step. Press Return for <b>Next</b> and Esc to close the panel.</p>
+<p class="note">Example: find <code>(\w+)@(\w+)</code> and replace with <code>$2: $1</code> turns <code>ann@example</code> into <code>example: ann</code>.</p>
+</body>
+</html>

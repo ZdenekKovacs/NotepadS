@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Text tools</title>
+<meta name="description" content="The Text menu changes the selected text, or the whole document when nothing is selected.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="back"><a href="index.html">NotepadS Help</a></nav>
+<h1>Text tools</h1>
+<p class="lead">The Text menu changes the selected text, or the whole document when nothing is selected.</p>
+
+<p>Every tool is one step: <b>Edit › Undo</b> (<kbd>⌘Z</kbd>) restores the text. If the text isn’t valid input (for example broken JSON), NotepadS shows where the problem is and changes nothing.</p>
+<table>
+<tr><th>Tool</th><th>What it does</th></tr>
+<tr><td>Format JSON / Minify JSON</td><td>Indents JSON or removes its whitespace. Keys stay in their order and numbers stay exactly as written.</td></tr>
+<tr><td>Base64 Encode / Decode</td><td>Converts text to and from Base64 (UTF-8).</td></tr>
+<tr><td>URL Encode / Decode</td><td>Percent-encodes text for use in URLs, and back.</td></tr>
+<tr><td>Hash</td><td>Copies the SHA-256, SHA-1 or MD5 hash of the selection or of the whole document, or replaces the selection with it. The document hash matches what <code>shasum</code> prints for the saved file.</td></tr>
+<tr><td>UPPERCASE, lowercase, Title Case</td><td>Changes letter case.</td></tr>
+<tr><td>camelCase, snake_case, kebab-case</td><td>Converts names line by line, for example <code>HTTPServer</code> → <code>http_server</code>.</td></tr>
+<tr><td>Sort Lines, Remove Duplicate Lines, Trim Trailing Whitespace</td><td>Work on whole lines. Each line keeps its own line ending.</td></tr>
+</table>
+</body>
+</html>

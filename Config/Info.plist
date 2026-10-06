@@ -27,6 +27,12 @@
 	<string>NSApplication</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
+	<!-- Help › NotepadS Help opens this help book (NotepadS/Help/NotepadS.help) in Help Viewer.
+	     The name must equal the help bundle's CFBundleIdentifier. -->
+	<key>CFBundleHelpBookFolder</key>
+	<string>NotepadS.help</string>
+	<key>CFBundleHelpBookName</key>
+	<string>com.example.NotepadS.help</string>
 	<!--
 	Document types. Both entries use the same NSDocument subclass.
 	- public.text covers plain text, source code, scripts, JSON, YAML, XML, HTML, Markdown...

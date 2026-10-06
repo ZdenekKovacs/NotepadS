@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Encodings and line endings</title>
+<meta name="description" content="NotepadS keeps every byte of a file as it was, unless you change it.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="back"><a href="index.html">NotepadS Help</a></nav>
+<h1>Encodings and line endings</h1>
+<p class="lead">NotepadS keeps every byte of a file as it was, unless you change it.</p>
+
+<h2>Encodings</h2>
+<p>The status bar shows the file’s encoding, for example <b>UTF-8</b> or <b>Windows-1252</b>. NotepadS detects it when the file opens: UTF-8 and UTF-16 (with a byte order mark), otherwise Windows-1252, the most common older Western encoding.</p>
+<p>Click the encoding in the status bar to:</p>
+<ul>
+<li><b>Reopen with Encoding</b> — read the file again in another encoding, if the text looks wrong.</li>
+<li><b>Convert to Encoding</b> — save the text in another encoding from now on.</li>
+</ul>
+<p>If you type or paste a character the encoding can’t store (for example an emoji in a Windows-1252 file), NotepadS asks whether to convert the document to UTF-8. Nothing is inserted until you decide, so saving never loses characters.</p>
+<h2>Line endings</h2>
+<p>Text files end their lines with <b>LF</b> (macOS, Linux), <b>CRLF</b> (Windows) or <b>CR</b> (classic Mac OS). NotepadS keeps every line ending exactly as it is in the file, so editing one line changes only that line. New lines you type use the file’s main style.</p>
+<p>The status bar shows the main style and <b>(mixed)</b> when a file uses more than one. To make them all the same, click the line ending in the status bar and choose <b>Convert to …</b>. One Undo restores the original line endings.</p>
+</body>
+</html>

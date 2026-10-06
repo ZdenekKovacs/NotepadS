@@ -35,6 +35,12 @@ targets:
     platform: macOS
     sources:
       - path: NotepadS
+        excludes:
+          - "Help/**"
+      # The Help book is a bundle (a folder) and must be copied as one, not file by file.
+      - path: NotepadS/Help/NotepadS.help
+        type: folder
+        buildPhase: resources
       - path: Config
         buildPhase: none               # shown in Xcode, not copied into the app
     dependencies:
