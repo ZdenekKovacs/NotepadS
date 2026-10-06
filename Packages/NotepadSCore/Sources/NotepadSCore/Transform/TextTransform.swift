@@ -50,6 +50,12 @@ public enum TextTransform: String, CaseIterable, Sendable {
     case base64Decode
     case urlEncode
     case urlDecode
+    case uppercase
+    case lowercase
+    case titleCase
+    case camelCase
+    case snakeCase
+    case kebabCase
     case sortLinesAscending
     case sortLinesDescending
     case removeDuplicateLines
@@ -70,6 +76,18 @@ public enum TextTransform: String, CaseIterable, Sendable {
             return String(localized: "URL Encode", bundle: .module, comment: "Text menu item: percent-encoding")
         case .urlDecode:
             return String(localized: "URL Decode", bundle: .module, comment: "Text menu item: percent-encoding")
+        case .uppercase:
+            return String(localized: "UPPERCASE", bundle: .module, comment: "Text menu item: convert to upper case")
+        case .lowercase:
+            return String(localized: "lowercase", bundle: .module, comment: "Text menu item: convert to lower case")
+        case .titleCase:
+            return String(localized: "Title Case", bundle: .module, comment: "Text menu item: capitalize words")
+        case .camelCase:
+            return "camelCase"   // the style's own name; not translated
+        case .snakeCase:
+            return "snake_case"
+        case .kebabCase:
+            return "kebab-case"
         case .sortLinesAscending:
             return String(localized: "Sort Lines Ascending", bundle: .module, comment: "Text menu item")
         case .sortLinesDescending:
@@ -87,7 +105,8 @@ public enum TextTransform: String, CaseIterable, Sendable {
         switch self {
         case .sortLinesAscending, .sortLinesDescending, .removeDuplicateLines, .trimTrailingWhitespace:
             return true
-        case .formatJSON, .minifyJSON, .base64Encode, .base64Decode, .urlEncode, .urlDecode:
+        case .formatJSON, .minifyJSON, .base64Encode, .base64Decode, .urlEncode, .urlDecode,
+             .uppercase, .lowercase, .titleCase, .camelCase, .snakeCase, .kebabCase:
             return false
         }
     }
@@ -107,6 +126,18 @@ public enum TextTransform: String, CaseIterable, Sendable {
             return Codecs.urlEncode(text)
         case .urlDecode:
             return try Codecs.urlDecode(text, context: context)
+        case .uppercase:
+            return text.uppercased(with: context.locale)
+        case .lowercase:
+            return text.lowercased(with: context.locale)
+        case .titleCase:
+            return text.capitalized(with: context.locale)
+        case .camelCase:
+            return CaseConversion.identifiers(text, style: .camel, locale: context.locale)
+        case .snakeCase:
+            return CaseConversion.identifiers(text, style: .snake, locale: context.locale)
+        case .kebabCase:
+            return CaseConversion.identifiers(text, style: .kebab, locale: context.locale)
         case .sortLinesAscending:
             return LineTools.sort(text, ascending: true, context: context)
         case .sortLinesDescending:
