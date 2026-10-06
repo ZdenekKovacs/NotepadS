@@ -108,7 +108,7 @@ final class LanguageTests: XCTestCase {
         XCTAssertEqual(Language.detect(fileName: "deploy", firstLine: "#!/bin/bash"), .shell)
         XCTAssertEqual(Language.detect(fileName: nil, firstLine: "#!/usr/bin/env python3"), .python)
         XCTAssertEqual(Language.detect(fileName: nil, firstLine: "#!/usr/bin/env -S zsh -f"), .shell)
-        XCTAssertEqual(Language.detect(fileName: nil, firstLine: "#!/usr/bin/env node"), .plainText)
+        XCTAssertEqual(Language.detect(fileName: nil, firstLine: "#!/usr/bin/env ruby"), .plainText)
         XCTAssertEqual(Language.detect(fileName: nil, firstLine: "# comment"), .plainText)
         XCTAssertEqual(Language.detect(fileName: nil, firstLine: "#!"), .plainText)
     }

@@ -1,0 +1,6 @@
+name: NotepadS
+version: 0.4
+features:
+  - highlighting  # v0.2
+  - tools
+enabled: true
