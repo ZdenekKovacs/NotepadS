@@ -275,7 +275,7 @@ Details per file in §5. Commit after each green step.
 | 3.3 | Base64 / URL encode-decode | RFC 4648 / RFC 3986 vectors pass; invalid input or non-UTF-8 result → error. |
 | 3.4 | SHA-256/SHA-1/MD5 (CryptoKit), replace or copy | Whole-document hash equals `shasum -a 256 file`. |
 | 3.5 | Case: UPPER, lower, Title, camel, snake, kebab | Tests incl. accented letters (é, ß, ñ) and acronyms (`HTTPServer` → `http_server`). |
-| 3.6 | Sort A→Z/Z→A (locale-aware collation), dedupe (keep first), trim trailing whitespace | Tests incl. accented letters sorting next to their base letter; trimming never removes `\r` of a CRLF. |
+| 3.6 | Sort A→Z/Z→A (collation of the app’s UI language, English for now), dedupe (keep first), trim trailing whitespace | Tests incl. accented letters sorting next to their base letter; trimming never removes `\r` of a CRLF. |
 
 ### Phase 4 — v0.4
 

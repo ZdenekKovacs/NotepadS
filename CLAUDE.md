@@ -132,12 +132,12 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Word wrap toggle (⌃⌘W), invisible characters, Go to Line (⌘L), caret restore
 
 ### Phase 3 — v0.3
-- [ ] Transformation framework (selection or document, one undo step, errors with line)
-- [ ] JSON prettify/minify (token-based, order-preserving)
-- [ ] Base64, URL encode/decode
-- [ ] SHA-256 / SHA-1 / MD5 (replace or copy)
-- [ ] Case conversions
-- [ ] Sort, dedupe, trim trailing whitespace
+- [x] Transformation framework (selection or document, one undo step, errors with line)
+- [x] JSON prettify/minify (token-based, order-preserving)
+- [x] Base64, URL encode/decode
+- [x] SHA-256 / SHA-1 / MD5 (replace or copy)
+- [x] Case conversions
+- [x] Sort, dedupe, trim trailing whitespace
 
 ### Phase 4 — v0.4
 - [ ] YAML, JS/TS, C/C++, HTML/XML grammars

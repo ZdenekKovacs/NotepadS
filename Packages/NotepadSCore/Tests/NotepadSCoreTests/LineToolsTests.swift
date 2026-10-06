@@ -40,6 +40,18 @@ final class LineToolsTests: XCTestCase {
         XCTAssertEqual(try apply(.sortLinesDescending, "b\na\nc"), "c\nb\na")
     }
 
+    /// The locale decides the alphabet: in Czech "ch" is a letter after "h", in English it is
+    /// "c" + "h". Unaccented letters come before accented ones when the words are otherwise equal.
+    func testSortFollowsTheLocalesAlphabet() throws {
+        let words = "hat\nchalk\ncello\ndog\nécole\nEcole\n"
+        let english = TransformContext(lineEnding: .lf, locale: Locale(identifier: "en"))
+        let czech = TransformContext(lineEnding: .lf, locale: Locale(identifier: "cs_CZ"))
+        XCTAssertEqual(try TextTransform.sortLinesAscending.apply(to: words, context: english),
+                       "cello\nchalk\ndog\nEcole\nécole\nhat\n")
+        XCTAssertEqual(try TextTransform.sortLinesAscending.apply(to: words, context: czech),
+                       "cello\ndog\nEcole\nécole\nhat\nchalk\n")
+    }
+
     func testSortIsStable() throws {
         XCTAssertEqual(try apply(.sortLinesAscending, "B\nb\nA\n"), "A\nB\nb\n")
     }

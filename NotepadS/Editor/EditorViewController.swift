@@ -307,7 +307,7 @@ final class EditorViewController: NSViewController {
               let transform = TextTransform(rawValue: rawValue) else { return }
         let range = targetRange(lineBased: transform.isLineBased)
         let original = document.textStorage.mutableString.substring(with: range)
-        let context = TransformContext(lineEnding: document.lineEnding, locale: .current,
+        let context = TransformContext(lineEnding: document.lineEnding, locale: Self.textLocale,
                                        indentation: String(repeating: " ", count: EditorDefaults.tabWidth))
         do {
             let result = try transform.apply(to: original, context: context)
@@ -319,6 +319,12 @@ final class EditorViewController: NSViewController {
             showError(error)
         }
     }
+
+    /// The language rules for sorting and case conversion: the language the app's interface is
+    /// shown in (English for now), not the Mac's region. With a Czech region, `Locale.current`
+    /// would sort "ch" as its own letter after "h", which English users wouldn't expect. Once
+    /// the app is translated, each user automatically gets the rules of their language.
+    private static let textLocale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? "en")
 
     /// Text › Hash › Copy SHA-256 … Copies the hash of the selection, or of the whole document.
     @objc func copyHash(_ sender: NSMenuItem) {
