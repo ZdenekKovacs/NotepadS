@@ -1,6 +1,12 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Base64 Decode" : {
+      "comment" : "Text menu item"
+    },
+    "Base64 Encode" : {
+      "comment" : "Text menu item"
+    },
     "CR (classic Mac OS)" : {
       "comment" : "Line-break style name in menus"
     },
@@ -10,8 +16,54 @@
     "Choose a different encoding with “Reopen with Encoding” in the status bar." : {
       "comment" : "Advice after the wrong-encoding error"
     },
+    "Expected %@ but found “%@”." : {
+      "comment" : "JSON error",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Expected %1$@ but found “%2$@”."
+          }
+        }
+      }
+    },
+    "Expected %@ but the text ended." : {
+      "comment" : "JSON error"
+    },
+    "Expected a JSON value." : {
+      "comment" : "JSON error"
+    },
+    "Format JSON" : {
+      "comment" : "Text menu item: pretty-print JSON"
+    },
+    "Invalid \\u escape: expected 4 hexadecimal digits." : {
+      "comment" : "JSON error"
+    },
+    "Invalid escape sequence “\\%@”." : {
+      "comment" : "JSON error"
+    },
+    "Invalid number." : {
+      "comment" : "JSON error"
+    },
     "LF (macOS, Linux)" : {
       "comment" : "Line-break style name in menus"
+    },
+    "Line %lld, column %lld: %@" : {
+      "comment" : "Transformation error with its position",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Line %1$lld, column %2$lld: %3$@"
+          }
+        }
+      }
+    },
+    "Line breaks and control characters must be escaped in strings." : {
+      "comment" : "JSON error"
+    },
+    "Minify JSON" : {
+      "comment" : "Text menu item: remove whitespace from JSON"
     },
     "NotepadS edits text files only." : {
       "comment" : "Advice after the binary-file error"
@@ -19,8 +71,23 @@
     "Plain Text" : {
       "comment" : "Language name: no highlighting"
     },
+    "Remove Duplicate Lines" : {
+      "comment" : "Text menu item"
+    },
     "Remove the character, or choose a Unicode encoding such as UTF-8." : {
       "comment" : "Advice after the unsupported-character error"
+    },
+    "Sort Lines Ascending" : {
+      "comment" : "Text menu item"
+    },
+    "Sort Lines Descending" : {
+      "comment" : "Text menu item"
+    },
+    "The JSON is nested too deeply." : {
+      "comment" : "JSON error"
+    },
+    "The decoded data isn’t UTF-8 text." : {
+      "comment" : "Decode error"
     },
     "The file doesn’t contain plain text." : {
       "comment" : "Error when opening an image, archive or other binary file"
@@ -39,11 +106,41 @@
     "The file isn’t valid %@ text." : {
       "comment" : "Error when reopening a file with the wrong encoding"
     },
+    "The string is never closed." : {
+      "comment" : "JSON error"
+    },
     "The text can’t be saved in %@." : {
       "comment" : "Error when converting to an encoding that lacks a character"
     },
+    "The text contains an invalid percent escape, or the decoded bytes aren’t UTF-8 text." : {
+      "comment" : "URL decode error"
+    },
+    "The text isn’t valid Base64." : {
+      "comment" : "Base64 decode error"
+    },
+    "Title Case" : {
+      "comment" : "Text menu item: capitalize words"
+    },
+    "Trim Trailing Whitespace" : {
+      "comment" : "Text menu item"
+    },
+    "UPPERCASE" : {
+      "comment" : "Text menu item: convert to upper case"
+    },
+    "URL Decode" : {
+      "comment" : "Text menu item: percent-encoding"
+    },
+    "URL Encode" : {
+      "comment" : "Text menu item: percent-encoding"
+    },
     "UTF-8 with BOM" : {
       "comment" : "Short text encoding name in the status bar"
+    },
+    "Unexpected character “%@”." : {
+      "comment" : "JSON error"
+    },
+    "Unexpected text after the end of the JSON value." : {
+      "comment" : "JSON error"
     },
     "Unicode (UTF-16 BE)" : {
       "comment" : "Text encoding name in menus"
@@ -57,11 +154,20 @@
     "Unicode (UTF-8)" : {
       "comment" : "Text encoding name in menus"
     },
+    "Unknown word: expected “%@”." : {
+      "comment" : "JSON error"
+    },
     "Western (ISO 8859-1)" : {
       "comment" : "Text encoding name in menus"
     },
     "Western (Windows-1252)" : {
       "comment" : "Text encoding name in menus"
+    },
+    "a key in double quotes" : {
+      "comment" : "JSON error: what was expected"
+    },
+    "lowercase" : {
+      "comment" : "Text menu item: convert to lower case"
     },
     "“%@” on line %lld can’t be saved in %@." : {
       "comment" : "Error when converting to an encoding that lacks a character",
@@ -73,6 +179,9 @@
           }
         }
       }
+    },
+    "“,” or “%@”" : {
+      "comment" : "JSON error: what was expected, e.g. “,” or “}”"
     }
   },
   "version" : "1.0"

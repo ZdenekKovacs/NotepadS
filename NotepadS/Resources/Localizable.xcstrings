@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@\n\nThe text wasn’t changed." : {
+      "comment" : "Transformation error: the reason, then a note that nothing changed"
+    },
     "%@ (highlighting off)" : {
       "comment" : "Status bar: language name, highlighting disabled for a very large file"
     },
@@ -12,6 +15,9 @@
     },
     "Cancel" : {
       "comment" : "Dialog button"
+    },
+    "Can’t apply “%@”." : {
+      "comment" : "Transformation error title"
     },
     "Change Encoding" : {
       "comment" : "Undo action name"
@@ -34,6 +40,12 @@
     "Convert to UTF-8 and Insert" : {
       "comment" : "Unsupported-character dialog button"
     },
+    "Copy %@ of Document" : {
+      "comment" : "Text › Hash menu item"
+    },
+    "Copy %@ of Selection" : {
+      "comment" : "Text › Hash menu item"
+    },
     "Decrease Font Size" : {
       "comment" : "View menu item"
     },
@@ -49,8 +61,22 @@
     "Go to Line…" : {
       "comment" : "Edit menu item"
     },
+    "Hash" : {
+      "comment" : "Text menu: submenu with SHA-256, SHA-1, MD5"
+    },
     "Increase Font Size" : {
       "comment" : "View menu item"
+    },
+    "Line %lld, column %lld: %@" : {
+      "comment" : "Transformation error with its position in the document",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Line %1$lld, column %2$lld: %3$@"
+          }
+        }
+      }
     },
     "Line endings" : {
       "comment" : "Status bar tooltip"
@@ -81,6 +107,12 @@
     "Reopen with Encoding" : {
       "comment" : "Encoding menu section"
     },
+    "Replace Selection with %@" : {
+      "comment" : "Text › Hash menu item"
+    },
+    "Replace with %@" : {
+      "comment" : "Undo action name; e.g. SHA-256"
+    },
     "Show Invisibles" : {
       "comment" : "View menu item: marks for spaces, tabs and line breaks"
     },
@@ -89,6 +121,9 @@
     },
     "Syntax highlighting language" : {
       "comment" : "Status bar tooltip"
+    },
+    "Text" : {
+      "comment" : "Menu bar: text transformations"
     },
     "Text encoding" : {
       "comment" : "Status bar tooltip"

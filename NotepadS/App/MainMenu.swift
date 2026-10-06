@@ -1,4 +1,5 @@
 import AppKit
+import NotepadSCore
 
 /// Adjusts the menu bar loaded from `MainMenu.xib`.
 ///
@@ -38,6 +39,12 @@ enum MainMenu {
         if let viewMenu = submenu(containing: "toggleFullScreen:", in: mainMenu) {
             addFontSizeItems(to: viewMenu)
         }
+        if let editMenu = submenu(containing: "selectAll:", in: mainMenu),
+           let editItem = mainMenu.items.first(where: { $0.submenu === editMenu }) {
+            let textItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+            textItem.submenu = makeTextMenu()
+            mainMenu.insertItem(textItem, at: mainMenu.index(of: editItem) + 1)
+        }
         if let editMenu = submenu(containing: "selectAll:", in: mainMenu) {
             editMenu.addItem(.separator())
             editMenu.addItem(NSMenuItem(title: String(localized: "Go to Line…", comment: "Edit menu item"),
@@ -46,6 +53,55 @@ enum MainMenu {
     }
 
     // MARK: - Our items
+
+    /// The Text menu: transformations from NotepadSCore, applied by EditorViewController to the
+    /// selection or the whole document.
+    private static func makeTextMenu() -> NSMenu {
+        let menu = NSMenu(title: String(localized: "Text", comment: "Menu bar: text transformations"))
+        let groups: [[TextTransform]] = [
+            [.formatJSON, .minifyJSON],
+            [.base64Encode, .base64Decode, .urlEncode, .urlDecode],
+            [.uppercase, .lowercase, .titleCase, .camelCase, .snakeCase, .kebabCase],
+            [.sortLinesAscending, .sortLinesDescending, .removeDuplicateLines, .trimTrailingWhitespace],
+        ]
+        for (index, group) in groups.enumerated() {
+            if index > 0 { menu.addItem(.separator()) }
+            for transform in group {
+                let item = NSMenuItem(title: transform.name,
+                                      action: #selector(EditorViewController.applyTextTransform(_:)), keyEquivalent: "")
+                item.representedObject = transform.rawValue
+                menu.addItem(item)
+            }
+            if index == 1 {
+                // Hashes after the encodings.
+                menu.addItem(.separator())
+                let hashItem = NSMenuItem(title: String(localized: "Hash", comment: "Text menu: submenu with SHA-256, SHA-1, MD5"),
+                                          action: nil, keyEquivalent: "")
+                hashItem.submenu = makeHashMenu()
+                menu.addItem(hashItem)
+            }
+        }
+        return menu
+    }
+
+    private static func makeHashMenu() -> NSMenu {
+        let menu = NSMenu(title: String(localized: "Hash", comment: "Text menu: submenu with SHA-256, SHA-1, MD5"))
+        // Titles say "of Selection" or "of Document"; EditorViewController sets them when the menu opens.
+        for hash in TextHash.allCases {
+            let item = NSMenuItem(title: String(localized: "Copy \(hash.name) of Document", comment: "Text › Hash menu item"),
+                                  action: #selector(EditorViewController.copyHash(_:)), keyEquivalent: "")
+            item.representedObject = hash.rawValue
+            menu.addItem(item)
+        }
+        menu.addItem(.separator())
+        for hash in TextHash.allCases {
+            let item = NSMenuItem(title: String(localized: "Replace Selection with \(hash.name)", comment: "Text › Hash menu item"),
+                                  action: #selector(EditorViewController.replaceSelectionWithHash(_:)), keyEquivalent: "")
+            item.representedObject = hash.rawValue
+            menu.addItem(item)
+        }
+        return menu
+    }
 
     /// ⌘+ / ⌘− / ⌘0 at the top of the View menu, handled by EditorViewController.
     private static func addFontSizeItems(to menu: NSMenu) {

@@ -297,6 +297,135 @@ final class EditorViewController: NSViewController {
         view.window?.makeFirstResponder(textView)
     }
 
+    // MARK: - Text menu: transformations and hashes
+
+    /// Text › Format JSON, Base64 Encode, snake_case, Sort Lines … The menu item carries the
+    /// transformation's raw value. Works on the selection, or on the whole document when
+    /// nothing is selected; line-based transformations work on the whole selected lines.
+    @objc func applyTextTransform(_ sender: NSMenuItem) {
+        guard let rawValue = sender.representedObject as? String,
+              let transform = TextTransform(rawValue: rawValue) else { return }
+        let range = targetRange(lineBased: transform.isLineBased)
+        let original = document.textStorage.mutableString.substring(with: range)
+        let context = TransformContext(lineEnding: document.lineEnding, locale: .current,
+                                       indentation: String(repeating: " ", count: EditorDefaults.tabWidth))
+        do {
+            let result = try transform.apply(to: original, context: context)
+            guard result != original else { return }   // nothing to change, no undo step
+            replaceText(in: range, with: result, actionName: transform.name)
+        } catch let error as TransformError {
+            showTransformError(error, transformName: transform.name, startingAt: range.location)
+        } catch {
+            showError(error)
+        }
+    }
+
+    /// Text › Hash › Copy SHA-256 … Copies the hash of the selection, or of the whole document.
+    @objc func copyHash(_ sender: NSMenuItem) {
+        guard let hash = hash(for: sender), let digest = digest(hash) else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(digest, forType: .string)
+    }
+
+    /// Text › Hash › Replace Selection with SHA-256 …
+    @objc func replaceSelectionWithHash(_ sender: NSMenuItem) {
+        let selection = textView.selectedRange()
+        guard selection.length > 0, let hash = hash(for: sender), let digest = digest(hash) else { return }
+        replaceText(in: selection, with: digest,
+                    actionName: String(localized: "Replace with \(hash.name)", comment: "Undo action name; e.g. SHA-256"))
+    }
+
+    private func hash(for menuItem: NSMenuItem) -> TextHash? {
+        (menuItem.representedObject as? String).flatMap(TextHash.init(rawValue:))
+    }
+
+    /// The hash of the selection's UTF-8 bytes, or of the bytes Save would write for the whole
+    /// document (encoding, BOM and line breaks included), so it matches `shasum` on the file.
+    private func digest(_ hash: TextHash) -> String? {
+        let selection = textView.selectedRange()
+        let storage = document.textStorage
+        if selection.length > 0 {
+            return hash.hexDigest(of: Data(storage.mutableString.substring(with: selection).utf8))
+        }
+        // Can't fail: every character in the document fits its encoding (invariant 2).
+        guard let bytes = try? TextFile.encode(storage.string, encoding: document.encoding) else { return nil }
+        return hash.hexDigest(of: bytes)
+    }
+
+    /// The selection, the whole document if nothing is selected, and for line-based
+    /// transformations the whole lines the selection touches (including the last line's break).
+    private func targetRange(lineBased: Bool) -> NSRange {
+        let selection = textView.selectedRange()
+        let length = document.textStorage.length
+        guard selection.length > 0 else { return NSRange(location: 0, length: length) }
+        guard lineBased else { return selection }
+        let firstLine = lineIndex.line(containing: selection.location)
+        // A selection ending right after a line break doesn't include the next line.
+        let lastLine = lineIndex.line(containing: NSMaxRange(selection) - 1)
+        let start = lineIndex.lineStart(of: firstLine)
+        return NSRange(location: start, length: NSMaxRange(lineIndex.fullRange(ofLine: lastLine)) - start)
+    }
+
+    /// Replaces `range` with `text` as one undo step named `actionName`, and selects the result.
+    /// If the document's encoding can't store the new text, asks to convert to UTF-8 first.
+    private func replaceText(in range: NSRange, with text: String, actionName: String) {
+        if let character = document.rejectionReason(forInserting: text) {
+            offerConversionToUTF8(character: character) { [weak self] in
+                guard let self, NSMaxRange(range) <= self.document.textStorage.length else { return }
+                self.performReplacement(in: range, with: text, actionName: actionName)
+            }
+            return
+        }
+        performReplacement(in: range, with: text, actionName: actionName)
+    }
+
+    private func performReplacement(in range: NSRange, with text: String, actionName: String) {
+        let hadSelection = textView.selectedRange().length > 0
+        let caret = textView.selectedRange().location
+        textView.breakUndoCoalescing()
+        // shouldChangeText/didChangeText record the change for undo and mark the document
+        // edited, like typing. The text is ready, so the gatekeeper lets it through unchanged.
+        isPerformingProgrammaticEdit = true
+        if textView.shouldChangeText(in: range, replacementString: text) {
+            document.textStorage.replaceCharacters(in: range, with: text)
+            textView.didChangeText()
+        }
+        isPerformingProgrammaticEdit = false
+        document.undoManager?.setActionName(actionName)
+
+        let newLength = (text as NSString).length
+        if hadSelection {
+            textView.setSelectedRange(NSRange(location: range.location, length: newLength))
+        } else {
+            textView.setSelectedRange(NSRange(location: min(caret, document.textStorage.length), length: 0))
+        }
+    }
+
+    /// Shows why a transformation failed, with the position translated from the transformed
+    /// text to the document (line and column as in the status bar).
+    private func showTransformError(_ error: TransformError, transformName: String, startingAt offset: Int) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = String(localized: "Can’t apply “\(transformName)”.", comment: "Transformation error title")
+        var details = error.message
+        if let line = error.line, let column = error.column {
+            let firstLine = lineIndex.line(containing: offset)
+            let documentLine = firstLine + line
+            // On the first line, columns count from where the transformed text starts.
+            let documentColumn = line == 1 ? lineIndex.column(of: offset, in: document.textStorage.mutableString) - 1 + column
+                                           : column
+            details = String(localized: "Line \(documentLine), column \(documentColumn): \(error.message)",
+                             comment: "Transformation error with its position in the document")
+        }
+        alert.informativeText = String(localized: "\(details)\n\nThe text wasn’t changed.",
+                                       comment: "Transformation error: the reason, then a note that nothing changed")
+        if let window = view.window {
+            alert.beginSheetModal(for: window)
+        } else {
+            alert.runModal()
+        }
+    }
+
     // MARK: - Invisible characters (View menu)
 
     @objc func toggleInvisibles(_ sender: Any?) {
@@ -485,10 +614,10 @@ final class EditorViewController: NSViewController {
         }
     }
 
-    /// Invariant 2: `text` contains `character`, which the document's encoding can't store.
-    /// Nothing has been inserted. Asks whether to convert the document to UTF-8 and insert.
-    private func offerConversionToUTF8(inserting text: String, in range: NSRange,
-                                       character: UnencodableCharacter) {
+    /// Invariant 2: new text contains `character`, which the document's encoding can't store.
+    /// Nothing has been inserted. Asks whether to convert the document to UTF-8; if the user
+    /// agrees, converts and then runs `insert`, both as one undo step.
+    private func offerConversionToUTF8(character: UnencodableCharacter, thenPerform insert: @escaping () -> Void) {
         guard let window = view.window, window.attachedSheet == nil else {
             NSSound.beep()
             return
@@ -509,22 +638,19 @@ final class EditorViewController: NSViewController {
             alert.addButton(withTitle: String(localized: "Cancel", comment: "Dialog button"))
             alert.beginSheetModal(for: window) { response in
                 guard response == .alertFirstButtonReturn else { return }
-                self?.convertToUTF8AndInsert(text, in: range)
+                self?.convertToUTF8(thenPerform: insert)
             }
         }
     }
 
-    /// Converts the document to UTF-8 and inserts `text`, as one undo step.
-    private func convertToUTF8AndInsert(_ text: String, in range: NSRange) {
-        guard let undoManager = document.undoManager,
-              NSMaxRange(range) <= document.textStorage.length else { return }
+    /// Converts the document to UTF-8 and runs `insert`, as one undo step.
+    private func convertToUTF8(thenPerform insert: () -> Void) {
+        guard let undoManager = document.undoManager else { return }
         textView.breakUndoCoalescing()
         undoManager.beginUndoGrouping()
         do {
             try document.convert(to: .utf8)   // UTF-8 can store any text, so this doesn't throw
-            // Goes through the gatekeeper again: the text now passes the encoding check, and
-            // its line breaks still get the document's style.
-            textView.insertText(text, replacementRange: range)
+            insert()
         } catch {
             showError(error)
         }
@@ -556,7 +682,14 @@ extension EditorViewController: NSTextViewDelegate {
         // Invariant 2: never accept characters the document's encoding can't save. Insert
         // nothing now; the dialog offers to convert the document to UTF-8 and then insert.
         if let character = document.rejectionReason(forInserting: replacement) {
-            offerConversionToUTF8(inserting: replacement, in: affectedCharRange, character: character)
+            // The sheet is window-modal, so the text can't change before the user decides and
+            // `affectedCharRange` stays valid. Inserting goes through this gatekeeper again: the
+            // text then passes the encoding check, and its line breaks get the document's style.
+            offerConversionToUTF8(character: character) { [weak self, weak textView] in
+                guard let self, let textView,
+                      NSMaxRange(affectedCharRange) <= self.document.textStorage.length else { return }
+                textView.insertText(replacement, replacementRange: affectedCharRange)
+            }
             return false
         }
 
@@ -644,6 +777,13 @@ extension EditorViewController: NSMenuItemValidation {
             menuItem.state = wrapsLines ? .on : .off
         } else if menuItem.action == #selector(toggleInvisibles(_:)) {
             menuItem.state = layoutManager.showsInvisibles ? .on : .off
+        } else if menuItem.action == #selector(copyHash(_:)), let hash = hash(for: menuItem) {
+            // Say what is hashed: risk 9 in DESIGN.md.
+            menuItem.title = textView.selectedRange().length > 0
+                ? String(localized: "Copy \(hash.name) of Selection", comment: "Text › Hash menu item")
+                : String(localized: "Copy \(hash.name) of Document", comment: "Text › Hash menu item")
+        } else if menuItem.action == #selector(replaceSelectionWithHash(_:)) {
+            return textView.selectedRange().length > 0
         }
         return true
     }
