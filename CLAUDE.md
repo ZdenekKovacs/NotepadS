@@ -12,10 +12,10 @@ The developer is new to Swift/AppKit: code must be readable and explain *why* wh
 
 ## Current state
 
-The phase 1 code is a **draft that has never been compiled**, and it predates four decisions
-(line breaks preserved as on disk, encodability dialog, menu bar from a XIB without private API,
-local signing). **Start with Phase 0** — `docs/DESIGN.md` §4 (tasks) and §5 (per-file change list).
-Where the code and `docs/DESIGN.md` disagree, the document wins.
+Phases 0–4 are implemented, tested and checked by the developer in the running app (v0.4).
+Next: daily-use testing and polishing, then the "Later" items. Before any distribution, replace the
+placeholder bundle identifier `com.example.NotepadS` in `project.yml` (it also names the sandbox
+container, so changing it later moves autosaved documents and settings).
 
 ## Build, run, test
 
@@ -140,10 +140,10 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Sort, dedupe, trim trailing whitespace
 
 ### Phase 4 — v0.4
-- [ ] YAML, JS/TS, C/C++, HTML/XML grammars
-- [ ] Regex find/replace panel
-- [ ] SwiftUI Settings (font, tab width, tabs vs spaces, wrap default), auto-indent
-- [ ] Printing, app icon
+- [x] YAML, JS/TS, C/C++, HTML/XML grammars
+- [x] Regex find/replace panel
+- [x] SwiftUI Settings (font, tab width, tabs vs spaces, wrap default), auto-indent
+- [x] Printing, app icon
 
 ### Later
 - [ ] iOS app on `NotepadSCore`
