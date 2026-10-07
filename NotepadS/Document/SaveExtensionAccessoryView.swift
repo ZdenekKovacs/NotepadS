@@ -34,11 +34,25 @@ final class SaveExtensionAccessoryView: NSView {
         let languages = [Language.plainText] + Language.allCases
             .filter { $0 != .plainText }
             .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+        // Two columns: the language name, then its extensions in gray, starting at a tab stop
+        // just right of the longest name, so the names stand out and the extensions line up.
+        let font = NSFont.menuFont(ofSize: 0)
+        let widestName = languages.map { ($0.displayName as NSString).size(withAttributes: [.font: font]).width }.max() ?? 0
+        let columns = NSMutableParagraphStyle()
+        columns.tabStops = [NSTextTab(textAlignment: .left, location: (widestName + 24).rounded())]
+
         for language in languages {
             let extensions = language.fileExtensions.map { ".\($0)" }.joined(separator: " ")
             let item = NSMenuItem(title: String(localized: "\(language.displayName)   \(extensions)",
                                                 comment: "Save panel: language name, then its file extensions"),
                                   action: #selector(languageChosen(_:)), keyEquivalent: "")
+            // What the menu shows; `title` above stays for VoiceOver and type-to-select.
+            let attributedTitle = NSMutableAttributedString(string: language.displayName,
+                                                            attributes: [.font: font, .paragraphStyle: columns])
+            attributedTitle.append(NSAttributedString(string: "\t\(extensions)",
+                                                      attributes: [.font: font, .paragraphStyle: columns,
+                                                                   .foregroundColor: NSColor.secondaryLabelColor]))
+            item.attributedTitle = attributedTitle
             item.target = self
             item.representedObject = language.rawValue
             menu.addItem(item)
