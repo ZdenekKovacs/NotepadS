@@ -13,7 +13,35 @@
 <p class="lead">Colors for code and data files.</p>
 
 <p>NotepadS colors the text based on the file’s language. The language is detected from the file name or extension, or from a <code>#!</code> line such as <code>#!/usr/bin/env python3</code>. The status bar shows it; click it to choose another language for this window.</p>
-<p>Supported languages: C, C++, CSS (also SCSS and Less), Diff, Dockerfile, Go, HTML, INI, Java, JavaScript, JSON, Makefile, Markdown, PHP, Python, Ruby, Rust, Shell, SQL, Swift, TOML, TypeScript, XML and YAML.</p>
 <p>The colors follow Light and Dark mode. For very large files (over 10 MB) or files with extremely long lines, highlighting turns off to keep editing fast; the status bar then says <b>(highlighting off)</b>.</p>
+<h2>Languages and file extensions</h2>
+<table>
+<tr><th>Language</th><th>Extensions</th></tr>
+<tr><td>C</td><td><code>.c</code> <code>.h</code></td></tr>
+<tr><td>C++</td><td><code>.cpp</code> <code>.cc</code> <code>.cxx</code> <code>.c++</code> <code>.hpp</code> <code>.hh</code> <code>.hxx</code> <code>.ino</code></td></tr>
+<tr><td>CSS</td><td><code>.css</code> <code>.scss</code> <code>.less</code></td></tr>
+<tr><td>Diff</td><td><code>.diff</code> <code>.patch</code></td></tr>
+<tr><td>Dockerfile</td><td><code>.dockerfile</code> <code>.containerfile</code>, and files named <code>Dockerfile</code>, <code>Containerfile</code></td></tr>
+<tr><td>Go</td><td><code>.go</code></td></tr>
+<tr><td>HTML</td><td><code>.html</code> <code>.htm</code> <code>.xhtml</code></td></tr>
+<tr><td>INI</td><td><code>.ini</code> <code>.cfg</code> <code>.conf</code> <code>.properties</code>, and files named <code>.editorconfig</code>, <code>.gitconfig</code>, <code>.npmrc</code></td></tr>
+<tr><td>Java</td><td><code>.java</code></td></tr>
+<tr><td>JavaScript</td><td><code>.js</code> <code>.mjs</code> <code>.cjs</code> <code>.jsx</code></td></tr>
+<tr><td>JSON</td><td><code>.json</code> <code>.geojson</code> <code>.webmanifest</code></td></tr>
+<tr><td>Makefile</td><td><code>.mk</code> <code>.mak</code>, and files named <code>Makefile</code>, <code>GNUmakefile</code></td></tr>
+<tr><td>Markdown</td><td><code>.md</code> <code>.markdown</code> <code>.mdown</code> <code>.mkd</code></td></tr>
+<tr><td>PHP</td><td><code>.php</code> <code>.phtml</code></td></tr>
+<tr><td>Python</td><td><code>.py</code> <code>.pyw</code> <code>.pyi</code></td></tr>
+<tr><td>Ruby</td><td><code>.rb</code> <code>.rake</code> <code>.gemspec</code>, and files named <code>Gemfile</code>, <code>Rakefile</code>, <code>Podfile</code>, <code>Fastfile</code></td></tr>
+<tr><td>Rust</td><td><code>.rs</code></td></tr>
+<tr><td>Shell</td><td><code>.sh</code> <code>.bash</code> <code>.zsh</code> <code>.ksh</code> <code>.command</code>, and files named <code>.bashrc</code>, <code>.bash_profile</code>, <code>.bash_login</code>, <code>.bash_logout</code>, <code>.profile</code>, <code>.zshrc</code>, <code>.zshenv</code>, <code>.zprofile</code>, <code>.zlogin</code>, <code>.zlogout</code></td></tr>
+<tr><td>SQL</td><td><code>.sql</code></td></tr>
+<tr><td>Swift</td><td><code>.swift</code></td></tr>
+<tr><td>TOML</td><td><code>.toml</code>, and files named <code>Cargo.lock</code>, <code>Pipfile</code></td></tr>
+<tr><td>TypeScript</td><td><code>.ts</code> <code>.tsx</code> <code>.mts</code> <code>.cts</code></td></tr>
+<tr><td>XML</td><td><code>.xml</code> <code>.plist</code> <code>.svg</code> <code>.xsd</code> <code>.xsl</code> <code>.xslt</code> <code>.rss</code> <code>.atom</code> <code>.xib</code> <code>.storyboard</code> <code>.csproj</code> <code>.entitlements</code></td></tr>
+<tr><td>YAML</td><td><code>.yml</code> <code>.yaml</code></td></tr>
+</table>
+<p>When you save, you can type any extension. The <b>Syntax highlighting</b> menu at the bottom of the Save window lists these languages; choosing one puts its extension on the file name.</p>
 </body>
 </html>

@@ -291,6 +291,7 @@ YAML, JS/TS, C/C++, HTML/XML grammars · regex find/replace panel (`NSRegularExp
 | 5.1 | Status bar: lines and characters of the document | Both update with every keystroke, also when typing fast. Characters = grapheme clusters, CRLF = 1 (`TextStatistics` in Core, tested). Up to 50 000 UTF-16 units counted right away; larger texts on a background copy, restarted as soon as the previous count finishes, so typing in a 10 MB file doesn't stutter. |
 | 5.2 | Minimap (View › Show Minimap, ⌃⌘M) in syntax colors, state remembered for new windows | Colors match the text, also after changing the language and after typing `/*`; slider matches the visible text with wrap on and off; click jumps, drag scrolls, scroll wheel over it scrolls the text; hiding gives the text the full width (re-wraps); 100 000-line and 5 MB single-line files stay smooth; Light/Dark. |
 | 5.3 | Wrap checkbox in the status bar | Mirrors View › Wrap Lines (⌃⌘W) both ways. |
+| 5.4 | Save panel lists the languages with their extensions (pull-down "Set Extension"; `Language.fileExtensions` in Core is the single source for detection and the list) | Any typed extension is still saved as typed; choosing a language replaces a recognized extension ("a.js" → "a.py") and keeps an unknown one ("notes.v2" → "notes.v2.py"); the file is highlighted right after saving. |
 
 ### Later
 

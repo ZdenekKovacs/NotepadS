@@ -142,34 +142,61 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
         return ["sh", "bash", "zsh", "ksh", "dash"].contains(program) ? .shell : nil
     }
 
-    private static let byExtension: [String: Language] = [
-        "json": .json, "geojson": .json, "webmanifest": .json,
-        "md": .markdown, "markdown": .markdown, "mdown": .markdown, "mkd": .markdown,
-        "py": .python, "pyw": .python, "pyi": .python,
-        "sh": .shell, "bash": .shell, "zsh": .shell, "ksh": .shell, "command": .shell,
-        "yml": .yaml, "yaml": .yaml,
-        "js": .javaScript, "mjs": .javaScript, "cjs": .javaScript, "jsx": .javaScript,
-        "ts": .typeScript, "tsx": .typeScript, "mts": .typeScript, "cts": .typeScript,
+    /// File extensions (lowercase, without the dot) recognized as this language, the usual one
+    /// first; that one is suggested when saving. Plain text lists "txt", although every file
+    /// without a recognized extension is plain text anyway.
+    public var fileExtensions: [String] {
+        switch self {
+        case .plainText: return ["txt"]
+        case .json: return ["json", "geojson", "webmanifest"]
+        case .markdown: return ["md", "markdown", "mdown", "mkd"]
+        case .python: return ["py", "pyw", "pyi"]
+        case .shell: return ["sh", "bash", "zsh", "ksh", "command"]
+        case .yaml: return ["yml", "yaml"]
+        case .javaScript: return ["js", "mjs", "cjs", "jsx"]
+        case .typeScript: return ["ts", "tsx", "mts", "cts"]
         // ".h" could be C or C++; C highlighting is a safe subset for both.
-        "c": .c, "h": .c,
-        "cpp": .cpp, "cc": .cpp, "cxx": .cpp, "c++": .cpp, "hpp": .cpp, "hh": .cpp, "hxx": .cpp, "ino": .cpp,
-        "html": .html, "htm": .html, "xhtml": .html,
-        "xml": .xml, "plist": .xml, "svg": .xml, "xsd": .xml, "xsl": .xml, "xslt": .xml, "rss": .xml,
-        "atom": .xml, "xib": .xml, "storyboard": .xml, "csproj": .xml, "entitlements": .xml,
-        "css": .css, "scss": .css, "less": .css,
-        "sql": .sql,
-        "swift": .swift,
-        "java": .java,
-        "go": .go,
-        "rs": .rust,
-        "php": .php, "phtml": .php,
-        "rb": .ruby, "rake": .ruby, "gemspec": .ruby,
-        "toml": .toml,
-        "ini": .ini, "cfg": .ini, "conf": .ini, "properties": .ini,
-        "mk": .makefile, "mak": .makefile,
-        "dockerfile": .dockerfile, "containerfile": .dockerfile,
-        "diff": .diff, "patch": .diff,
-    ]
+        case .c: return ["c", "h"]
+        case .cpp: return ["cpp", "cc", "cxx", "c++", "hpp", "hh", "hxx", "ino"]
+        case .html: return ["html", "htm", "xhtml"]
+        case .xml: return ["xml", "plist", "svg", "xsd", "xsl", "xslt", "rss",
+                           "atom", "xib", "storyboard", "csproj", "entitlements"]
+        case .css: return ["css", "scss", "less"]
+        case .sql: return ["sql"]
+        case .swift: return ["swift"]
+        case .java: return ["java"]
+        case .go: return ["go"]
+        case .rust: return ["rs"]
+        case .php: return ["php", "phtml"]
+        case .ruby: return ["rb", "rake", "gemspec"]
+        case .toml: return ["toml"]
+        case .ini: return ["ini", "cfg", "conf", "properties"]
+        case .makefile: return ["mk", "mak"]
+        case .dockerfile: return ["dockerfile", "containerfile"]
+        case .diff: return ["diff", "patch"]
+        }
+    }
+
+    /// Whole file names (lowercase) recognized as this language, such as "Makefile" or ".zshrc".
+    public var fileNames: [String] {
+        Self.byFileName.filter { $0.value == self }.keys.sorted()
+    }
+
+    /// `name` with `newExtension` (no dot) as its extension, for the Save panel. A recognized
+    /// extension is replaced; anything else after a dot is kept as part of the name:
+    /// "script.js" → "script.py", "notes.v2" → "notes.v2.py", "Makefile" → "Makefile.mk".
+    public static func fileName(_ name: String, withExtension newExtension: String) -> String {
+        let nsName = name as NSString
+        let base = byExtension[nsName.pathExtension.lowercased()] != nil || nsName.pathExtension.lowercased() == "txt"
+            ? nsName.deletingPathExtension
+            : name
+        return "\(base).\(newExtension)"
+    }
+
+    /// Built from `fileExtensions`. Plain text is left out, so a ".txt" file still gets its
+    /// language from a `#!` line. (`uniqueKeysWithValues` traps on a duplicate; a test checks.)
+    private static let byExtension: [String: Language] = Dictionary(uniqueKeysWithValues:
+        allCases.filter { $0 != .plainText }.flatMap { language in language.fileExtensions.map { ($0, language) } })
 
     /// Files recognized by their whole name (lowercased).
     private static let byFileName: [String: Language] = [

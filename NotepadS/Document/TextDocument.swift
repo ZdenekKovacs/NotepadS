@@ -119,6 +119,7 @@ final class TextDocument: NSDocument {
     // MARK: - Save panel
 
     /// No "File Format" pop-up in the save panel: there is only one format, plain text.
+    /// (Our own accessory view, set in `prepareSavePanel`, takes its place.)
     override var shouldRunSavePanelWithAccessoryView: Bool { false }
 
     override func prepareSavePanel(_ savePanel: NSSavePanel) -> Bool {
@@ -132,6 +133,8 @@ final class TextDocument: NSDocument {
         savePanel.canSelectHiddenExtension = false
         // Allow saving dotfiles such as ".env" next to other dotfiles.
         savePanel.showsHiddenFiles = true
+        // A list of the extensions that get syntax highlighting; choosing one sets it on the name.
+        savePanel.accessoryView = SaveExtensionAccessoryView(savePanel: savePanel)
         return true
     }
 

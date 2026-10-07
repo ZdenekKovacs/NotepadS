@@ -117,4 +117,49 @@ final class LanguageTests: XCTestCase {
         XCTAssertEqual(Language.plainText.displayName, "Plain Text")
         XCTAssertEqual(Language.json.displayName, Grammar.json.name)
     }
+
+    // MARK: - Extension list (save panel)
+
+    func testEveryExtensionIsListedOnceAndDetectsItsLanguage() {
+        var seen = Set<String>()
+        for language in Language.allCases {
+            XCTAssertFalse(language.fileExtensions.isEmpty, "\(language) needs an extension to suggest")
+            for fileExtension in language.fileExtensions {
+                XCTAssertTrue(seen.insert(fileExtension).inserted, "“\(fileExtension)” is listed twice")
+                XCTAssertEqual(fileExtension, fileExtension.lowercased())
+                XCTAssertFalse(fileExtension.hasPrefix("."))
+                XCTAssertEqual(Language.detect(fileName: "file.\(fileExtension)", firstLine: nil), language)
+            }
+        }
+    }
+
+    func testUsualExtensionComesFirst() {
+        XCTAssertEqual(Language.python.fileExtensions.first, "py")
+        XCTAssertEqual(Language.yaml.fileExtensions.first, "yml")
+        XCTAssertEqual(Language.markdown.fileExtensions.first, "md")
+        XCTAssertEqual(Language.plainText.fileExtensions.first, "txt")
+    }
+
+    /// ".txt" is listed for plain text but doesn't hide a `#!` line.
+    func testTxtFileStillUsesShebang() {
+        XCTAssertEqual(Language.detect(fileName: "run.txt", firstLine: "#!/bin/bash"), .shell)
+        XCTAssertEqual(Language.detect(fileName: "notes.TXT", firstLine: "hello"), .plainText)
+    }
+
+    func testFileNames() {
+        XCTAssertTrue(Language.makefile.fileNames.contains("makefile"))
+        XCTAssertTrue(Language.shell.fileNames.contains(".zshrc"))
+        XCTAssertEqual(Language.python.fileNames, [])
+    }
+
+    func testFileNameWithExtension() {
+        XCTAssertEqual(Language.fileName("script.js", withExtension: "py"), "script.py")
+        XCTAssertEqual(Language.fileName("Notes.TXT", withExtension: "md"), "Notes.md")
+        XCTAssertEqual(Language.fileName("notes.v2", withExtension: "py"), "notes.v2.py", "unknown extension is kept")
+        XCTAssertEqual(Language.fileName("Makefile", withExtension: "mk"), "Makefile.mk")
+        XCTAssertEqual(Language.fileName("Untitled", withExtension: "json"), "Untitled.json")
+        XCTAssertEqual(Language.fileName("Příliš žluťoučký 😀.yml", withExtension: "json"), "Příliš žluťoučký 😀.json")
+        XCTAssertEqual(Language.fileName("archive.tar.gz", withExtension: "txt"), "archive.tar.gz.txt")
+        XCTAssertEqual(Language.fileName(".env", withExtension: "ini"), ".env.ini", "a dotfile name is not an extension")
+    }
 }

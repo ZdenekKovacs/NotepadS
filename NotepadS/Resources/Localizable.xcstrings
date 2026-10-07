@@ -4,6 +4,17 @@
     "%@\n\nThe text wasn’t changed." : {
       "comment" : "Transformation error: the reason, then a note that nothing changed"
     },
+    "%@   %@" : {
+      "comment" : "Save panel: language name, then its file extensions",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@   %2$@"
+          }
+        }
+      }
+    },
     "%@ (highlighting off)" : {
       "comment" : "Status bar: language name, highlighting disabled for a very large file"
     },
@@ -54,6 +65,9 @@
     },
     "Enter a line number from 1 to %lld." : {
       "comment" : "Go to Line dialog"
+    },
+    "Files with these extensions get syntax highlighting. You can also type any other extension." : {
+      "comment" : "Save panel tooltip"
     },
     "Find and Replace" : {
       "comment" : "Find panel title"
@@ -148,6 +162,9 @@
     "Not found" : {
       "comment" : "Find panel status"
     },
+    "Or type your own extension." : {
+      "comment" : "Save panel hint"
+    },
     "Previous" : {
       "comment" : "Find panel button"
     },
@@ -187,6 +204,9 @@
     "Replacement ($1 = group, \\n = line break)" : {
       "comment" : "Find panel placeholder"
     },
+    "Set Extension" : {
+      "comment" : "Save panel: pull-down title; lists languages with syntax highlighting"
+    },
     "Settings" : {
       "comment" : "Settings window title"
     },
@@ -207,6 +227,9 @@
     },
     "Syntax highlighting language" : {
       "comment" : "Status bar tooltip"
+    },
+    "Syntax highlighting:" : {
+      "comment" : "Save panel: label before the extension pull-down"
     },
     "System Monospaced" : {
       "comment" : "Settings: the default font (SF Mono)"

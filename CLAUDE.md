@@ -149,6 +149,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Status bar: line and character count
 - [x] Minimap (View › Show Minimap, ⌃⌘M)
 - [x] Wrap checkbox in the status bar
+- [x] Save panel: list of languages and their extensions
 
 ### Later
 - [ ] iOS app on `NotepadSCore`
