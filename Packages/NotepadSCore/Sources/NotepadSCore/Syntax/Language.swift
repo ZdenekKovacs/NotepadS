@@ -27,6 +27,41 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
     case typeScript
     case xml
     case yaml
+    case csharp
+    case visualBasic
+    case powerShell
+    case batch
+    case registry
+    case autoIt
+    case nsis
+    case innoSetup
+    case kotlin
+    case scala
+    case groovy
+    case dart
+    case objectiveC
+    case lua
+    case perl
+    case r
+    case tcl
+    case coffeeScript
+    case haskell
+    case erlang
+    case lisp
+    case ocaml
+    case smalltalk
+    case matlab
+    case fortran
+    case latex
+    case postScript
+    case cmake
+    case pascal
+    case cobol
+    case ada
+    case assembly
+    case d
+    case verilog
+    case vhdl
 
     /// The grammar, or nil for plain text.
     public var grammar: Grammar? {
@@ -56,6 +91,41 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
         case .markdown: return .markdown
         case .python: return .python
         case .shell: return .shell
+        case .csharp: return .csharp
+        case .visualBasic: return .visualBasic
+        case .powerShell: return .powerShell
+        case .batch: return .batch
+        case .registry: return .registry
+        case .autoIt: return .autoIt
+        case .nsis: return .nsis
+        case .innoSetup: return .innoSetup
+        case .kotlin: return .kotlin
+        case .scala: return .scala
+        case .groovy: return .groovy
+        case .dart: return .dart
+        case .objectiveC: return .objectiveC
+        case .lua: return .lua
+        case .perl: return .perl
+        case .r: return .r
+        case .tcl: return .tcl
+        case .coffeeScript: return .coffeeScript
+        case .haskell: return .haskell
+        case .erlang: return .erlang
+        case .lisp: return .lisp
+        case .ocaml: return .ocaml
+        case .smalltalk: return .smalltalk
+        case .matlab: return .matlab
+        case .fortran: return .fortran
+        case .latex: return .latex
+        case .postScript: return .postScript
+        case .cmake: return .cmake
+        case .pascal: return .pascal
+        case .cobol: return .cobol
+        case .ada: return .ada
+        case .assembly: return .assembly
+        case .d: return .d
+        case .verilog: return .verilog
+        case .vhdl: return .vhdl
         }
     }
 
@@ -88,7 +158,62 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
         case .markdown: return "Markdown"
         case .python: return "Python"
         case .shell: return "Shell"
+        case .csharp: return "C#"
+        case .visualBasic: return "Visual Basic"
+        case .powerShell: return "PowerShell"
+        case .batch: return "Batch"
+        case .registry: return "Windows Registry"
+        case .autoIt: return "AutoIt"
+        case .nsis: return "NSIS"
+        case .innoSetup: return "Inno Setup"
+        case .kotlin: return "Kotlin"
+        case .scala: return "Scala"
+        case .groovy: return "Groovy"
+        case .dart: return "Dart"
+        case .objectiveC: return "Objective-C"
+        case .lua: return "Lua"
+        case .perl: return "Perl"
+        case .r: return "R"
+        case .tcl: return "Tcl"
+        case .coffeeScript: return "CoffeeScript"
+        case .haskell: return "Haskell"
+        case .erlang: return "Erlang"
+        case .lisp: return "Lisp"
+        case .ocaml: return "OCaml"
+        case .smalltalk: return "Smalltalk"
+        case .matlab: return "MATLAB"
+        case .fortran: return "Fortran"
+        case .latex: return "LaTeX"
+        case .postScript: return "PostScript"
+        case .cmake: return "CMake"
+        case .pascal: return "Pascal/Delphi"
+        case .cobol: return "COBOL"
+        case .ada: return "Ada"
+        case .assembly: return "Assembly"
+        case .d: return "D"
+        case .verilog: return "Verilog"
+        case .vhdl: return "VHDL"
         }
+    }
+
+    // MARK: - Menus
+
+    /// The languages for a menu, without plain text (which menus list on its own): sorted by
+    /// name and grouped by first letter, as Notepad++'s Language menu does. With 60 languages
+    /// one flat list would be longer than the screen.
+    public static var groupedByInitial: [(initial: String, languages: [Language])] {
+        let sorted = allCases.filter { $0 != .plainText }
+            .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+        var groups: [(initial: String, languages: [Language])] = []
+        for language in sorted {
+            let initial = language.displayName.prefix(1).uppercased()
+            if groups.last?.initial == initial {
+                groups[groups.count - 1].languages.append(language)
+            } else {
+                groups.append((initial, [language]))
+            }
+        }
+        return groups
     }
 
     // MARK: - Detection
@@ -100,6 +225,11 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
     ///   - firstLine: the first line of the text (only its `#!` line is used).
     public static func detect(fileName: String?, firstLine: String?) -> Language {
         if let fileName, let language = fromFileName(fileName) {
+            // ".m" is MATLAB or Objective-C. Objective-C files start with a comment, #import or
+            // an @ directive; none of those is MATLAB (whose comments start with %).
+            if language == .matlab, let firstLine, Self.looksLikeObjectiveC(firstLine) {
+                return .objectiveC
+            }
             return language
         }
         if let firstLine, let language = fromShebang(firstLine) {
@@ -115,6 +245,11 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
         }
         let pathExtension = (name as NSString).pathExtension
         return pathExtension.isEmpty ? nil : byExtension[pathExtension]
+    }
+
+    private static func looksLikeObjectiveC(_ line: String) -> Bool {
+        let start = line.drop(while: { $0 == " " || $0 == "\t" })
+        return ["#", "//", "/*", "@"].contains { start.hasPrefix($0) }
     }
 
     /// `#!/bin/bash`, `#!/usr/bin/env python3`, `#!/usr/bin/env -S zsh -f` …
@@ -138,6 +273,24 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
         }
         if program == "php" {
             return .php
+        }
+        if program.hasPrefix("perl") {
+            return .perl
+        }
+        if program.hasPrefix("lua") {
+            return .lua
+        }
+        if program.hasPrefix("tclsh") || program.hasPrefix("wish") {
+            return .tcl
+        }
+        switch program {
+        case "pwsh", "powershell": return .powerShell
+        case "Rscript": return .r
+        case "groovy": return .groovy
+        case "escript": return .erlang
+        case "coffee": return .coffeeScript
+        case "sbcl", "clisp", "guile", "racket": return .lisp
+        default: break
         }
         return ["sh", "bash", "zsh", "ksh", "dash"].contains(program) ? .shell : nil
     }
@@ -174,6 +327,41 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
         case .makefile: return ["mk", "mak"]
         case .dockerfile: return ["dockerfile", "containerfile"]
         case .diff: return ["diff", "patch"]
+        case .csharp: return ["cs", "csx"]
+        case .visualBasic: return ["vb", "vbs", "bas", "frm"]
+        case .powerShell: return ["ps1", "psm1", "psd1"]
+        case .batch: return ["bat", "cmd"]
+        case .registry: return ["reg"]
+        case .autoIt: return ["au3"]
+        case .nsis: return ["nsi", "nsh"]
+        case .innoSetup: return ["iss"]
+        case .kotlin: return ["kt", "kts"]
+        case .scala: return ["scala", "sc"]
+        case .groovy: return ["groovy", "gradle", "gvy"]
+        case .dart: return ["dart"]
+        case .objectiveC: return ["m", "mm"]
+        case .lua: return ["lua"]
+        case .perl: return ["pl", "pm"]
+        case .r: return ["r"]
+        case .tcl: return ["tcl", "tk"]
+        case .coffeeScript: return ["coffee"]
+        case .haskell: return ["hs"]
+        case .erlang: return ["erl", "hrl"]
+        case .lisp: return ["lisp", "lsp", "cl", "el", "scm", "ss", "rkt", "clj", "cljs", "edn"]
+        case .ocaml: return ["ml", "mli"]
+        case .smalltalk: return ["st"]
+        case .matlab: return ["m"]
+        case .fortran: return ["f90", "f95", "f03", "f08", "f", "for", "f77"]
+        case .latex: return ["tex", "ltx", "sty", "cls"]
+        case .postScript: return ["ps", "eps"]
+        case .cmake: return ["cmake"]
+        case .pascal: return ["pas", "pp", "dpr", "dpk", "lpr"]
+        case .cobol: return ["cbl", "cob", "cpy"]
+        case .ada: return ["adb", "ads", "ada"]
+        case .assembly: return ["asm", "s", "nasm"]
+        case .d: return ["d", "di"]
+        case .verilog: return ["v", "vh", "sv", "svh"]
+        case .vhdl: return ["vhd", "vhdl"]
         }
     }
 
@@ -194,9 +382,21 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
     }
 
     /// Built from `fileExtensions`. Plain text is left out, so a ".txt" file still gets its
-    /// language from a `#!` line. (`uniqueKeysWithValues` traps on a duplicate; a test checks.)
-    private static let byExtension: [String: Language] = Dictionary(uniqueKeysWithValues:
-        allCases.filter { $0 != .plainText }.flatMap { language in language.fileExtensions.map { ($0, language) } })
+    /// language from a `#!` line. Each extension belongs to one language (a test checks),
+    /// except ".m": see `detect`.
+    private static let byExtension: [String: Language] = {
+        var languages: [String: Language] = [:]
+        for language in allCases where language != .plainText {
+            for fileExtension in language.fileExtensions where languages[fileExtension] == nil {
+                languages[fileExtension] = language
+            }
+        }
+        languages["m"] = .matlab
+        return languages
+    }()
+
+    /// Extensions that two languages use; `detect` tells them apart by the first line.
+    static let sharedExtensions: Set<String> = ["m"]
 
     /// Files recognized by their whole name (lowercased).
     private static let byFileName: [String: Language] = [
@@ -208,5 +408,6 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
         "gemfile": .ruby, "rakefile": .ruby, "podfile": .ruby, "fastfile": .ruby,
         ".editorconfig": .ini, ".gitconfig": .ini, ".npmrc": .ini,
         "cargo.lock": .toml, "pipfile": .toml,
+        "cmakelists.txt": .cmake, "jenkinsfile": .groovy,
     ]
 }

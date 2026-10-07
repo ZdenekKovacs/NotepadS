@@ -31,6 +31,8 @@ final class StatusBarView: NSView {
     private var convertItems: [NSMenuItem] = []
     private var lineEndingItems: [NSMenuItem] = []
     private var languageItems: [NSMenuItem] = []
+    /// The letter submenus (A, B, C …) of the language menu.
+    private var languageGroupItems: [NSMenuItem] = []
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -131,6 +133,10 @@ final class StatusBarView: NSView {
         for item in languageItems {
             item.state = (item.representedObject as? Language) == language ? .on : .off
         }
+        // A checkmark on the letter, too, so the current language is easy to find.
+        for groupItem in languageGroupItems {
+            groupItem.state = groupItem.submenu?.items.contains { $0.state == .on } == true ? .on : .off
+        }
     }
 
     // MARK: - Setup
@@ -139,9 +145,21 @@ final class StatusBarView: NSView {
         let languageMenu = NSMenu()
         languageMenu.autoenablesItems = false
         languageMenu.addItem(NSMenuItem())   // item 0 of a pull-down is its title, not a choice
-        for language in Language.allCases {
-            languageItems.append(addItem(language.displayName, value: language,
-                                         action: #selector(languageItemChosen(_:)), to: languageMenu))
+        // Plain Text, then one submenu per letter (A, B, C …), like Notepad++'s Language menu.
+        languageItems.append(addItem(Language.plainText.displayName, value: Language.plainText,
+                                     action: #selector(languageItemChosen(_:)), to: languageMenu))
+        languageMenu.addItem(.separator())
+        for group in Language.groupedByInitial {
+            let submenu = NSMenu()
+            submenu.autoenablesItems = false
+            for language in group.languages {
+                languageItems.append(addItem(language.displayName, value: language,
+                                             action: #selector(languageItemChosen(_:)), to: submenu))
+            }
+            let groupItem = NSMenuItem(title: group.initial, action: nil, keyEquivalent: "")
+            groupItem.submenu = submenu
+            languageMenu.addItem(groupItem)
+            languageGroupItems.append(groupItem)
         }
         configure(languageButton, menu: languageMenu, toolTip: "")
 

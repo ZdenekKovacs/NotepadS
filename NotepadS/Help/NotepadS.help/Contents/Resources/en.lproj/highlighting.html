@@ -12,33 +12,69 @@
 <h1>Syntax highlighting</h1>
 <p class="lead">Colors for code and data files.</p>
 
-<p>NotepadS colors the text based on the file’s language. The language is detected from the file name or extension, or from a <code>#!</code> line such as <code>#!/usr/bin/env python3</code>. The status bar shows it; click it to choose another language for this window.</p>
+<p>NotepadS colors the text based on the file’s language. The language is detected from the file name or extension, or from a <code>#!</code> line such as <code>#!/usr/bin/env python3</code>. The status bar shows it; click it to choose another language for this window (languages are grouped by their first letter).</p>
+<p>A <code>.m</code> file is Objective-C when its first line starts with <code>#</code>, <code>//</code>, <code>/*</code> or <code>@</code>, and MATLAB otherwise. AutoLISP files (<code>.lsp</code>) use the Lisp colors; Delphi projects (<code>.dpr</code>) use Pascal.</p>
 <p>The colors follow Light and Dark mode. For very large files (over 10 MB) or files with extremely long lines, highlighting turns off to keep editing fast; the status bar then says <b>(highlighting off)</b>.</p>
 <h2>Languages and file extensions</h2>
 <table>
 <tr><th>Language</th><th>Extensions</th></tr>
+<tr><td>Ada</td><td><code>.adb</code> <code>.ads</code> <code>.ada</code></td></tr>
+<tr><td>Assembly</td><td><code>.asm</code> <code>.s</code> <code>.nasm</code></td></tr>
+<tr><td>AutoIt</td><td><code>.au3</code></td></tr>
+<tr><td>Batch</td><td><code>.bat</code> <code>.cmd</code></td></tr>
 <tr><td>C</td><td><code>.c</code> <code>.h</code></td></tr>
+<tr><td>C#</td><td><code>.cs</code> <code>.csx</code></td></tr>
 <tr><td>C++</td><td><code>.cpp</code> <code>.cc</code> <code>.cxx</code> <code>.c++</code> <code>.hpp</code> <code>.hh</code> <code>.hxx</code> <code>.ino</code></td></tr>
+<tr><td>CMake</td><td><code>.cmake</code>, and files named <code>CMakeLists.txt</code></td></tr>
+<tr><td>COBOL</td><td><code>.cbl</code> <code>.cob</code> <code>.cpy</code></td></tr>
+<tr><td>CoffeeScript</td><td><code>.coffee</code></td></tr>
 <tr><td>CSS</td><td><code>.css</code> <code>.scss</code> <code>.less</code></td></tr>
+<tr><td>D</td><td><code>.d</code> <code>.di</code></td></tr>
+<tr><td>Dart</td><td><code>.dart</code></td></tr>
 <tr><td>Diff</td><td><code>.diff</code> <code>.patch</code></td></tr>
 <tr><td>Dockerfile</td><td><code>.dockerfile</code> <code>.containerfile</code>, and files named <code>Dockerfile</code>, <code>Containerfile</code></td></tr>
+<tr><td>Erlang</td><td><code>.erl</code> <code>.hrl</code></td></tr>
+<tr><td>Fortran</td><td><code>.f90</code> <code>.f95</code> <code>.f03</code> <code>.f08</code> <code>.f</code> <code>.for</code> <code>.f77</code></td></tr>
 <tr><td>Go</td><td><code>.go</code></td></tr>
+<tr><td>Groovy</td><td><code>.groovy</code> <code>.gradle</code> <code>.gvy</code>, and files named <code>Jenkinsfile</code></td></tr>
+<tr><td>Haskell</td><td><code>.hs</code></td></tr>
 <tr><td>HTML</td><td><code>.html</code> <code>.htm</code> <code>.xhtml</code></td></tr>
 <tr><td>INI</td><td><code>.ini</code> <code>.cfg</code> <code>.conf</code> <code>.properties</code>, and files named <code>.editorconfig</code>, <code>.gitconfig</code>, <code>.npmrc</code></td></tr>
+<tr><td>Inno Setup</td><td><code>.iss</code></td></tr>
 <tr><td>Java</td><td><code>.java</code></td></tr>
 <tr><td>JavaScript</td><td><code>.js</code> <code>.mjs</code> <code>.cjs</code> <code>.jsx</code></td></tr>
 <tr><td>JSON</td><td><code>.json</code> <code>.geojson</code> <code>.webmanifest</code></td></tr>
+<tr><td>Kotlin</td><td><code>.kt</code> <code>.kts</code></td></tr>
+<tr><td>LaTeX</td><td><code>.tex</code> <code>.ltx</code> <code>.sty</code> <code>.cls</code></td></tr>
+<tr><td>Lisp</td><td><code>.lisp</code> <code>.lsp</code> <code>.cl</code> <code>.el</code> <code>.scm</code> <code>.ss</code> <code>.rkt</code> <code>.clj</code> <code>.cljs</code> <code>.edn</code></td></tr>
+<tr><td>Lua</td><td><code>.lua</code></td></tr>
 <tr><td>Makefile</td><td><code>.mk</code> <code>.mak</code>, and files named <code>Makefile</code>, <code>GNUmakefile</code></td></tr>
 <tr><td>Markdown</td><td><code>.md</code> <code>.markdown</code> <code>.mdown</code> <code>.mkd</code></td></tr>
+<tr><td>MATLAB</td><td><code>.m</code></td></tr>
+<tr><td>NSIS</td><td><code>.nsi</code> <code>.nsh</code></td></tr>
+<tr><td>Objective-C</td><td><code>.m</code> <code>.mm</code></td></tr>
+<tr><td>OCaml</td><td><code>.ml</code> <code>.mli</code></td></tr>
+<tr><td>Pascal/Delphi</td><td><code>.pas</code> <code>.pp</code> <code>.dpr</code> <code>.dpk</code> <code>.lpr</code></td></tr>
+<tr><td>Perl</td><td><code>.pl</code> <code>.pm</code></td></tr>
 <tr><td>PHP</td><td><code>.php</code> <code>.phtml</code></td></tr>
+<tr><td>PostScript</td><td><code>.ps</code> <code>.eps</code></td></tr>
+<tr><td>PowerShell</td><td><code>.ps1</code> <code>.psm1</code> <code>.psd1</code></td></tr>
 <tr><td>Python</td><td><code>.py</code> <code>.pyw</code> <code>.pyi</code></td></tr>
+<tr><td>R</td><td><code>.r</code></td></tr>
 <tr><td>Ruby</td><td><code>.rb</code> <code>.rake</code> <code>.gemspec</code>, and files named <code>Gemfile</code>, <code>Rakefile</code>, <code>Podfile</code>, <code>Fastfile</code></td></tr>
 <tr><td>Rust</td><td><code>.rs</code></td></tr>
+<tr><td>Scala</td><td><code>.scala</code> <code>.sc</code></td></tr>
 <tr><td>Shell</td><td><code>.sh</code> <code>.bash</code> <code>.zsh</code> <code>.ksh</code> <code>.command</code>, and files named <code>.bashrc</code>, <code>.bash_profile</code>, <code>.bash_login</code>, <code>.bash_logout</code>, <code>.profile</code>, <code>.zshrc</code>, <code>.zshenv</code>, <code>.zprofile</code>, <code>.zlogin</code>, <code>.zlogout</code></td></tr>
+<tr><td>Smalltalk</td><td><code>.st</code></td></tr>
 <tr><td>SQL</td><td><code>.sql</code></td></tr>
 <tr><td>Swift</td><td><code>.swift</code></td></tr>
+<tr><td>Tcl</td><td><code>.tcl</code> <code>.tk</code></td></tr>
 <tr><td>TOML</td><td><code>.toml</code>, and files named <code>Cargo.lock</code>, <code>Pipfile</code></td></tr>
 <tr><td>TypeScript</td><td><code>.ts</code> <code>.tsx</code> <code>.mts</code> <code>.cts</code></td></tr>
+<tr><td>Verilog</td><td><code>.v</code> <code>.vh</code> <code>.sv</code> <code>.svh</code></td></tr>
+<tr><td>VHDL</td><td><code>.vhd</code> <code>.vhdl</code></td></tr>
+<tr><td>Visual Basic</td><td><code>.vb</code> <code>.vbs</code> <code>.bas</code> <code>.frm</code></td></tr>
+<tr><td>Windows Registry</td><td><code>.reg</code></td></tr>
 <tr><td>XML</td><td><code>.xml</code> <code>.plist</code> <code>.svg</code> <code>.xsd</code> <code>.xsl</code> <code>.xslt</code> <code>.rss</code> <code>.atom</code> <code>.xib</code> <code>.storyboard</code> <code>.csproj</code> <code>.entitlements</code></td></tr>
 <tr><td>YAML</td><td><code>.yml</code> <code>.yaml</code></td></tr>
 </table>

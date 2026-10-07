@@ -103,6 +103,18 @@ public struct Rule: Sendable {
         return match("\\b(?:\(alternatives))\\b", scope)
     }
 
+    /// Colors whole words from a list in any letter case, for languages such as Pascal, Ada,
+    /// Fortran, COBOL or Visual Basic, where `BEGIN`, `Begin` and `begin` are the same word.
+    /// Longer words are tried first. With `hyphenated` (COBOL), a hyphen is part of a word:
+    /// "end-if" is one word, and "end" doesn't match inside it.
+    public static func wordsIgnoringCase(_ words: [String], _ scope: SyntaxScope, hyphenated: Bool = false) -> Rule {
+        let alternatives = words.sorted { $0.count > $1.count }
+            .map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|")
+        return hyphenated
+            ? match("(?i)(?<![\\w-])(?:\(alternatives))(?![\\w-])", scope)
+            : match("(?i)\\b(?:\(alternatives))\\b", scope)
+    }
+
     /// Colors everything from a match of `begin` through the next match of `end`, across lines.
     /// `rules` apply inside the span (they win over the span's own scope).
     public static func span(_ begin: String, _ end: String, _ scope: SyntaxScope, rules: [Rule] = []) -> Rule {

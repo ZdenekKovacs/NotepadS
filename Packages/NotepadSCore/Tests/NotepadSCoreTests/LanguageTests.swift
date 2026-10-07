@@ -108,7 +108,11 @@ final class LanguageTests: XCTestCase {
         XCTAssertEqual(Language.detect(fileName: "deploy", firstLine: "#!/bin/bash"), .shell)
         XCTAssertEqual(Language.detect(fileName: nil, firstLine: "#!/usr/bin/env python3"), .python)
         XCTAssertEqual(Language.detect(fileName: nil, firstLine: "#!/usr/bin/env -S zsh -f"), .shell)
-        XCTAssertEqual(Language.detect(fileName: nil, firstLine: "#!/usr/bin/env perl"), .plainText)
+        XCTAssertEqual(Language.detect(fileName: nil, firstLine: "#!/usr/bin/env perl"), .perl)
+        XCTAssertEqual(Language.detect(fileName: nil, firstLine: "#!/usr/bin/env pwsh"), .powerShell)
+        XCTAssertEqual(Language.detect(fileName: nil, firstLine: "#!/usr/bin/env Rscript"), .r)
+        XCTAssertEqual(Language.detect(fileName: nil, firstLine: "#!/usr/bin/tclsh8.6"), .tcl)
+        XCTAssertEqual(Language.detect(fileName: nil, firstLine: "#!/usr/bin/env node2"), .plainText)
         XCTAssertEqual(Language.detect(fileName: nil, firstLine: "# comment"), .plainText)
         XCTAssertEqual(Language.detect(fileName: nil, firstLine: "#!"), .plainText)
     }
@@ -125,10 +129,14 @@ final class LanguageTests: XCTestCase {
         for language in Language.allCases {
             XCTAssertFalse(language.fileExtensions.isEmpty, "\(language) needs an extension to suggest")
             for fileExtension in language.fileExtensions {
-                XCTAssertTrue(seen.insert(fileExtension).inserted, "“\(fileExtension)” is listed twice")
+                XCTAssertTrue(seen.insert(fileExtension).inserted || Language.sharedExtensions.contains(fileExtension),
+                              "“\(fileExtension)” is listed twice")
                 XCTAssertEqual(fileExtension, fileExtension.lowercased())
                 XCTAssertFalse(fileExtension.hasPrefix("."))
-                XCTAssertEqual(Language.detect(fileName: "file.\(fileExtension)", firstLine: nil), language)
+                // A first line typical for the language, for the shared ".m" (MATLAB or Objective-C).
+                let firstLine = language == .objectiveC ? "#import <Foundation/Foundation.h>" : nil
+                XCTAssertEqual(Language.detect(fileName: "file.\(fileExtension)", firstLine: firstLine), language,
+                               fileExtension)
             }
         }
     }

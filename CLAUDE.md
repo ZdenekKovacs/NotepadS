@@ -150,6 +150,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Minimap (View › Show Minimap, ⌃⌘M)
 - [x] Wrap checkbox in the status bar
 - [x] Save panel: list of languages and their extensions
+- [x] 35 more languages (Notepad++ set), language menus grouped by letter
 
 ### Later
 - [ ] iOS app on `NotepadSCore`

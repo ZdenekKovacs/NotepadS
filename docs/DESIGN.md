@@ -293,6 +293,8 @@ YAML, JS/TS, C/C++, HTML/XML grammars · regex find/replace panel (`NSRegularExp
 | 5.3 | Wrap checkbox in the status bar | Mirrors View › Wrap Lines (⌃⌘W) both ways. |
 | 5.4 | Save panel lists the languages with their extensions (pull-down "Set Extension"; `Language.fileExtensions` in Core is the single source for detection and the list) | Any typed extension is still saved as typed; choosing a language replaces a recognized extension ("a.js" → "a.py") and keeps an unknown one ("notes.v2" → "notes.v2.py"); the file is highlighted right after saving. |
 
+| 5.5 | 35 more grammars, matching Notepad++ (C#, VB, PowerShell, Batch, Registry, AutoIt, NSIS, Inno Setup, Kotlin, Scala, Groovy, Dart, Objective-C, Lua, Perl, R, Tcl, CoffeeScript, Haskell, Erlang, Lisp, OCaml, Smalltalk, MATLAB, Fortran, LaTeX, PostScript, CMake, Pascal/Delphi, COBOL, Ada, Assembly, D, Verilog, VHDL); language menus grouped by first letter (`Language.groupedByInitial`) | One tested sample per language; `.m` = Objective-C if the first line starts with `#`, `//`, `/*` or `@`, else MATLAB. Line-based limits: no nested comments, heredocs or embedded languages. |
+
 ### Later
 
 iOS app on `NotepadSCore` · `.editorconfig` · Swift 6 language mode · distribution (after buying the developer account).

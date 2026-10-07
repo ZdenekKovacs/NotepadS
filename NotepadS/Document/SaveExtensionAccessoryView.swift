@@ -30,36 +30,46 @@ final class SaveExtensionAccessoryView: NSView {
         // Item 0 of a pull-down is its title, not a choice.
         menu.addItem(withTitle: String(localized: "Set Extension", comment: "Save panel: pull-down title; lists languages with syntax highlighting"),
                      action: nil, keyEquivalent: "")
-        // Plain text first, then the languages alphabetically, as people look for them by name.
-        let languages = [Language.plainText] + Language.allCases
-            .filter { $0 != .plainText }
-            .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
+        // Plain text, then one submenu per letter (A, B, C …), like the status bar's language menu.
+        let groups = Language.groupedByInitial
         // Two columns: the language name, then its extensions in gray, starting at a tab stop
         // just right of the longest name, so the names stand out and the extensions line up.
         let font = NSFont.menuFont(ofSize: 0)
-        let widestName = languages.map { ($0.displayName as NSString).size(withAttributes: [.font: font]).width }.max() ?? 0
+        let widestName = Language.allCases.map { ($0.displayName as NSString).size(withAttributes: [.font: font]).width }.max() ?? 0
         let columns = NSMutableParagraphStyle()
         columns.tabStops = [NSTextTab(textAlignment: .left, location: (widestName + 24).rounded())]
 
-        for language in languages {
-            let extensions = language.fileExtensions.map { ".\($0)" }.joined(separator: " ")
-            let item = NSMenuItem(title: String(localized: "\(language.displayName)   \(extensions)",
-                                                comment: "Save panel: language name, then its file extensions"),
-                                  action: #selector(languageChosen(_:)), keyEquivalent: "")
-            // What the menu shows; `title` above stays for VoiceOver and type-to-select.
-            let attributedTitle = NSMutableAttributedString(string: language.displayName,
-                                                            attributes: [.font: font, .paragraphStyle: columns])
-            attributedTitle.append(NSAttributedString(string: "\t\(extensions)",
-                                                      attributes: [.font: font, .paragraphStyle: columns,
-                                                                   .foregroundColor: NSColor.secondaryLabelColor]))
-            item.attributedTitle = attributedTitle
-            item.target = self
-            item.representedObject = language.rawValue
-            menu.addItem(item)
+        menu.addItem(makeItem(for: .plainText, font: font, columns: columns))
+        menu.addItem(.separator())
+        for group in groups {
+            let submenu = NSMenu()
+            for language in group.languages {
+                submenu.addItem(makeItem(for: language, font: font, columns: columns))
+            }
+            let groupItem = NSMenuItem(title: group.initial, action: nil, keyEquivalent: "")
+            groupItem.submenu = submenu
+            menu.addItem(groupItem)
         }
         pullDown.menu = menu
         pullDown.toolTip = String(localized: "Files with these extensions get syntax highlighting. You can also type any other extension.",
                                   comment: "Save panel tooltip")
+    }
+
+    private func makeItem(for language: Language, font: NSFont, columns: NSParagraphStyle) -> NSMenuItem {
+        let extensions = language.fileExtensions.map { ".\($0)" }.joined(separator: " ")
+        let item = NSMenuItem(title: String(localized: "\(language.displayName)   \(extensions)",
+                                            comment: "Save panel: language name, then its file extensions"),
+                              action: #selector(languageChosen(_:)), keyEquivalent: "")
+        // What the menu shows; `title` above stays for VoiceOver and type-to-select.
+        let attributedTitle = NSMutableAttributedString(string: language.displayName,
+                                                        attributes: [.font: font, .paragraphStyle: columns])
+        attributedTitle.append(NSAttributedString(string: "\t\(extensions)",
+                                                  attributes: [.font: font, .paragraphStyle: columns,
+                                                               .foregroundColor: NSColor.secondaryLabelColor]))
+        item.attributedTitle = attributedTitle
+        item.target = self
+        item.representedObject = language.rawValue
+        return item
     }
 
     private func setUpLayout() {
