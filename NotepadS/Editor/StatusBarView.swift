@@ -6,10 +6,12 @@ protocol StatusBarViewDelegate: AnyObject {
     func statusBar(_ statusBar: StatusBarView, convertTo encoding: TextEncoding)
     func statusBar(_ statusBar: StatusBarView, convertLineEndingsTo lineEnding: LineEnding)
     func statusBar(_ statusBar: StatusBarView, didSelect language: Language)
+    func statusBarDidToggleWordWrap(_ statusBar: StatusBarView)
 }
 
-/// Bottom bar: caret position, selection size, language, encoding and line endings.
-/// Language, encoding and line endings are pull-down menus; the view only reports choices to its delegate.
+/// Bottom bar: caret position, selection size, document size, word wrap, language, encoding
+/// and line endings. Language, encoding and line endings are pull-down menus; the view only
+/// reports choices to its delegate.
 final class StatusBarView: NSView {
 
     static let height: CGFloat = 24
@@ -18,6 +20,9 @@ final class StatusBarView: NSView {
 
     private let positionLabel = StatusBarView.makeLabel()
     private let selectionLabel = StatusBarView.makeLabel()
+    private let documentSizeLabel = StatusBarView.makeLabel()
+    private let wrapCheckbox = NSButton(checkboxWithTitle: String(localized: "Wrap", comment: "Status bar checkbox: wrap long lines"),
+                                        target: nil, action: nil)
     private let languageButton = NSPopUpButton(frame: .zero, pullsDown: true)
     private let encodingButton = NSPopUpButton(frame: .zero, pullsDown: true)
     private let lineEndingButton = NSPopUpButton(frame: .zero, pullsDown: true)
@@ -40,15 +45,24 @@ final class StatusBarView: NSView {
     }
 
     /// - Parameters:
+    ///   - lineCount: lines in the document.
+    ///   - characterCount: characters in the document; `nil` while it hasn't been counted yet.
     ///   - lineEndingCounts: line breaks of each style in the text, kept live by `LineIndex`.
     ///   - newLineEnding: the document's style for inserted line breaks.
     func update(line: Int, column: Int, selectedCharacters: Int,
+                lineCount: Int, characterCount: Int?,
                 encoding: TextEncoding, lineEndingCounts: LineEndingCounts,
                 newLineEnding: LineEnding, canReopen: Bool) {
         positionLabel.stringValue = String(localized: "Ln \(line), Col \(column)", comment: "Status bar: caret line and column")
         selectionLabel.stringValue = selectedCharacters > 0
             ? String(localized: "\(selectedCharacters) selected", comment: "Status bar: number of selected characters")
             : ""
+        // `formatted()` adds the user's digit grouping (1,234 or 1 234).
+        let lines = lineCount.formatted()
+        documentSizeLabel.stringValue = characterCount.map { count in
+            String(localized: "Lines: \(lines)  Characters: \(count.formatted())",
+                   comment: "Status bar: number of lines and characters in the document")
+        } ?? String(localized: "Lines: \(lines)", comment: "Status bar: number of lines (characters not counted yet)")
 
         setTitle(encoding.shortName, of: encodingButton)
         for item in reopenItems {
@@ -87,6 +101,15 @@ final class StatusBarView: NSView {
     @objc private func lineEndingItemChosen(_ sender: NSMenuItem) {
         guard let lineEnding = sender.representedObject as? LineEnding else { return }
         delegate?.statusBar(self, convertLineEndingsTo: lineEnding)
+    }
+
+    @objc private func wrapCheckboxClicked(_ sender: NSButton) {
+        delegate?.statusBarDidToggleWordWrap(self)
+    }
+
+    /// Shows whether long lines wrap.
+    func setWrapsLines(_ wrapsLines: Bool) {
+        wrapCheckbox.state = wrapsLines ? .on : .off
     }
 
     @objc private func languageItemChosen(_ sender: NSMenuItem) {
@@ -146,6 +169,15 @@ final class StatusBarView: NSView {
                                            action: #selector(lineEndingItemChosen(_:)), to: lineEndingMenu))
         }
         configure(lineEndingButton, menu: lineEndingMenu, toolTip: String(localized: "Line endings", comment: "Status bar tooltip"))
+
+        wrapCheckbox.target = self
+        wrapCheckbox.action = #selector(wrapCheckboxClicked(_:))
+        wrapCheckbox.controlSize = .small
+        wrapCheckbox.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        wrapCheckbox.toolTip = String(localized: "Wrap long lines at the window edge (View › Wrap Lines, ⌃⌘W)",
+                                      comment: "Status bar tooltip")
+        documentSizeLabel.toolTip = String(localized: "Characters are counted as you see them: an emoji or a CRLF line break counts as one.",
+                                           comment: "Status bar tooltip")
     }
 
     private func addItem(_ title: String, value: Any, action: Selector, to menu: NSMenu) -> NSMenuItem {
@@ -179,7 +211,7 @@ final class StatusBarView: NSView {
         stack.spacing = 16
         stack.edgeInsets = NSEdgeInsets(top: 0, left: 10, bottom: 0, right: 8)
         stack.setViews([positionLabel, selectionLabel], in: .leading)
-        stack.setViews([languageButton, encodingButton, lineEndingButton], in: .trailing)
+        stack.setViews([documentSizeLabel, wrapCheckbox, languageButton, encodingButton, lineEndingButton], in: .trailing)
 
         for subview in [separator, stack] as [NSView] {
             subview.translatesAutoresizingMaskIntoConstraints = false

@@ -103,6 +103,7 @@ flowchart TB
     VC --> TV["EditorTextView<br/>(NSTextView, TextKit 1)"]
     VC --> LN["LineNumberRulerView<br/>(NSRulerView)"]
     VC --> SB["StatusBarView"]
+    VC --> MM["MinimapView"]
     TS --> LM["NSLayoutManager"] --> TV
   end
   subgraph Core["NotepadSCore — Swift package, Foundation only"]
@@ -127,7 +128,8 @@ flowchart TB
 | `EditorViewController` | TextKit 1 stack, scroll view, gutter, status bar; keeps `LineIndex` current; font size; **edit gatekeeper** (line-break style of inserted text, encodability dialog); Convert Line Endings. |
 | `EditorTextView` | Plain-text configuration of `NSTextView`; Enter inserts the document's line-break style. Home of future editor behaviour. |
 | `LineNumberRulerView` | Draws visible line numbers using `LineIndex` + layout manager. |
-| `StatusBarView` | Position, selection, language, encoding (reopen/convert), line endings (dominant, "(mixed)", convert). Reports choices to its delegate. |
+| `StatusBarView` | Position, selection, line and character count, Wrap checkbox, language, encoding (reopen/convert), line endings (dominant, "(mixed)", convert). Reports choices to its delegate. |
+| `MinimapView` | Miniature of the visible part of the document (logical lines, blocks per character, read via `LineIndex`, no layout); shaded slider for the visible text; click to jump, drag to scroll. Hidden with View › Show Minimap. |
 | `NotepadSCore` | Pure, tested logic. No AppKit/UIKit. |
 
 ### 2.2 Data flow
@@ -197,6 +199,7 @@ NotepadS/
 │       ├── EditorTextView.swift
 │       ├── LineNumberRulerView.swift
 │       ├── StatusBarView.swift
+│       ├── MinimapView.swift
 │       └── EditorDefaults.swift
 └── Packages/NotepadSCore/        local Swift package, Foundation only
     ├── Package.swift
@@ -280,6 +283,14 @@ Details per file in §5. Commit after each green step.
 ### Phase 4 — v0.4
 
 YAML, JS/TS, C/C++, HTML/XML grammars · regex find/replace panel (`NSRegularExpression`, capture groups, replace-all as one undo step) · SwiftUI Settings (font, tab width, tabs vs spaces, wrap default) · auto-indent · printing · app icon.
+
+### After v0.4 — daily-use additions
+
+| # | Task | Acceptance |
+|---|---|---|
+| 5.1 | Status bar: lines and characters of the document | Line count live; character count (grapheme clusters, CRLF = 1, `TextStatistics` in Core, tested) updates shortly after typing stops, counted in the background on a copy, so typing in a 10 MB file doesn't stutter. |
+| 5.2 | Minimap (View › Show Minimap, ⌃⌘M), state remembered for new windows | Slider matches the visible text with wrap on and off; click jumps, drag scrolls, scroll wheel over it scrolls the text; hiding gives the text the full width (re-wraps); 100 000-line and 5 MB single-line files stay smooth; Light/Dark. |
+| 5.3 | Wrap checkbox in the status bar | Mirrors View › Wrap Lines (⌃⌘W) both ways. |
 
 ### Later
 

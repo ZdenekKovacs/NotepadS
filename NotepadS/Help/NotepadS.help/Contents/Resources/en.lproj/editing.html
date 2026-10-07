@@ -4,21 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Editing</title>
-<meta name="description" content="Wrapping, invisible characters, Go to Line and indentation.">
+<meta name="description" content="Wrapping, the minimap, invisible characters, Go to Line and indentation.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <nav class="back"><a href="index.html">NotepadS Help</a></nav>
 <h1>Editing</h1>
-<p class="lead">Wrapping, invisible characters, Go to Line and indentation.</p>
+<p class="lead">Wrapping, the minimap, invisible characters, Go to Line and indentation.</p>
 
 <table>
 <tr><th>To</th><th>Choose</th></tr>
-<tr><td>Wrap or unwrap long lines</td><td><b>View › Wrap Lines</b> (<kbd>⌃⌘W</kbd>)</td></tr>
+<tr><td>Wrap or unwrap long lines</td><td><b>View › Wrap Lines</b> (<kbd>⌃⌘W</kbd>), or the <b>Wrap</b> checkbox in the status bar</td></tr>
+<tr><td>Show or hide the minimap</td><td><b>View › Show Minimap</b> (<kbd>⌃⌘M</kbd>)</td></tr>
 <tr><td>Show spaces, tabs and line endings</td><td><b>View › Show Invisibles</b> (<kbd>⌥⌘I</kbd>)</td></tr>
 <tr><td>Jump to a line</td><td><b>Edit › Go to Line…</b> (<kbd>⌘L</kbd>)</td></tr>
 <tr><td>Make the text bigger or smaller</td><td><b>View › Increase / Decrease Font Size</b> (<kbd>⌘=</kbd>, <kbd>⌘−</kbd>, <kbd>⌘0</kbd> for the default)</td></tr>
 </table>
+<p>The <b>minimap</b> on the right shows the whole document in miniature; the shaded part is what the window shows. Click in it to jump there, or drag the shaded part to scroll.</p>
+<p>The status bar shows the number of lines and characters in the document. Characters are counted as you see them: an emoji or a CRLF line break counts as one.</p>
 <p>With <b>Show Invisibles</b>, spaces appear as <code>·</code>, tabs as <code>→</code>, and line endings as <code>¬</code> (LF), <code>↵</code> (CRLF) or <code>←</code> (CR).</p>
 <p>When you press Return, the new line keeps the indentation of the line above. Whether Tab inserts a tab or spaces is set in <a href="settings.html">Settings</a>.</p>
 <p>NotepadS never changes what you type: smart quotes, dashes, spelling correction and text completion are off.</p>

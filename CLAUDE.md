@@ -145,6 +145,11 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] SwiftUI Settings (font, tab width, tabs vs spaces, wrap default), auto-indent
 - [x] Printing, app icon
 
+### After v0.4 (DESIGN.md §4, 5.x)
+- [x] Status bar: line and character count
+- [x] Minimap (View › Show Minimap, ⌃⌘M)
+- [x] Wrap checkbox in the status bar
+
 ### Later
 - [ ] iOS app on `NotepadSCore`
 - [ ] `.editorconfig`, Swift 6 language mode

@@ -17,6 +17,7 @@ enum EditorDefaults {
         static let autoIndents = "EditorAutoIndents"
         static let wrapsLines = "EditorWrapsLines"
         static let showsInvisibles = "EditorShowsInvisibles"
+        static let showsMinimap = "EditorShowsMinimap"
     }
 
     private static var defaults: UserDefaults { .standard }
@@ -70,5 +71,11 @@ enum EditorDefaults {
     static var showsInvisibles: Bool {
         get { defaults.bool(forKey: Key.showsInvisibles) }
         set { defaults.set(newValue, forKey: Key.showsInvisibles) }
+    }
+
+    /// Minimap beside the text for new windows: the user's last choice, on by default.
+    static var showsMinimap: Bool {
+        get { defaults.object(forKey: Key.showsMinimap) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Key.showsMinimap) }
     }
 }

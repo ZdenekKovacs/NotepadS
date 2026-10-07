@@ -1,12 +1,13 @@
 import AppKit
 import NotepadSCore
 
-/// The editor for one document: text view, line-number gutter and status bar.
+/// The editor for one document: text view, line-number gutter, minimap and status bar.
 ///
 ///     view
 ///     ├─ scrollView (NSScrollView)
 ///     │   ├─ documentView: textView (EditorTextView, TextKit 1)
 ///     │   └─ verticalRulerView: lineNumberView (LineNumberRulerView)
+///     ├─ minimapView (MinimapView), right of the scroll view; can be hidden
 ///     └─ statusBar (StatusBarView)
 ///
 /// Text flow: the document owns the NSTextStorage. Every change to it (typing, undo, paste,
@@ -20,6 +21,9 @@ final class EditorViewController: NSViewController {
     private let scrollView = NSScrollView()
     private let statusBar = StatusBarView(frame: .zero)
     private var lineNumberView: LineNumberRulerView!
+    private var minimapView: MinimapView!
+    /// The minimap's width: `MinimapView.width` when shown, 0 when hidden.
+    private var minimapWidthConstraint: NSLayoutConstraint!
     private var highlighting: SyntaxHighlightingController!
     /// True once the user picked a language in the status bar; it then sticks for this window.
     private var isLanguageChosenByUser = false
@@ -28,6 +32,11 @@ final class EditorViewController: NSViewController {
     private var lineIndex = LineIndex()
     private var fontSize = EditorDefaults.fontSize
     private var wrapsLines = EditorDefaults.wrapsLines
+    /// Characters in the whole document, for the status bar; `nil` until first counted.
+    /// Counting is O(n), so it runs in the background after the text stops changing.
+    private var documentCharacterCount: Int?
+    /// Increases with every text change; a count started for an older text is thrown away.
+    private var characterCountGeneration = 0
     /// Font settings the text currently uses, to notice when the Settings window changes them.
     private var appliedFontSettings = ""
     /// True while one of our own commands changes the text; the gatekeeper lets it through.
@@ -91,19 +100,29 @@ final class EditorViewController: NSViewController {
         scrollView.hasVerticalRuler = true
         scrollView.rulersVisible = true
 
+        minimapView = MinimapView(text: document.textStorage, scrollView: scrollView,
+                                  lineIndexProvider: { [unowned self] in self.lineIndex },
+                                  visibleCharactersProvider: { [unowned self] in self.visibleCharacterRange() })
+        minimapWidthConstraint = minimapView.widthAnchor.constraint(equalToConstant: 0)
+        applyMinimapVisibility(EditorDefaults.showsMinimap)
+
         // Delegates last: their callbacks use the gutter and the status bar.
         textView.delegate = self
         statusBar.delegate = self
 
-        for subview in [scrollView, statusBar] as [NSView] {
+        for subview in [scrollView, minimapView, statusBar] as [NSView] {
             subview.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(subview)
         }
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: root.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: root.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: minimapView.leadingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: statusBar.topAnchor),
+            minimapView.topAnchor.constraint(equalTo: root.topAnchor),
+            minimapView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            minimapView.bottomAnchor.constraint(equalTo: statusBar.topAnchor),
+            minimapWidthConstraint,
             statusBar.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             statusBar.trailingAnchor.constraint(equalTo: root.trailingAnchor),
             statusBar.bottomAnchor.constraint(equalTo: root.bottomAnchor),
@@ -137,6 +156,8 @@ final class EditorViewController: NSViewController {
         lineIndex.rebuild(from: document.textStorage.mutableString)
         applyFont()
         lineNumberView.lineCountDidChange(lineIndex.lineCount)
+        statusBar.setWrapsLines(wrapsLines)
+        countCharactersSoon()
         documentSettingsDidChange()
         highlighting.onStateChanged = { [weak self] in self?.updateLanguageInStatusBar() }
         document.editorPositionProvider = { [weak self] in self?.currentPosition() }
@@ -231,6 +252,7 @@ final class EditorViewController: NSViewController {
         wrapsLines.toggle()
         EditorDefaults.wrapsLines = wrapsLines   // new windows start with the last choice
         applyWordWrap()
+        statusBar.setWrapsLines(wrapsLines)
     }
 
     /// Wrap on: the text container is as wide as the text view, which follows the visible width.
@@ -257,6 +279,22 @@ final class EditorViewController: NSViewController {
         // Let the text view take its new size from the laid-out text right away.
         textView.sizeToFit()
         lineNumberView?.needsDisplay = true
+    }
+
+    // MARK: - Minimap (View menu)
+
+    @objc func toggleMinimap(_ sender: Any?) {
+        applyMinimapVisibility(minimapView.isHidden)
+        EditorDefaults.showsMinimap = !minimapView.isHidden   // new windows start the same
+    }
+
+    /// A hidden view still takes its place in Auto Layout, so the width goes to 0 as well;
+    /// the scroll view (pinned to the minimap's left edge) then gets the whole width.
+    /// With word wrap on, the text re-wraps to the new width by itself: the text view
+    /// follows the clip view's width (autoresizing mask), and the container follows the text view.
+    private func applyMinimapVisibility(_ isVisible: Bool) {
+        minimapView.isHidden = !isVisible
+        minimapWidthConstraint.constant = isVisible ? MinimapView.width : 0
     }
 
     // MARK: - Go to Line (Edit menu)
@@ -528,6 +566,7 @@ final class EditorViewController: NSViewController {
         storage.endEditing()
 
         lineNumberView.textFontDidChange(font)
+        minimapView.needsDisplay = true   // the tab width may have changed
     }
 
     // MARK: - Text changes
@@ -545,6 +584,8 @@ final class EditorViewController: NSViewController {
                                                        in: storage.mutableString)
         highlighting.textDidChange(change)
         lineNumberView.needsDisplay = true
+        minimapView.needsDisplay = true
+        countCharactersSoon()
 
         if lineIndex.lineCount != previousLineCount {
             // Resizing the gutter re-tiles the scroll view. Don't do that while the text system
@@ -562,6 +603,8 @@ final class EditorViewController: NSViewController {
         let caret = min(textView.selectedRange().location, document.textStorage.length)
         textView.setSelectedRange(NSRange(location: caret, length: 0))
         lineNumberView.needsDisplay = true
+        minimapView.needsDisplay = true
+        countCharactersSoon()
         documentSettingsDidChange()   // reading the file may have changed the line-break style
         if isLanguageChosenByUser {
             highlighting.restart()
@@ -592,6 +635,7 @@ final class EditorViewController: NSViewController {
 
     @objc private func visibleTextDidChange(_ notification: Notification) {
         highlighting.visibleTextDidChange()
+        minimapView.needsDisplay = true   // the slider follows the visible text
         document.invalidateRestorableState()   // the scroll position is part of the saved state
     }
 
@@ -649,6 +693,8 @@ final class EditorViewController: NSViewController {
             line: lineIndex.line(containing: caret) + 1,
             column: lineIndex.column(of: caret, in: text),
             selectedCharacters: characterCount(in: selection, of: text),
+            lineCount: lineIndex.lineCount,
+            characterCount: documentCharacterCount,
             encoding: document.encoding,
             lineEndingCounts: lineIndex.counts,
             newLineEnding: document.lineEnding,
@@ -662,6 +708,28 @@ final class EditorViewController: NSViewController {
         guard range.length > 0, NSMaxRange(range) <= text.length else { return 0 }
         guard range.length <= 200_000 else { return range.length }
         return text.substring(with: range).count
+    }
+
+    /// Counts the document's characters once the text has stopped changing for a moment, on a
+    /// background thread, so typing in a large file never waits for it. Until the new count
+    /// arrives, the status bar keeps showing the previous one.
+    private func countCharactersSoon() {
+        characterCountGeneration += 1
+        let generation = characterCountGeneration
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            guard let self, generation == self.characterCountGeneration else { return }   // changed again meanwhile
+            // The text storage may only be touched on the main thread and keeps changing while
+            // the user types, so count an immutable copy. Copying is a fast memory copy.
+            guard let snapshot = self.document.textStorage.mutableString.copy() as? NSString else { return }
+            DispatchQueue.global(qos: .userInitiated).async {
+                let count = TextStatistics.characterCount(of: snapshot, in: NSRange(location: 0, length: snapshot.length))
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, generation == self.characterCountGeneration else { return }
+                    self.documentCharacterCount = count
+                    self.updateStatusBar()
+                }
+            }
+        }
     }
 
     private func showError(_ error: Error) {
@@ -817,6 +885,10 @@ extension EditorViewController: StatusBarViewDelegate {
         convertLineEndings(to: lineEnding)
     }
 
+    func statusBarDidToggleWordWrap(_ statusBar: StatusBarView) {
+        toggleWordWrap(statusBar)
+    }
+
     private func reopen(with encoding: TextEncoding) {
         do {
             try document.reopen(with: encoding)
@@ -836,6 +908,8 @@ extension EditorViewController: NSMenuItemValidation {
             menuItem.state = wrapsLines ? .on : .off
         } else if menuItem.action == #selector(toggleInvisibles(_:)) {
             menuItem.state = layoutManager.showsInvisibles ? .on : .off
+        } else if menuItem.action == #selector(toggleMinimap(_:)) {
+            menuItem.state = minimapView.isHidden ? .off : .on
         } else if menuItem.action == #selector(copyHash(_:)), let hash = hash(for: menuItem) {
             // Say what is hashed: risk 9 in DESIGN.md.
             menuItem.title = textView.selectedRange().length > 0

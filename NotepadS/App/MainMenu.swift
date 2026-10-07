@@ -143,6 +143,9 @@ enum MainMenu {
             withModifiers([.option, .command], NSMenuItem(title: String(localized: "Show Invisibles", comment: "View menu item: marks for spaces, tabs and line breaks"),
                                                           action: #selector(EditorViewController.toggleInvisibles(_:)),
                                                           keyEquivalent: "i")),
+            withModifiers([.control, .command], NSMenuItem(title: String(localized: "Show Minimap", comment: "View menu item: miniature of the document beside the text"),
+                                                           action: #selector(EditorViewController.toggleMinimap(_:)),
+                                                           keyEquivalent: "m")),
             NSMenuItem.separator(),
         ]
         for (index, item) in items.enumerated() {

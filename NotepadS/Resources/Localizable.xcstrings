@@ -22,6 +22,9 @@
     "Change Encoding" : {
       "comment" : "Undo action name"
     },
+    "Characters are counted as you see them: an emoji or a CRLF line break counts as one." : {
+      "comment" : "Status bar tooltip"
+    },
     "Convert Line Endings" : {
       "comment" : "Undo action name"
     },
@@ -111,6 +114,20 @@
     "Line number" : {
       "comment" : "Go to Line: text field placeholder"
     },
+    "Lines: %@" : {
+      "comment" : "Status bar: number of lines (characters not counted yet)"
+    },
+    "Lines: %@  Characters: %@" : {
+      "comment" : "Status bar: number of lines and characters in the document",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Lines: %1$@  Characters: %2$@"
+          }
+        }
+      }
+    },
     "Ln %lld, Col %lld" : {
       "comment" : "Status bar: caret line and column",
       "localizations" : {
@@ -179,6 +196,9 @@
     "Show Invisibles" : {
       "comment" : "View menu item: marks for spaces, tabs and line breaks"
     },
+    "Show Minimap" : {
+      "comment" : "View menu item: miniature of the document beside the text"
+    },
     "Size: %lld pt" : {
       "comment" : "Settings: font size"
     },
@@ -209,6 +229,9 @@
     "Unsaved changes will be discarded and the file will be read again from disk." : {
       "comment" : "Reopen-with-encoding dialog"
     },
+    "Wrap" : {
+      "comment" : "Status bar checkbox: wrap long lines"
+    },
     "Wrap Lines" : {
       "comment" : "View menu item"
     },
@@ -217,6 +240,9 @@
     },
     "Wrap lines" : {
       "comment" : "Settings: word wrap default"
+    },
+    "Wrap long lines at the window edge (View › Wrap Lines, ⌃⌘W)" : {
+      "comment" : "Status bar tooltip"
     },
     "“%@” can’t be saved in %@." : {
       "comment" : "Dialog title; character in quotes, then encoding name",
