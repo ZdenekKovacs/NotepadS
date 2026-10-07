@@ -2,8 +2,9 @@ import AppKit
 import NotepadSCore
 
 /// A miniature of the document beside the text, as in VS Code: each line is drawn as small
-/// blocks (one per character, spaces left empty), and a shaded "slider" marks the visible part.
-/// Click to jump there; drag the slider to scroll; the scroll wheel scrolls the text.
+/// blocks (one per character, spaces left empty) in the syntax-highlighting colors, and a
+/// shaded "slider" marks the visible part. Click to jump there; drag the slider to scroll;
+/// the scroll wheel scrolls the text.
 ///
 /// Like the gutter, it draws only the lines that fit in its height and reads them straight from
 /// the text storage through `LineIndex`, so it costs the same for a 10-line and a 1-million-line
@@ -28,17 +29,30 @@ final class MinimapView: NSView {
     private let lineIndexProvider: () -> LineIndex
     /// The characters visible in the text view (computed by the editor from the layout manager).
     private let visibleCharactersProvider: () -> NSRange
+    /// Syntax tokens of some lines (ranges from the start of the text); nil without highlighting.
+    private let tokensProvider: (Range<Int>) -> [SyntaxToken]?
+
+    /// Syntax tokens per line, with ranges relative to the line start, so they stay valid when
+    /// an edit above moves the line. Tokenizing all ~400 lines the minimap shows takes 15–30 ms,
+    /// too slow for every keystroke or scroll step, so each line is tokenized once and kept.
+    /// After an edit, lines below it keep their colors; they can be outdated (e.g. after typing
+    /// `/*`), so the whole cache is refreshed once typing pauses.
+    private var lineTokens: [Int: [SyntaxToken]] = [:]
+    /// Increases with every edit; a scheduled refresh for an older edit does nothing.
+    private var editGeneration = 0
 
     /// While dragging: the distance from the slider's top to the mouse, kept constant.
     private var dragOffsetInSlider: CGFloat?
 
     init(text: NSTextStorage, scrollView: NSScrollView,
          lineIndexProvider: @escaping () -> LineIndex,
-         visibleCharactersProvider: @escaping () -> NSRange) {
+         visibleCharactersProvider: @escaping () -> NSRange,
+         tokensProvider: @escaping (Range<Int>) -> [SyntaxToken]?) {
         self.text = text
         self.scrollView = scrollView
         self.lineIndexProvider = lineIndexProvider
         self.visibleCharactersProvider = visibleCharactersProvider
+        self.tokensProvider = tokensProvider
         super.init(frame: .zero)
         // See LineNumberRulerView: since the macOS 14 SDK, views don't clip their drawing by default.
         clipsToBounds = true
@@ -65,6 +79,37 @@ final class MinimapView: NSView {
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         needsDisplay = true   // Light/Dark mode: the colors below resolve differently
+    }
+
+    // MARK: - Updates from the editor
+
+    /// Call for every text change, with the lines `LineIndex` reported.
+    func textDidChange(_ change: LineChange) {
+        var moved: [Int: [SyntaxToken]] = [:]
+        for (line, tokens) in lineTokens {
+            if line < change.firstLine {
+                moved[line] = tokens
+            } else if line > change.oldLastLine {
+                moved[line + change.lineCountDelta] = tokens
+            }
+            // The edited lines themselves are tokenized again when drawn.
+        }
+        lineTokens = moved
+        needsDisplay = true
+
+        editGeneration += 1
+        let generation = editGeneration
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self, generation == self.editGeneration else { return }   // still typing
+            self.syntaxDidChange()
+        }
+    }
+
+    /// Call when the colors of many lines may have changed: another language, or the whole
+    /// text was replaced.
+    func syntaxDidChange() {
+        lineTokens.removeAll()
+        needsDisplay = true
     }
 
     // MARK: - Geometry
@@ -125,13 +170,17 @@ final class MinimapView: NSView {
         NSColor.labelColor.withAlphaComponent(dragOffsetInSlider == nil ? 0.08 : 0.16).setFill()
         geometry.slider.fill()
 
-        let rects = characterBlocks(in: dirtyRect, lineIndex: lineIndex, contentOffset: geometry.contentOffset)
-        if let context = NSGraphicsContext.current?.cgContext, !rects.isEmpty {
-            // `setFill()` sets the context's fill color; one fill for all blocks is much faster
-            // than filling thousands of small rectangles one by one.
-            NSColor.textColor.withAlphaComponent(0.5).setFill()
-            context.addRects(rects)
-            context.fillPath()
+        let blocks = characterBlocks(in: dirtyRect, lineIndex: lineIndex, contentOffset: geometry.contentOffset)
+        if let context = NSGraphicsContext.current?.cgContext {
+            // `setFill()` sets the context's fill color; one fill per color is much faster than
+            // filling thousands of small rectangles one by one.
+            for (scope, rects) in blocks {
+                let color = scope.map { SyntaxTheme.color(for: $0).withAlphaComponent(0.85) }
+                    ?? NSColor.textColor.withAlphaComponent(0.5)
+                color.setFill()
+                context.addRects(rects)
+                context.fillPath()
+            }
         }
 
         // A thin line between the text and the minimap.
@@ -139,17 +188,19 @@ final class MinimapView: NSView {
         NSRect(x: 0, y: dirtyRect.minY, width: 1, height: dirtyRect.height).fill()
     }
 
-    /// One rectangle per run of non-blank characters on the lines inside `rect`.
-    private func characterBlocks(in rect: NSRect, lineIndex: LineIndex, contentOffset: CGFloat) -> [CGRect] {
+    /// One rectangle per run of non-blank characters of the same color on the lines inside
+    /// `rect`, grouped by syntax scope (nil = plain text).
+    private func characterBlocks(in rect: NSRect, lineIndex: LineIndex, contentOffset: CGFloat) -> [SyntaxScope?: [CGRect]] {
         let firstLine = max(0, Int(((rect.minY + contentOffset) / lineHeight).rounded(.down)))
         let lastLine = min(lineIndex.lineCount - 1, Int(((rect.maxY + contentOffset) / lineHeight).rounded(.up)))
-        guard firstLine <= lastLine else { return [] }
+        guard firstLine <= lastLine else { return [:] }
+        loadTokens(forLines: firstLine..<(lastLine + 1), lineIndex: lineIndex)
 
         let maxColumns = max(0, Int((bounds.width - 2 * horizontalPadding) / characterWidth))
         let tabWidth = EditorDefaults.tabWidth
         // Read at most `maxColumns` characters per line: a 5 MB single-line file costs the same as a short line.
         var buffer = [unichar](repeating: 0, count: maxColumns)
-        var rects: [CGRect] = []
+        var rects: [SyntaxScope?: [CGRect]] = [:]
         let textLength = text.length
 
         for line in firstLine...lastLine {
@@ -159,17 +210,27 @@ final class MinimapView: NSView {
             text.mutableString.getCharacters(&buffer, range: NSRange(location: content.location, length: length))
 
             let y = CGFloat(line) * lineHeight - contentOffset
+            let tokens = lineTokens[line] ?? []
+            var tokenIndex = 0
             var column = 0
             var runStart: Int?
+            var runScope: SyntaxScope?
             func endRun() {
                 guard let start = runStart else { return }
-                rects.append(CGRect(x: horizontalPadding + CGFloat(start) * characterWidth, y: y,
-                                    width: CGFloat(min(column, maxColumns) - start) * characterWidth,
-                                    height: blockHeight))
+                rects[runScope, default: []].append(
+                    CGRect(x: horizontalPadding + CGFloat(start) * characterWidth, y: y,
+                           width: CGFloat(min(column, maxColumns) - start) * characterWidth,
+                           height: blockHeight))
                 runStart = nil
             }
-            for unit in buffer[0..<length] {
+            for (offset, unit) in buffer[0..<length].enumerated() {
                 if column >= maxColumns { break }
+                // The token covering this character, if any (tokens are sorted and don't overlap).
+                while tokenIndex < tokens.count, NSMaxRange(tokens[tokenIndex].range) <= offset {
+                    tokenIndex += 1
+                }
+                let scope = tokenIndex < tokens.count && tokens[tokenIndex].range.location <= offset
+                    ? tokens[tokenIndex].scope : nil
                 switch unit {
                 case 0x09:   // tab: advance to the next tab stop
                     endRun()
@@ -180,13 +241,46 @@ final class MinimapView: NSView {
                 case 0xDC00...0xDFFF:
                     break   // second half of a surrogate pair (e.g. an emoji): no extra column
                 default:
-                    if runStart == nil { runStart = column }
+                    if runStart != nil && scope != runScope { endRun() }
+                    if runStart == nil {
+                        runStart = column
+                        runScope = scope
+                    }
                     column += 1
                 }
             }
             endRun()
         }
         return rects
+    }
+
+    /// Tokenizes the lines in `lines` that aren't in `lineTokens` yet.
+    private func loadTokens(forLines lines: Range<Int>, lineIndex: LineIndex) {
+        if lineTokens.count > 5_000 {
+            lineTokens.removeAll()   // keep memory bounded after scrolling through a huge file
+        }
+        var line = lines.lowerBound
+        while line < lines.upperBound {
+            guard lineTokens[line] == nil else {
+                line += 1
+                continue
+            }
+            // Ask for each run of missing lines at once.
+            var end = line + 1
+            while end < lines.upperBound && lineTokens[end] == nil { end += 1 }
+            guard let tokens = tokensProvider(line..<end) else { return }   // no highlighting
+            for missing in line..<end {
+                lineTokens[missing] = []
+            }
+            for token in tokens {
+                let tokenLine = lineIndex.line(containing: token.range.location)
+                let lineStart = lineIndex.lineStart(of: tokenLine)
+                lineTokens[tokenLine, default: []].append(
+                    SyntaxToken(range: NSRange(location: token.range.location - lineStart, length: token.range.length),
+                                scope: token.scope))
+            }
+            line = end
+        }
     }
 
     // MARK: - Mouse

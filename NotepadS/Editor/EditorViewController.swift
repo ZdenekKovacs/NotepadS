@@ -33,10 +33,16 @@ final class EditorViewController: NSViewController {
     private var fontSize = EditorDefaults.fontSize
     private var wrapsLines = EditorDefaults.wrapsLines
     /// Characters in the whole document, for the status bar; `nil` until first counted.
-    /// Counting is O(n), so it runs in the background after the text stops changing.
     private var documentCharacterCount: Int?
-    /// Increases with every text change; a count started for an older text is thrown away.
+    /// Increases with every count started; a background count for an older text is thrown away.
     private var characterCountGeneration = 0
+    /// True while a background count runs (large documents only).
+    private var isCountingCharactersInBackground = false
+    /// The text changed while the background count was running: count again when it is done.
+    private var isCharacterCountOutdated = false
+    /// Up to this length (UTF-16 units) the count is done right away, on every keystroke:
+    /// 50 000 mostly-ASCII characters take well under a millisecond, so typing stays smooth.
+    private static let immediateCharacterCountLimit = 50_000
     /// Font settings the text currently uses, to notice when the Settings window changes them.
     private var appliedFontSettings = ""
     /// True while one of our own commands changes the text; the gatekeeper lets it through.
@@ -102,7 +108,8 @@ final class EditorViewController: NSViewController {
 
         minimapView = MinimapView(text: document.textStorage, scrollView: scrollView,
                                   lineIndexProvider: { [unowned self] in self.lineIndex },
-                                  visibleCharactersProvider: { [unowned self] in self.visibleCharacterRange() })
+                                  visibleCharactersProvider: { [unowned self] in self.visibleCharacterRange() },
+                                  tokensProvider: { [unowned self] lines in self.highlighting.tokens(forLines: lines) })
         minimapWidthConstraint = minimapView.widthAnchor.constraint(equalToConstant: 0)
         applyMinimapVisibility(EditorDefaults.showsMinimap)
 
@@ -157,9 +164,12 @@ final class EditorViewController: NSViewController {
         applyFont()
         lineNumberView.lineCountDidChange(lineIndex.lineCount)
         statusBar.setWrapsLines(wrapsLines)
-        countCharactersSoon()
+        updateCharacterCount()
         documentSettingsDidChange()
-        highlighting.onStateChanged = { [weak self] in self?.updateLanguageInStatusBar() }
+        highlighting.onStateChanged = { [weak self] in
+            self?.updateLanguageInStatusBar()
+            self?.minimapView.syntaxDidChange()   // another language, or highlighting turned off
+        }
         document.editorPositionProvider = { [weak self] in self?.currentPosition() }
         document.onRestoreEditorPosition = { [weak self] position in self?.restore(position) }
         highlighting.setLanguage(detectedLanguage())
@@ -584,8 +594,8 @@ final class EditorViewController: NSViewController {
                                                        in: storage.mutableString)
         highlighting.textDidChange(change)
         lineNumberView.needsDisplay = true
-        minimapView.needsDisplay = true
-        countCharactersSoon()
+        minimapView.textDidChange(change)
+        updateCharacterCount()
 
         if lineIndex.lineCount != previousLineCount {
             // Resizing the gutter re-tiles the scroll view. Don't do that while the text system
@@ -604,7 +614,7 @@ final class EditorViewController: NSViewController {
         textView.setSelectedRange(NSRange(location: caret, length: 0))
         lineNumberView.needsDisplay = true
         minimapView.needsDisplay = true
-        countCharactersSoon()
+        updateCharacterCount()
         documentSettingsDidChange()   // reading the file may have changed the line-break style
         if isLanguageChosenByUser {
             highlighting.restart()
@@ -710,23 +720,41 @@ final class EditorViewController: NSViewController {
         return text.substring(with: range).count
     }
 
-    /// Counts the document's characters once the text has stopped changing for a moment, on a
-    /// background thread, so typing in a large file never waits for it. Until the new count
-    /// arrives, the status bar keeps showing the previous one.
-    private func countCharactersSoon() {
+    /// Recounts the document's characters after a change. Small documents are counted right
+    /// away, so the number grows with every keystroke. Large ones are counted on a background
+    /// thread so typing never waits; while the user keeps typing, a new count starts as soon as
+    /// the previous one finishes, so the number keeps following the text with a short delay.
+    private func updateCharacterCount() {
+        let text = document.textStorage.mutableString
+        if text.length <= Self.immediateCharacterCountLimit {
+            characterCountGeneration += 1   // a background count still running is outdated now
+            isCharacterCountOutdated = false
+            documentCharacterCount = TextStatistics.characterCount(of: text, in: NSRange(location: 0, length: text.length))
+            updateStatusBar()
+            return
+        }
+        guard !isCountingCharactersInBackground else {
+            isCharacterCountOutdated = true   // counted again when the running count finishes
+            return
+        }
+        isCountingCharactersInBackground = true
+        isCharacterCountOutdated = false
         characterCountGeneration += 1
         let generation = characterCountGeneration
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
-            guard let self, generation == self.characterCountGeneration else { return }   // changed again meanwhile
-            // The text storage may only be touched on the main thread and keeps changing while
-            // the user types, so count an immutable copy. Copying is a fast memory copy.
-            guard let snapshot = self.document.textStorage.mutableString.copy() as? NSString else { return }
-            DispatchQueue.global(qos: .userInitiated).async {
-                let count = TextStatistics.characterCount(of: snapshot, in: NSRange(location: 0, length: snapshot.length))
-                DispatchQueue.main.async { [weak self] in
-                    guard let self, generation == self.characterCountGeneration else { return }
+        // The text storage may only be touched on the main thread and keeps changing while
+        // the user types, so count an immutable copy. Copying is a fast memory copy.
+        let snapshot = (text.copy() as? NSString) ?? ""
+        DispatchQueue.global(qos: .userInitiated).async {
+            let count = TextStatistics.characterCount(of: snapshot, in: NSRange(location: 0, length: snapshot.length))
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.isCountingCharactersInBackground = false
+                if generation == self.characterCountGeneration {
                     self.documentCharacterCount = count
                     self.updateStatusBar()
+                }
+                if self.isCharacterCountOutdated {
+                    self.updateCharacterCount()
                 }
             }
         }

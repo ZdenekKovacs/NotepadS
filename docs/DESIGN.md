@@ -129,7 +129,7 @@ flowchart TB
 | `EditorTextView` | Plain-text configuration of `NSTextView`; Enter inserts the document's line-break style. Home of future editor behaviour. |
 | `LineNumberRulerView` | Draws visible line numbers using `LineIndex` + layout manager. |
 | `StatusBarView` | Position, selection, line and character count, Wrap checkbox, language, encoding (reopen/convert), line endings (dominant, "(mixed)", convert). Reports choices to its delegate. |
-| `MinimapView` | Miniature of the visible part of the document (logical lines, blocks per character, read via `LineIndex`, no layout); shaded slider for the visible text; click to jump, drag to scroll. Hidden with View › Show Minimap. |
+| `MinimapView` | Miniature of the visible part of the document (logical lines, blocks per character in syntax colors, read via `LineIndex`, no layout; tokens cached per line, refreshed after typing pauses); shaded slider for the visible text; click to jump, drag to scroll. Hidden with View › Show Minimap. |
 | `NotepadSCore` | Pure, tested logic. No AppKit/UIKit. |
 
 ### 2.2 Data flow
@@ -288,8 +288,8 @@ YAML, JS/TS, C/C++, HTML/XML grammars · regex find/replace panel (`NSRegularExp
 
 | # | Task | Acceptance |
 |---|---|---|
-| 5.1 | Status bar: lines and characters of the document | Line count live; character count (grapheme clusters, CRLF = 1, `TextStatistics` in Core, tested) updates shortly after typing stops, counted in the background on a copy, so typing in a 10 MB file doesn't stutter. |
-| 5.2 | Minimap (View › Show Minimap, ⌃⌘M), state remembered for new windows | Slider matches the visible text with wrap on and off; click jumps, drag scrolls, scroll wheel over it scrolls the text; hiding gives the text the full width (re-wraps); 100 000-line and 5 MB single-line files stay smooth; Light/Dark. |
+| 5.1 | Status bar: lines and characters of the document | Both update with every keystroke, also when typing fast. Characters = grapheme clusters, CRLF = 1 (`TextStatistics` in Core, tested). Up to 50 000 UTF-16 units counted right away; larger texts on a background copy, restarted as soon as the previous count finishes, so typing in a 10 MB file doesn't stutter. |
+| 5.2 | Minimap (View › Show Minimap, ⌃⌘M) in syntax colors, state remembered for new windows | Colors match the text, also after changing the language and after typing `/*`; slider matches the visible text with wrap on and off; click jumps, drag scrolls, scroll wheel over it scrolls the text; hiding gives the text the full width (re-wraps); 100 000-line and 5 MB single-line files stay smooth; Light/Dark. |
 | 5.3 | Wrap checkbox in the status bar | Mirrors View › Wrap Lines (⌃⌘W) both ways. |
 
 ### Later

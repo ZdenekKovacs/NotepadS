@@ -83,6 +83,15 @@ final class SyntaxHighlightingController {
         scheduleRecolor()
     }
 
+    /// Tokens of `lines` for the minimap, with ranges from the start of the text;
+    /// nil when the text isn't highlighted (plain text, or turned off for size).
+    func tokens(forLines lines: Range<Int>) -> [SyntaxToken]? {
+        guard let highlighter else { return nil }
+        let lineIndex = lineIndexProvider()
+        guard highlighter.lineCount == lineIndex.lineCount else { return [] }   // an edit is still being processed
+        return highlighter.tokens(forLines: lines, in: text.mutableString, lineIndex: lineIndex)
+    }
+
     // MARK: - Coloring
 
     /// Coalesces many requests (each keystroke, each scroll step) into one recoloring, done
