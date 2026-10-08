@@ -365,11 +365,9 @@ final class EditorViewController: NSViewController {
     @objc func applyTextTransform(_ sender: NSMenuItem) {
         guard let rawValue = sender.representedObject as? String,
               let transform = TextTransform(rawValue: rawValue) else { return }
-        let range = targetRange(lineBased: transform.isLineBased)
+        let range = transform == .joinLines ? joinLinesRange() : targetRange(lineBased: transform.isLineBased)
         let original = document.textStorage.mutableString.substring(with: range)
-        let context = TransformContext(lineEnding: document.lineEnding, locale: Self.textLocale,
-                                       indentation: EditorDefaults.insertsSpacesForTab
-                                           ? String(repeating: " ", count: EditorDefaults.tabWidth) : "\t")
+        let context = transformContext
         do {
             let result = try transform.apply(to: original, context: context)
             guard result != original else { return }   // nothing to change, no undo step
@@ -379,6 +377,12 @@ final class EditorViewController: NSViewController {
         } catch {
             showError(error)
         }
+    }
+
+    private var transformContext: TransformContext {
+        TransformContext(lineEnding: document.lineEnding, locale: Self.textLocale,
+                         indentation: EditorDefaults.insertsSpacesForTab
+                             ? String(repeating: " ", count: EditorDefaults.tabWidth) : "\t")
     }
 
     /// The language rules for sorting and case conversion: the language the app's interface is
@@ -419,6 +423,93 @@ final class EditorViewController: NSViewController {
         return hash.hexDigest(of: bytes)
     }
 
+    // MARK: - Text › Lines: commands on the caret's lines
+
+    @objc func duplicateLines(_ sender: Any?) {
+        runLineCommand(.duplicate, actionName: String(localized: "Duplicate Line", comment: "Undo action name"))
+    }
+
+    @objc func deleteLines(_ sender: Any?) {
+        runLineCommand(.delete, actionName: String(localized: "Delete Line", comment: "Undo action name"))
+    }
+
+    @objc func moveLinesUp(_ sender: Any?) {
+        runLineCommand(.moveUp, actionName: String(localized: "Move Line Up", comment: "Undo action name"))
+    }
+
+    @objc func moveLinesDown(_ sender: Any?) {
+        runLineCommand(.moveDown, actionName: String(localized: "Move Line Down", comment: "Undo action name"))
+    }
+
+    /// Runs a line command (NotepadSCore computes the edit) as one undo step.
+    private func runLineCommand(_ command: LineCommand, actionName: String) {
+        guard let edit = command.edit(in: document.textStorage.mutableString, lineIndex: lineIndex,
+                                      selection: textView.selectedRange(), lineEnding: document.lineEnding) else {
+            NSSound.beep()   // e.g. moving the first line up
+            return
+        }
+        replaceText(in: edit.range, with: edit.replacement, actionName: actionName, selectionAfter: edit.selection)
+    }
+
+    /// Join Lines without a selection, or with one inside a single line, joins that line with
+    /// the next one, as in other editors; otherwise it joins the selected lines. (Joining the
+    /// whole document into one line is never what a caret on one line means.)
+    private func joinLinesRange() -> NSRange {
+        let range = targetRange(lineBased: true)
+        let selection = textView.selectedRange()
+        let firstLine = lineIndex.line(containing: selection.location)
+        let lastLine = selection.length > 0 ? lineIndex.line(containing: NSMaxRange(selection) - 1) : firstLine
+        guard firstLine == lastLine else { return range }
+        guard firstLine + 1 < lineIndex.lineCount else { return lineIndex.fullRange(ofLine: firstLine) }
+        let start = lineIndex.lineStart(of: firstLine)
+        return NSRange(location: start, length: NSMaxRange(lineIndex.fullRange(ofLine: firstLine + 1)) - start)
+    }
+
+    /// The last width typed into Split Lines, offered again next time (this run of the app only).
+    private static var splitWidth = 80
+
+    /// Text › Lines › Split Lines…: asks for the maximum line length, then splits the selected
+    /// lines (all lines if nothing is selected) at spaces.
+    @objc func splitLines(_ sender: Any?) {
+        guard let window = view.window, window.attachedSheet == nil else { return }
+        askForSplitWidth(in: window, message: nil)
+    }
+
+    private func askForSplitWidth(in window: NSWindow, message: String?) {
+        let maximum = 10_000
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 220, height: 24))
+        field.stringValue = String(Self.splitWidth)
+
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Split Lines", comment: "Split Lines dialog title")
+        alert.informativeText = message
+            ?? String(localized: "Split lines longer than this many characters at spaces:", comment: "Split Lines dialog")
+        alert.accessoryView = field
+        alert.addButton(withTitle: String(localized: "Split", comment: "Split Lines dialog button"))
+        alert.addButton(withTitle: String(localized: "Cancel", comment: "Dialog button"))
+        alert.window.initialFirstResponder = field
+
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard let self, response == .alertFirstButtonReturn else { return }
+            guard let width = LineNumberInput.number(from: field.stringValue, maximum: maximum) else {
+                NSSound.beep()
+                // A sheet can't present another one while it is still closing; ask again next turn.
+                DispatchQueue.main.async {
+                    self.askForSplitWidth(in: window, message: String(localized: "“\(field.stringValue)” isn’t a number from 1 to \(maximum).",
+                                                                      comment: "Split Lines dialog: invalid input"))
+                }
+                return
+            }
+            Self.splitWidth = width
+            let range = self.targetRange(lineBased: true)
+            let original = self.document.textStorage.mutableString.substring(with: range)
+            let result = LineTools.split(original, width: width, context: self.transformContext)
+            guard result != original else { return }
+            self.replaceText(in: range, with: result,
+                             actionName: String(localized: "Split Lines", comment: "Undo action name"))
+        }
+    }
+
     /// The selection, the whole document if nothing is selected, and for line-based
     /// transformations the whole lines the selection touches (including the last line's break).
     private func targetRange(lineBased: Bool) -> NSRange {
@@ -433,20 +524,21 @@ final class EditorViewController: NSViewController {
         return NSRange(location: start, length: NSMaxRange(lineIndex.fullRange(ofLine: lastLine)) - start)
     }
 
-    /// Replaces `range` with `text` as one undo step named `actionName`, and selects the result.
-    /// If the document's encoding can't store the new text, asks to convert to UTF-8 first.
-    func replaceText(in range: NSRange, with text: String, actionName: String) {
+    /// Replaces `range` with `text` as one undo step named `actionName`, and selects the result
+    /// (or sets `selectionAfter`, if given). If the document's encoding can't store the new text,
+    /// asks to convert to UTF-8 first.
+    func replaceText(in range: NSRange, with text: String, actionName: String, selectionAfter: NSRange? = nil) {
         if let character = document.rejectionReason(forInserting: text) {
             offerConversionToUTF8(character: character) { [weak self] in
                 guard let self, NSMaxRange(range) <= self.document.textStorage.length else { return }
-                self.performReplacement(in: range, with: text, actionName: actionName)
+                self.performReplacement(in: range, with: text, actionName: actionName, selectionAfter: selectionAfter)
             }
             return
         }
-        performReplacement(in: range, with: text, actionName: actionName)
+        performReplacement(in: range, with: text, actionName: actionName, selectionAfter: selectionAfter)
     }
 
-    private func performReplacement(in range: NSRange, with text: String, actionName: String) {
+    private func performReplacement(in range: NSRange, with text: String, actionName: String, selectionAfter: NSRange?) {
         let hadSelection = textView.selectedRange().length > 0
         let caret = textView.selectedRange().location
         textView.breakUndoCoalescing()
@@ -461,7 +553,10 @@ final class EditorViewController: NSViewController {
         document.undoManager?.setActionName(actionName)
 
         let newLength = (text as NSString).length
-        if hadSelection {
+        if let selectionAfter, NSMaxRange(selectionAfter) <= document.textStorage.length {
+            textView.setSelectedRange(selectionAfter)
+            textView.scrollRangeToVisible(selectionAfter)   // a moved line may leave the window
+        } else if hadSelection {
             textView.setSelectedRange(NSRange(location: range.location, length: newLength))
         } else {
             textView.setSelectedRange(NSRange(location: min(caret, document.textStorage.length), length: 0))

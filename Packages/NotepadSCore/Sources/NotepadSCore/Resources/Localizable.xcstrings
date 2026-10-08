@@ -48,6 +48,9 @@
     "Invalid number." : {
       "comment" : "JSON error"
     },
+    "Join Lines" : {
+      "comment" : "Text › Lines menu item"
+    },
     "LF (macOS, Linux)" : {
       "comment" : "Line-break style name in menus"
     },
@@ -74,11 +77,23 @@
     "Plain Text" : {
       "comment" : "Language name: no highlighting"
     },
+    "Remove Consecutive Duplicate Lines" : {
+      "comment" : "Text › Lines menu item: remove a line equal to the line before it"
+    },
     "Remove Duplicate Lines" : {
       "comment" : "Text menu item"
     },
+    "Remove Empty Lines" : {
+      "comment" : "Text › Lines menu item: also lines with only spaces and tabs"
+    },
     "Remove the character, or choose a Unicode encoding such as UTF-8." : {
       "comment" : "Advice after the unsupported-character error"
+    },
+    "Reverse Line Order" : {
+      "comment" : "Text › Lines menu item"
+    },
+    "Shuffle Lines" : {
+      "comment" : "Text › Lines menu item: random order"
     },
     "Sort Lines Ascending" : {
       "comment" : "Text menu item"

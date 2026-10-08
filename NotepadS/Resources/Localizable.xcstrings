@@ -63,6 +63,12 @@
     "Decrease Font Size" : {
       "comment" : "View menu item"
     },
+    "Delete Line" : {
+      "comment" : "Text › Lines menu item\nUndo action name"
+    },
+    "Duplicate Line" : {
+      "comment" : "Text › Lines menu item\nUndo action name"
+    },
     "Enter a line number from 1 to %lld." : {
       "comment" : "Go to Line dialog"
     },
@@ -134,6 +140,9 @@
     "Line number" : {
       "comment" : "Go to Line: text field placeholder"
     },
+    "Lines" : {
+      "comment" : "Text menu: submenu with line operations"
+    },
     "Lines: %@" : {
       "comment" : "Status bar: number of lines (characters not counted yet)"
     },
@@ -169,6 +178,12 @@
           }
         }
       }
+    },
+    "Move Line Down" : {
+      "comment" : "Text › Lines menu item\nUndo action name"
+    },
+    "Move Line Up" : {
+      "comment" : "Text › Lines menu item\nUndo action name"
     },
     "New Windows" : {
       "comment" : "Settings section"
@@ -251,6 +266,18 @@
     "Size: %lld pt" : {
       "comment" : "Settings: font size"
     },
+    "Split" : {
+      "comment" : "Split Lines dialog button"
+    },
+    "Split Lines" : {
+      "comment" : "Split Lines dialog title\nUndo action name"
+    },
+    "Split Lines…" : {
+      "comment" : "Text › Lines menu item: asks for the maximum line length"
+    },
+    "Split lines longer than this many characters at spaces:" : {
+      "comment" : "Split Lines dialog"
+    },
     "Syntax highlighting is off: the file is very large or has very long lines." : {
       "comment" : "Status bar tooltip"
     },
@@ -314,6 +341,17 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "“%1$@” isn’t a line number from 1 to %2$lld."
+          }
+        }
+      }
+    },
+    "“%@” isn’t a number from 1 to %lld." : {
+      "comment" : "Split Lines dialog: invalid input",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "“%1$@” isn’t a number from 1 to %2$lld."
           }
         }
       }

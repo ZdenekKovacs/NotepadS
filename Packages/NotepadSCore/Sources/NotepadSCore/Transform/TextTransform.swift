@@ -60,6 +60,11 @@ public enum TextTransform: String, CaseIterable, Sendable {
     case sortLinesDescending
     case removeDuplicateLines
     case trimTrailingWhitespace
+    case joinLines
+    case reverseLines
+    case shuffleLines
+    case removeConsecutiveDuplicateLines
+    case removeEmptyLines
 
     /// Menu title.
     public var name: String {
@@ -96,6 +101,18 @@ public enum TextTransform: String, CaseIterable, Sendable {
             return String(localized: "Remove Duplicate Lines", bundle: .module, comment: "Text menu item")
         case .trimTrailingWhitespace:
             return String(localized: "Trim Trailing Whitespace", bundle: .module, comment: "Text menu item")
+        case .joinLines:
+            return String(localized: "Join Lines", bundle: .module, comment: "Text › Lines menu item")
+        case .reverseLines:
+            return String(localized: "Reverse Line Order", bundle: .module, comment: "Text › Lines menu item")
+        case .shuffleLines:
+            return String(localized: "Shuffle Lines", bundle: .module, comment: "Text › Lines menu item: random order")
+        case .removeConsecutiveDuplicateLines:
+            return String(localized: "Remove Consecutive Duplicate Lines", bundle: .module,
+                          comment: "Text › Lines menu item: remove a line equal to the line before it")
+        case .removeEmptyLines:
+            return String(localized: "Remove Empty Lines", bundle: .module,
+                          comment: "Text › Lines menu item: also lines with only spaces and tabs")
         }
     }
 
@@ -103,7 +120,8 @@ public enum TextTransform: String, CaseIterable, Sendable {
     /// selection to the lines it touches.
     public var isLineBased: Bool {
         switch self {
-        case .sortLinesAscending, .sortLinesDescending, .removeDuplicateLines, .trimTrailingWhitespace:
+        case .sortLinesAscending, .sortLinesDescending, .removeDuplicateLines, .trimTrailingWhitespace,
+             .joinLines, .reverseLines, .shuffleLines, .removeConsecutiveDuplicateLines, .removeEmptyLines:
             return true
         case .formatJSON, .minifyJSON, .base64Encode, .base64Decode, .urlEncode, .urlDecode,
              .uppercase, .lowercase, .titleCase, .camelCase, .snakeCase, .kebabCase:
@@ -146,6 +164,17 @@ public enum TextTransform: String, CaseIterable, Sendable {
             return LineTools.removeDuplicates(text, context: context)
         case .trimTrailingWhitespace:
             return LineTools.trimTrailingWhitespace(text)
+        case .joinLines:
+            return LineTools.join(text)
+        case .reverseLines:
+            return LineTools.reverse(text, context: context)
+        case .shuffleLines:
+            var generator = SystemRandomNumberGenerator()
+            return LineTools.shuffle(text, context: context, using: &generator)
+        case .removeConsecutiveDuplicateLines:
+            return LineTools.removeConsecutiveDuplicates(text, context: context)
+        case .removeEmptyLines:
+            return LineTools.removeEmptyLines(text, context: context)
         }
     }
 }

@@ -21,7 +21,23 @@
 <tr><td>Hash</td><td>Copies the SHA-256, SHA-1 or MD5 hash of the selection or of the whole document, or replaces the selection with it. The document hash matches what <code>shasum</code> prints for the saved file.</td></tr>
 <tr><td>UPPERCASE, lowercase, Title Case</td><td>Changes letter case.</td></tr>
 <tr><td>camelCase, snake_case, kebab-case</td><td>Converts names line by line, for example <code>HTTPServer</code> → <code>http_server</code>.</td></tr>
-<tr><td>Sort Lines, Remove Duplicate Lines, Trim Trailing Whitespace</td><td>Work on whole lines. Each line keeps its own line ending.</td></tr>
+<tr><td>Trim Trailing Whitespace</td><td>Removes spaces and tabs at the end of every line.</td></tr>
+</table>
+
+<h2>Lines</h2>
+<p><b>Text › Lines</b> works on whole lines: every line the selection touches, or the whole document when nothing is selected. Each line keeps its own line ending; new line breaks use the document’s style.</p>
+<table>
+<tr><th>Tool</th><th>What it does</th></tr>
+<tr><td>Duplicate Line (<kbd>⌘D</kbd>)</td><td>Copies the caret’s line (or the selected lines) below itself.</td></tr>
+<tr><td>Delete Line (<kbd>⇧⌘K</kbd>)</td><td>Deletes the caret’s line (or the selected lines).</td></tr>
+<tr><td>Move Line Up / Down (<kbd>⌥⌘↑</kbd>, <kbd>⌥⌘↓</kbd>)</td><td>Moves the caret’s line (or the selected lines) past the line above or below.</td></tr>
+<tr><td>Join Lines (<kbd>⌃⌘J</kbd>)</td><td>Joins the selected lines into one, with one space between them and the indentation of the following lines removed. Without a selection, joins the caret’s line with the next one.</td></tr>
+<tr><td>Split Lines…</td><td>Splits lines longer than the number of characters you enter, at spaces. Longer words stay whole.</td></tr>
+<tr><td>Sort Lines Ascending / Descending</td><td>Sorts alphabetically, ignoring upper and lower case, with numbers in numeric order (file2 before file10).</td></tr>
+<tr><td>Reverse Line Order, Shuffle Lines</td><td>Reverses the lines, or puts them in random order.</td></tr>
+<tr><td>Remove Duplicate Lines</td><td>Keeps only the first of equal lines anywhere in the text.</td></tr>
+<tr><td>Remove Consecutive Duplicate Lines</td><td>Removes a line equal to the line right before it, like <code>uniq</code>.</td></tr>
+<tr><td>Remove Empty Lines</td><td>Removes empty lines and lines with only spaces or tabs.</td></tr>
 </table>
 </body>
 </html>

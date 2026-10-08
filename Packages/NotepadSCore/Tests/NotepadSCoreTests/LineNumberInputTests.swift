@@ -20,4 +20,10 @@ final class LineNumberInputTests: XCTestCase {
         XCTAssertEqual(LineNumberInput.line(from: "1", lineCount: 1), 0)
         XCTAssertNil(LineNumberInput.line(from: "2", lineCount: 1))
     }
+
+    func testNumberForSplitLinesWidth() {
+        XCTAssertEqual(LineNumberInput.number(from: " 80 ", maximum: 10_000), 80)
+        XCTAssertNil(LineNumberInput.number(from: "0", maximum: 10_000))
+        XCTAssertNil(LineNumberInput.number(from: "10001", maximum: 10_000))
+    }
 }

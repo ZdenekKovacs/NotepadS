@@ -83,15 +83,18 @@ enum MainMenu {
             [.formatJSON, .minifyJSON],
             [.base64Encode, .base64Decode, .urlEncode, .urlDecode],
             [.uppercase, .lowercase, .titleCase, .camelCase, .snakeCase, .kebabCase],
-            [.sortLinesAscending, .sortLinesDescending, .removeDuplicateLines, .trimTrailingWhitespace],
+            [.trimTrailingWhitespace],
         ]
         for (index, group) in groups.enumerated() {
             if index > 0 { menu.addItem(.separator()) }
+            if index == 3 {
+                let linesItem = NSMenuItem(title: String(localized: "Lines", comment: "Text menu: submenu with line operations"),
+                                           action: nil, keyEquivalent: "")
+                linesItem.submenu = makeLinesMenu()
+                menu.addItem(linesItem)
+            }
             for transform in group {
-                let item = NSMenuItem(title: transform.name,
-                                      action: #selector(EditorViewController.applyTextTransform(_:)), keyEquivalent: "")
-                item.representedObject = transform.rawValue
-                menu.addItem(item)
+                menu.addItem(transformItem(transform))
             }
             if index == 1 {
                 // Hashes after the encodings.
@@ -101,6 +104,48 @@ enum MainMenu {
                 hashItem.submenu = makeHashMenu()
                 menu.addItem(hashItem)
             }
+        }
+        return menu
+    }
+
+    private static func transformItem(_ transform: TextTransform) -> NSMenuItem {
+        let item = NSMenuItem(title: transform.name,
+                              action: #selector(EditorViewController.applyTextTransform(_:)), keyEquivalent: "")
+        item.representedObject = transform.rawValue
+        return item
+    }
+
+    /// Text › Lines, like Notepad++'s Edit › Line Operations. The first group works on the
+    /// caret's line (or the selected lines), the rest on the selected lines or the whole document.
+    private static func makeLinesMenu() -> NSMenu {
+        let menu = NSMenu(title: String(localized: "Lines", comment: "Text menu: submenu with line operations"))
+        // Arrow keys as key equivalents are their function-key characters.
+        let upArrow = String(Character(UnicodeScalar(UInt16(NSUpArrowFunctionKey))!))
+        let downArrow = String(Character(UnicodeScalar(UInt16(NSDownArrowFunctionKey))!))
+        menu.addItem(NSMenuItem(title: String(localized: "Duplicate Line", comment: "Text › Lines menu item"),
+                                action: #selector(EditorViewController.duplicateLines(_:)), keyEquivalent: "d"))
+        menu.addItem(withModifiers([.shift, .command], NSMenuItem(title: String(localized: "Delete Line", comment: "Text › Lines menu item"),
+                                                                  action: #selector(EditorViewController.deleteLines(_:)),
+                                                                  keyEquivalent: "k")))
+        menu.addItem(withModifiers([.option, .command], NSMenuItem(title: String(localized: "Move Line Up", comment: "Text › Lines menu item"),
+                                                                   action: #selector(EditorViewController.moveLinesUp(_:)),
+                                                                   keyEquivalent: upArrow)))
+        menu.addItem(withModifiers([.option, .command], NSMenuItem(title: String(localized: "Move Line Down", comment: "Text › Lines menu item"),
+                                                                   action: #selector(EditorViewController.moveLinesDown(_:)),
+                                                                   keyEquivalent: downArrow)))
+        menu.addItem(.separator())
+        let joinItem = transformItem(.joinLines)
+        joinItem.keyEquivalent = "j"
+        menu.addItem(withModifiers([.control, .command], joinItem))
+        menu.addItem(NSMenuItem(title: String(localized: "Split Lines…", comment: "Text › Lines menu item: asks for the maximum line length"),
+                                action: #selector(EditorViewController.splitLines(_:)), keyEquivalent: ""))
+        menu.addItem(.separator())
+        for transform in [TextTransform.sortLinesAscending, .sortLinesDescending, .reverseLines, .shuffleLines] {
+            menu.addItem(transformItem(transform))
+        }
+        menu.addItem(.separator())
+        for transform in [TextTransform.removeDuplicateLines, .removeConsecutiveDuplicateLines, .removeEmptyLines] {
+            menu.addItem(transformItem(transform))
         }
         return menu
     }

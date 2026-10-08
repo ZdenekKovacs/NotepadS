@@ -152,6 +152,8 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Save panel: list of languages and their extensions
 - [x] 35 more languages (Notepad++ set), language menus grouped by letter
 - [x] Status bar: caret position (Pos); INS/OVR overwrite mode
+- [x] Text › Lines (duplicate, delete, move, join, split, sort, reverse, shuffle, remove)
+- [ ] Text › Whitespace (trim leading/both, tabs ↔ spaces, line breaks → spaces)
 
 ### Later
 - [ ] iOS app on `NotepadSCore`
