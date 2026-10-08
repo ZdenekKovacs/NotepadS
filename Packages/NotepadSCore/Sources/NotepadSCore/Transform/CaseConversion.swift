@@ -1,7 +1,87 @@
 import Foundation
 
-/// UPPER, lower, Title Case and the identifier styles camelCase, snake_case and kebab-case.
+/// UPPER, lower, Title Case, Sentence case, iNVERT and rAnDoM case, and the identifier styles
+/// camelCase, snake_case and kebab-case. Only letters change, so line breaks always stay.
 enum CaseConversion {
+
+    /// Upper-cases the first letter of every word and leaves the other letters as they are
+    /// ("an HTTP server" → "An HTTP Server"); Notepad++'s "Proper Case (blend)". A word starts
+    /// at a letter that doesn't follow a letter, digit or apostrophe ("don't" stays one word).
+    static func titleCaseKeepingOtherLetters(_ text: String, locale: Locale) -> String {
+        var result = ""
+        var previous: Character?
+        for character in text {
+            let isWordStart = character.isLetter && !(previous.map(continuesWord) ?? false)
+            result += isWordStart ? String(character).capitalized(with: locale) : String(character)
+            previous = character
+        }
+        return result
+    }
+
+    /// Upper-cases the first letter of every sentence; the other letters become lower case, or
+    /// stay as they are with `keepingOtherLetters` ("Sentence case (blend)" in Notepad++).
+    /// A sentence starts the text, or follows ".", "!" or "?" and a space or line break, so
+    /// "2.0" and "e.g." in the middle of a word don't start one.
+    static func sentenceCase(_ text: String, keepingOtherLetters: Bool, locale: Locale) -> String {
+        var result = ""
+        var isSentenceStart = true
+        var followsSentenceEnd = false   // after ".", "!" or "?", waiting for a space
+        for character in text {
+            if character.isLetter {
+                result += isSentenceStart ? String(character).capitalized(with: locale)
+                    : keepingOtherLetters ? String(character) : String(character).lowercased(with: locale)
+                isSentenceStart = false
+                followsSentenceEnd = false
+                continue
+            }
+            result.append(character)
+            if character == "." || character == "!" || character == "?" {
+                followsSentenceEnd = true
+            } else if character.isWhitespace {   // also "\r\n", which is one Character
+                if followsSentenceEnd { isSentenceStart = true }
+            } else if character.isNumber {
+                isSentenceStart = false
+                followsSentenceEnd = false
+            } else {
+                followsSentenceEnd = false   // quotes and brackets keep a pending sentence start
+            }
+        }
+        return result
+    }
+
+    /// Swaps upper and lower case: "Hello" → "hELLO".
+    static func invertCase(_ text: String, locale: Locale) -> String {
+        var result = ""
+        for character in text {
+            if character.isUppercase {
+                result += String(character).lowercased(with: locale)
+            } else if character.isLowercase {
+                result += String(character).uppercased(with: locale)
+            } else {
+                result.append(character)
+            }
+        }
+        return result
+    }
+
+    /// Makes each letter upper or lower case at random. Tests pass a seeded generator.
+    static func randomCase(_ text: String, locale: Locale, using generator: inout some RandomNumberGenerator) -> String {
+        var result = ""
+        for character in text {
+            guard character.isLetter else {
+                result.append(character)
+                continue
+            }
+            result += Bool.random(using: &generator) ? String(character).uppercased(with: locale)
+                                                     : String(character).lowercased(with: locale)
+        }
+        return result
+    }
+
+    /// True if a letter after `character` is inside a word, not at its start.
+    private static func continuesWord(_ character: Character) -> Bool {
+        character.isLetter || character.isNumber || character == "'" || character == "\u{2019}"
+    }
 
     enum IdentifierStyle {
         case camel, snake, kebab

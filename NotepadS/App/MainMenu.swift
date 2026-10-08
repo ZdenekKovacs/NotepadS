@@ -82,7 +82,9 @@ enum MainMenu {
         let groups: [[TextTransform]] = [
             [.formatJSON, .minifyJSON],
             [.base64Encode, .base64Decode, .urlEncode, .urlDecode],
-            [.uppercase, .lowercase, .titleCase, .camelCase, .snakeCase, .kebabCase],
+            [.uppercase, .lowercase, .titleCase, .titleCaseKeepingOtherLetters, .sentenceCase,
+             .sentenceCaseKeepingOtherLetters, .invertCase, .randomCase],
+            [.camelCase, .snakeCase, .kebabCase],
         ]
         for (index, group) in groups.enumerated() {
             if index > 0 { menu.addItem(.separator()) }

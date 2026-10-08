@@ -154,6 +154,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Status bar: caret position (Pos); INS/OVR overwrite mode
 - [x] Text › Lines (duplicate, delete, move, join, split, sort, reverse, shuffle, remove)
 - [x] Text › Whitespace (trim leading/both, tabs ↔ spaces, line breaks → spaces)
+- [x] More case conversions (Notepad++ set), SHA-512
 
 ### Later
 - [ ] iOS app on `NotepadSCore`

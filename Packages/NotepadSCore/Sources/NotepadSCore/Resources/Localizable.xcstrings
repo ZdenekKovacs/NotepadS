@@ -101,6 +101,12 @@
     "Reverse Line Order" : {
       "comment" : "Text › Lines menu item"
     },
+    "Sentence case" : {
+      "comment" : "Text menu item: capitalize sentences"
+    },
+    "Sentence case (Keep Other Letters)" : {
+      "comment" : "Text menu item: upper-case first letters of sentences, other letters unchanged"
+    },
     "Shuffle Lines" : {
       "comment" : "Text › Lines menu item: random order"
     },
@@ -150,6 +156,9 @@
     },
     "Title Case" : {
       "comment" : "Text menu item: capitalize words"
+    },
+    "Title Case (Keep Other Letters)" : {
+      "comment" : "Text menu item: upper-case first letters of words, other letters unchanged"
     },
     "Trim Leading Whitespace" : {
       "comment" : "Text › Whitespace menu item"

@@ -56,6 +56,11 @@ public enum TextTransform: String, CaseIterable, Sendable {
     case uppercase
     case lowercase
     case titleCase
+    case titleCaseKeepingOtherLetters
+    case sentenceCase
+    case sentenceCaseKeepingOtherLetters
+    case invertCase
+    case randomCase
     case camelCase
     case snakeCase
     case kebabCase
@@ -95,6 +100,18 @@ public enum TextTransform: String, CaseIterable, Sendable {
             return String(localized: "lowercase", bundle: .module, comment: "Text menu item: convert to lower case")
         case .titleCase:
             return String(localized: "Title Case", bundle: .module, comment: "Text menu item: capitalize words")
+        case .titleCaseKeepingOtherLetters:
+            return String(localized: "Title Case (Keep Other Letters)", bundle: .module,
+                          comment: "Text menu item: upper-case first letters of words, other letters unchanged")
+        case .sentenceCase:
+            return String(localized: "Sentence case", bundle: .module, comment: "Text menu item: capitalize sentences")
+        case .sentenceCaseKeepingOtherLetters:
+            return String(localized: "Sentence case (Keep Other Letters)", bundle: .module,
+                          comment: "Text menu item: upper-case first letters of sentences, other letters unchanged")
+        case .invertCase:
+            return "iNVERT cASE"   // shows what it does, like in Notepad++; not translated
+        case .randomCase:
+            return "rAnDoM cAsE"
         case .camelCase:
             return "camelCase"   // the style's own name; not translated
         case .snakeCase:
@@ -144,7 +161,8 @@ public enum TextTransform: String, CaseIterable, Sendable {
              .trimLeadingWhitespace, .trimWhitespace, .tabsToSpaces, .leadingSpacesToTabs, .lineBreaksToSpaces:
             return true
         case .formatJSON, .minifyJSON, .base64Encode, .base64Decode, .urlEncode, .urlDecode,
-             .uppercase, .lowercase, .titleCase, .camelCase, .snakeCase, .kebabCase:
+             .uppercase, .lowercase, .titleCase, .camelCase, .snakeCase, .kebabCase,
+             .titleCaseKeepingOtherLetters, .sentenceCase, .sentenceCaseKeepingOtherLetters, .invertCase, .randomCase:
             return false
         }
     }
@@ -170,6 +188,17 @@ public enum TextTransform: String, CaseIterable, Sendable {
             return text.lowercased(with: context.locale)
         case .titleCase:
             return text.capitalized(with: context.locale)
+        case .titleCaseKeepingOtherLetters:
+            return CaseConversion.titleCaseKeepingOtherLetters(text, locale: context.locale)
+        case .sentenceCase:
+            return CaseConversion.sentenceCase(text, keepingOtherLetters: false, locale: context.locale)
+        case .sentenceCaseKeepingOtherLetters:
+            return CaseConversion.sentenceCase(text, keepingOtherLetters: true, locale: context.locale)
+        case .invertCase:
+            return CaseConversion.invertCase(text, locale: context.locale)
+        case .randomCase:
+            var generator = SystemRandomNumberGenerator()
+            return CaseConversion.randomCase(text, locale: context.locale, using: &generator)
         case .camelCase:
             return CaseConversion.identifiers(text, style: .camel, locale: context.locale)
         case .snakeCase:
