@@ -21,6 +21,12 @@
     "%lld selected" : {
       "comment" : "Status bar: number of selected characters"
     },
+    "ASCII Character Panel" : {
+      "comment" : "Edit menu item: table of characters 0–255 to insert"
+    },
+    "ASCII Characters" : {
+      "comment" : "ASCII panel title"
+    },
     "Actual Size" : {
       "comment" : "View menu item: default font size"
     },
@@ -42,8 +48,14 @@
     "Change Encoding" : {
       "comment" : "Undo action name"
     },
+    "Character" : {
+      "comment" : "ASCII panel column"
+    },
     "Characters are counted as you see them: an emoji or a CRLF line break counts as one." : {
       "comment" : "Status bar tooltip"
+    },
+    "Close All" : {
+      "comment" : "File menu item: close every document, then open a new empty one"
     },
     "Convert Line Endings" : {
       "comment" : "Undo action name"
@@ -81,6 +93,9 @@
     "Delete Line" : {
       "comment" : "Text › Lines menu item\nUndo action name"
     },
+    "Double-click a character to insert it. Codes 128–255 are Windows-1252." : {
+      "comment" : "ASCII panel hint"
+    },
     "Duplicate Line" : {
       "comment" : "Text › Lines menu item\nUndo action name"
     },
@@ -114,8 +129,17 @@
     "Go to Line…" : {
       "comment" : "Edit menu item"
     },
+    "HTML Name" : {
+      "comment" : "ASCII panel column, e.g. &euro;"
+    },
+    "HTML Number" : {
+      "comment" : "ASCII panel column, e.g. &#8364;"
+    },
     "Hash" : {
       "comment" : "Text menu: submenu with SHA-256, SHA-512, SHA-1, MD5"
+    },
+    "Hex" : {
+      "comment" : "ASCII panel column: hexadecimal code"
     },
     "INS" : {
       "comment" : "Status bar: insert mode, typing inserts characters"
@@ -128,6 +152,9 @@
     },
     "Indentation" : {
       "comment" : "Settings section"
+    },
+    "Insert" : {
+      "comment" : "ASCII panel button"
     },
     "Insert mode: typing inserts characters. Click, press Insert or choose Edit › Overwrite Mode to overwrite instead." : {
       "comment" : "Status bar tooltip"
@@ -332,8 +359,14 @@
     "Typing" : {
       "comment" : "Undo action name"
     },
+    "Unicode" : {
+      "comment" : "ASCII panel column: code point, e.g. U+20AC"
+    },
     "Unsaved changes will be discarded and the file will be read again from disk." : {
       "comment" : "Reopen-with-encoding dialog"
+    },
+    "Value" : {
+      "comment" : "ASCII panel column: decimal code"
     },
     "Whitespace" : {
       "comment" : "Text menu: submenu with whitespace operations"

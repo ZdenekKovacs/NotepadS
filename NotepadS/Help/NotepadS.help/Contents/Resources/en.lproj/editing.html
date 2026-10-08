@@ -18,6 +18,7 @@
 <tr><td>Show or hide the minimap</td><td><b>View › Show Minimap</b> (<kbd>⌃⌘M</kbd>)</td></tr>
 <tr><td>Show spaces, tabs and line endings</td><td><b>View › Show Invisibles</b> (<kbd>⌥⌘I</kbd>)</td></tr>
 <tr><td>Jump to a line</td><td><b>Edit › Go to Line…</b> (<kbd>⌘L</kbd>)</td></tr>
+<tr><td>Insert a character by its code</td><td><b>Edit › ASCII Character Panel</b>: double-click a row, or select it and press Return</td></tr>
 <tr><td>Type at several places at once</td><td><b>Edit › Add Cursor Above / Below</b> (<kbd>⌃⌥↑</kbd>, <kbd>⌃⌥↓</kbd>), or Option-drag to select a column</td></tr>
 <tr><td>Type over the text after the caret</td><td><b>Edit › Overwrite Mode</b>, the <b>INS</b>/<b>OVR</b> indicator in the status bar, or the <kbd>Insert</kbd> key of a PC keyboard</td></tr>
 <tr><td>Make the text bigger or smaller</td><td><b>View › Increase / Decrease Font Size</b> (<kbd>⌘=</kbd>, <kbd>⌘−</kbd>, <kbd>⌘0</kbd> for the default)</td></tr>
@@ -25,6 +26,7 @@
 <p>The <b>minimap</b> on the right shows the whole document in miniature, in the same colors as the text; the shaded part is what the window shows. Click in it to jump there, or drag the shaded part to scroll.</p>
 <p>The status bar shows the caret’s line (<b>Ln</b>), column (<b>Col</b>) and position in the document (<b>Pos</b>), and the number of lines and characters in the document. Characters are counted as you see them: an emoji or a CRLF line break counts as one.</p>
 <p>With <b>several cursors</b>, typing, Return, Tab, Delete, the arrow keys (also with Shift, Option or Command), Copy, Cut and Paste work at every cursor, and one Undo step reverts each change at all of them. Paste puts one line at each cursor when the clipboard has exactly as many lines as there are cursors. Press <kbd>Esc</kbd> or click in the text to go back to one cursor. A cursor added on a shorter line goes to its end; the next one goes back to the original column.</p>
+<p>The <b>ASCII Character Panel</b> lists the codes 0–255 (128–255 as in Windows-1252, the common Western code page) with their hex, Unicode and HTML codes. The character goes where you would type, at every cursor. If the document’s encoding can’t store it, NotepadS offers to convert the document to UTF-8 first.</p>
 <p>In <b>overwrite mode</b> (<b>OVR</b> in the status bar, orange caret), each character you type replaces the one after the caret. Line breaks are never overwritten: typing at the end of a line makes the line longer. Return, Tab and Paste insert as usual. Each window has its own mode; new windows start in insert mode (<b>INS</b>).</p>
 <p>With <b>Show Invisibles</b>, spaces appear as <code>·</code>, tabs as <code>→</code>, and line endings as <code>¬</code> (LF), <code>↵</code> (CRLF) or <code>←</code> (CR).</p>
 <p>When you press Return, the new line keeps the indentation of the line above. Whether Tab inserts a tab or spaces is set in <a href="settings.html">Settings</a>.</p>

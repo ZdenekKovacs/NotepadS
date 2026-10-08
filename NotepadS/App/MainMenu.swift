@@ -63,6 +63,13 @@ enum MainMenu {
             textItem.submenu = makeTextMenu()
             mainMenu.insertItem(textItem, at: mainMenu.index(of: editItem) + 1)
         }
+        if let fileMenu = submenu(containing: "performClose:", in: mainMenu),
+           let closeIndex = fileMenu.items.firstIndex(where: { $0.action == NSSelectorFromString("performClose:") }) {
+            // No shortcut: AppKit already uses ⌥⌘W for "Close Other Tabs".
+            fileMenu.insertItem(NSMenuItem(title: String(localized: "Close All", comment: "File menu item: close every document, then open a new empty one"),
+                                           action: #selector(AppDelegate.closeAllDocuments(_:)), keyEquivalent: ""),
+                                at: closeIndex + 1)
+        }
         if let editMenu = submenu(containing: "selectAll:", in: mainMenu) {
             editMenu.addItem(.separator())
             editMenu.addItem(NSMenuItem(title: String(localized: "Go to Line…", comment: "Edit menu item"),
@@ -78,6 +85,9 @@ enum MainMenu {
             editMenu.addItem(withModifiers([.control, .option], NSMenuItem(title: String(localized: "Add Cursor Below", comment: "Edit menu item: another caret on the line below"),
                                                                            action: #selector(EditorTextView.addCursorBelow(_:)),
                                                                            keyEquivalent: arrowKey(NSDownArrowFunctionKey))))
+            editMenu.addItem(.separator())
+            editMenu.addItem(NSMenuItem(title: String(localized: "ASCII Character Panel", comment: "Edit menu item: table of characters 0–255 to insert"),
+                                        action: #selector(AppDelegate.showCharacterPanel(_:)), keyEquivalent: ""))
         }
     }
 

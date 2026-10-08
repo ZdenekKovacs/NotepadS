@@ -598,6 +598,15 @@ final class EditorViewController: NSViewController {
         FindReplacePanelController.shared.show(selectedText: selected)
     }
 
+    /// Types `text` as if from the keyboard (ASCII panel): it replaces the selection, goes to
+    /// every cursor, and passes the edit gatekeeper (encoding dialog, line-break style).
+    func typeText(_ text: String) {
+        textView.breakUndoCoalescing()   // its own undo step, not part of the typing before
+        textView.insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
+        textView.breakUndoCoalescing()
+        view.window?.makeKeyAndOrderFront(nil)   // keep typing in the document
+    }
+
     /// The document's text, without copying it.
     var searchableText: NSString { document.textStorage.mutableString }
     var currentSelection: NSRange { textView.selectedRange() }

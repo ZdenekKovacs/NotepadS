@@ -22,6 +22,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SettingsWindowController.shared.showWindow(sender)
     }
 
+    /// File › Close All. (The app delegate is always in the responder chain of menu actions.)
+    @objc func closeAllDocuments(_ sender: Any?) {
+        (NSDocumentController.shared as? DocumentController)?.closeAllAndOpenNew()
+    }
+
+    /// Edit › ASCII Character Panel
+    @objc func showCharacterPanel(_ sender: Any?) {
+        CharacterPanelController.shared.showWindow(sender)
+    }
+
     /// Opt in to secure coding for window restoration (AppKit logs a warning otherwise).
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
         true
