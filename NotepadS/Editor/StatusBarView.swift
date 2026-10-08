@@ -7,10 +7,11 @@ protocol StatusBarViewDelegate: AnyObject {
     func statusBar(_ statusBar: StatusBarView, convertLineEndingsTo lineEnding: LineEnding)
     func statusBar(_ statusBar: StatusBarView, didSelect language: Language)
     func statusBarDidToggleWordWrap(_ statusBar: StatusBarView)
+    func statusBarDidToggleOverwriteMode(_ statusBar: StatusBarView)
 }
 
-/// Bottom bar: caret position, selection size, document size, word wrap, language, encoding
-/// and line endings. Language, encoding and line endings are pull-down menus; the view only
+/// Bottom bar: caret position, selection size, document size, word wrap, language, encoding,
+/// line endings and insert/overwrite mode. Language, encoding and line endings are pull-down menus; the view only
 /// reports choices to its delegate.
 final class StatusBarView: NSView {
 
@@ -26,6 +27,8 @@ final class StatusBarView: NSView {
     private let languageButton = NSPopUpButton(frame: .zero, pullsDown: true)
     private let encodingButton = NSPopUpButton(frame: .zero, pullsDown: true)
     private let lineEndingButton = NSPopUpButton(frame: .zero, pullsDown: true)
+    /// "INS" or "OVR"; a click switches the mode.
+    private let overwriteModeButton = NSButton(title: "", target: nil, action: nil)
 
     private var reopenItems: [NSMenuItem] = []
     private var convertItems: [NSMenuItem] = []
@@ -39,6 +42,7 @@ final class StatusBarView: NSView {
         buildMenus()
         setUpLayout()
         setLanguage(.plainText, isHighlightingOff: false)
+        setOverwriteMode(false)
     }
 
     @available(*, unavailable)
@@ -47,15 +51,20 @@ final class StatusBarView: NSView {
     }
 
     /// - Parameters:
+    ///   - position: the caret's character position in the document, 1-based; `nil` while it
+    ///     hasn't been counted yet.
     ///   - lineCount: lines in the document.
     ///   - characterCount: characters in the document; `nil` while it hasn't been counted yet.
     ///   - lineEndingCounts: line breaks of each style in the text, kept live by `LineIndex`.
     ///   - newLineEnding: the document's style for inserted line breaks.
-    func update(line: Int, column: Int, selectedCharacters: Int,
+    func update(line: Int, column: Int, position: Int?, selectedCharacters: Int,
                 lineCount: Int, characterCount: Int?,
                 encoding: TextEncoding, lineEndingCounts: LineEndingCounts,
                 newLineEnding: LineEnding, canReopen: Bool) {
-        positionLabel.stringValue = String(localized: "Ln \(line), Col \(column)", comment: "Status bar: caret line and column")
+        positionLabel.stringValue = position.map { position in
+            String(localized: "Ln \(line), Col \(column), Pos \(position.formatted())",
+                   comment: "Status bar: caret line, column and character position in the document")
+        } ?? String(localized: "Ln \(line), Col \(column)", comment: "Status bar: caret line and column")
         selectionLabel.stringValue = selectedCharacters > 0
             ? String(localized: "\(selectedCharacters) selected", comment: "Status bar: number of selected characters")
             : ""
@@ -107,6 +116,22 @@ final class StatusBarView: NSView {
 
     @objc private func wrapCheckboxClicked(_ sender: NSButton) {
         delegate?.statusBarDidToggleWordWrap(self)
+    }
+
+    @objc private func overwriteModeButtonClicked(_ sender: NSButton) {
+        delegate?.statusBarDidToggleOverwriteMode(self)
+    }
+
+    /// Shows "INS" (typing inserts) or "OVR" (typing overwrites).
+    func setOverwriteMode(_ isOverwriteMode: Bool) {
+        overwriteModeButton.title = isOverwriteMode
+            ? String(localized: "OVR", comment: "Status bar: overwrite mode, typing replaces the characters after the caret")
+            : String(localized: "INS", comment: "Status bar: insert mode, typing inserts characters")
+        overwriteModeButton.toolTip = isOverwriteMode
+            ? String(localized: "Overwrite mode: typing replaces the characters after the caret. Click, press Insert or choose Edit › Overwrite Mode to insert instead.",
+                     comment: "Status bar tooltip")
+            : String(localized: "Insert mode: typing inserts characters. Click, press Insert or choose Edit › Overwrite Mode to overwrite instead.",
+                     comment: "Status bar tooltip")
     }
 
     /// Shows whether long lines wrap.
@@ -194,6 +219,12 @@ final class StatusBarView: NSView {
         wrapCheckbox.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
         wrapCheckbox.toolTip = String(localized: "Wrap long lines at the window edge (View › Wrap Lines, ⌃⌘W)",
                                       comment: "Status bar tooltip")
+        overwriteModeButton.target = self
+        overwriteModeButton.action = #selector(overwriteModeButtonClicked(_:))
+        overwriteModeButton.isBordered = false
+        overwriteModeButton.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        positionLabel.toolTip = String(localized: "Pos is the caret’s position in the document, in characters as you see them: an emoji or a CRLF line break counts as one.",
+                                       comment: "Status bar tooltip")
         documentSizeLabel.toolTip = String(localized: "Characters are counted as you see them: an emoji or a CRLF line break counts as one.",
                                            comment: "Status bar tooltip")
     }
@@ -229,7 +260,8 @@ final class StatusBarView: NSView {
         stack.spacing = 16
         stack.edgeInsets = NSEdgeInsets(top: 0, left: 10, bottom: 0, right: 8)
         stack.setViews([positionLabel, selectionLabel], in: .leading)
-        stack.setViews([documentSizeLabel, wrapCheckbox, languageButton, encodingButton, lineEndingButton], in: .trailing)
+        stack.setViews([documentSizeLabel, wrapCheckbox, languageButton, encodingButton, lineEndingButton,
+                       overwriteModeButton], in: .trailing)
 
         for subview in [separator, stack] as [NSView] {
             subview.translatesAutoresizingMaskIntoConstraints = false

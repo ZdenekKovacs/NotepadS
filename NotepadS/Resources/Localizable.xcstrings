@@ -93,6 +93,9 @@
     "Hash" : {
       "comment" : "Text menu: submenu with SHA-256, SHA-1, MD5"
     },
+    "INS" : {
+      "comment" : "Status bar: insert mode, typing inserts characters"
+    },
     "Ignore case" : {
       "comment" : "Find panel option"
     },
@@ -101,6 +104,9 @@
     },
     "Indentation" : {
       "comment" : "Settings section"
+    },
+    "Insert mode: typing inserts characters. Click, press Insert or choose Edit › Overwrite Mode to overwrite instead." : {
+      "comment" : "Status bar tooltip"
     },
     "Insert spaces when pressing Tab" : {
       "comment" : "Settings"
@@ -153,6 +159,17 @@
         }
       }
     },
+    "Ln %lld, Col %lld, Pos %@" : {
+      "comment" : "Status bar: caret line, column and character position in the document",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Ln %1$lld, Col %2$lld, Pos %3$@"
+          }
+        }
+      }
+    },
     "New Windows" : {
       "comment" : "Settings section"
     },
@@ -162,8 +179,20 @@
     "Not found" : {
       "comment" : "Find panel status"
     },
+    "OVR" : {
+      "comment" : "Status bar: overwrite mode, typing replaces the characters after the caret"
+    },
     "Or type your own extension." : {
       "comment" : "Save panel hint"
+    },
+    "Overwrite Mode" : {
+      "comment" : "Edit menu item: typing replaces the characters after the caret"
+    },
+    "Overwrite mode: typing replaces the characters after the caret. Click, press Insert or choose Edit › Overwrite Mode to insert instead." : {
+      "comment" : "Status bar tooltip"
+    },
+    "Pos is the caret’s position in the document, in characters as you see them: an emoji or a CRLF line break counts as one." : {
+      "comment" : "Status bar tooltip"
     },
     "Previous" : {
       "comment" : "Find panel button"

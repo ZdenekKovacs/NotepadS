@@ -32,17 +32,22 @@ final class EditorViewController: NSViewController {
     private var lineIndex = LineIndex()
     private var fontSize = EditorDefaults.fontSize
     private var wrapsLines = EditorDefaults.wrapsLines
-    /// Characters in the whole document, for the status bar; `nil` until first counted.
-    private var documentCharacterCount: Int?
-    /// Increases with every count started; a background count for an older text is thrown away.
-    private var characterCountGeneration = 0
-    /// True while a background count runs (large documents only).
-    private var isCountingCharactersInBackground = false
-    /// The text changed while the background count was running: count again when it is done.
-    private var isCharacterCountOutdated = false
-    /// Up to this length (UTF-16 units) the count is done right away, on every keystroke:
-    /// 50 000 mostly-ASCII characters take well under a millisecond, so typing stays smooth.
-    private static let immediateCharacterCountLimit = 50_000
+    // `unowned self`: the counters belong to this controller and never outlive it.
+    /// Characters in the whole document, for the status bar ("Characters").
+    private lazy var documentCharacterCounter = LiveCharacterCounter(
+        source: { [unowned self] in
+            let text = self.document.textStorage.mutableString
+            return (text, text.length)
+        },
+        didCountInBackground: { [weak self] in self?.updateStatusBar() })
+    /// Characters before the caret, for the status bar ("Pos").
+    private lazy var caretPositionCounter = LiveCharacterCounter(
+        source: { [unowned self] in
+            (self.document.textStorage.mutableString, self.textView.selectedRange().location)
+        },
+        didCountInBackground: { [weak self] in self?.updateStatusBar() })
+    /// Overwrite mode (OVR): typing replaces the characters after the caret. Per window, starts off.
+    private var isOverwriteMode = false
     /// Font settings the text currently uses, to notice when the Settings window changes them.
     private var appliedFontSettings = ""
     /// True while one of our own commands changes the text; the gatekeeper lets it through.
@@ -660,6 +665,15 @@ final class EditorViewController: NSViewController {
         updateStatusBar()
     }
 
+    // MARK: - Overwrite mode (Edit menu, status bar, Insert key)
+
+    /// Switches between insert (INS) and overwrite (OVR) mode for this window.
+    @objc func toggleOverwriteMode(_ sender: Any?) {
+        isOverwriteMode.toggle()
+        textView.isOverwriteMode = isOverwriteMode
+        statusBar.setOverwriteMode(isOverwriteMode)
+    }
+
     // MARK: - Line endings
 
     /// "Convert Line Endings": rewrites every line break as `lineEnding` and makes it the style
@@ -702,9 +716,10 @@ final class EditorViewController: NSViewController {
         statusBar.update(
             line: lineIndex.line(containing: caret) + 1,
             column: lineIndex.column(of: caret, in: text),
+            position: caretPositionCounter.count.map { $0 + 1 },   // 1-based, like Ln and Col
             selectedCharacters: characterCount(in: selection, of: text),
             lineCount: lineIndex.lineCount,
-            characterCount: documentCharacterCount,
+            characterCount: documentCharacterCounter.count,
             encoding: document.encoding,
             lineEndingCounts: lineIndex.counts,
             newLineEnding: document.lineEnding,
@@ -720,44 +735,12 @@ final class EditorViewController: NSViewController {
         return text.substring(with: range).count
     }
 
-    /// Recounts the document's characters after a change. Small documents are counted right
-    /// away, so the number grows with every keystroke. Large ones are counted on a background
-    /// thread so typing never waits; while the user keeps typing, a new count starts as soon as
-    /// the previous one finishes, so the number keeps following the text with a short delay.
+    /// Recounts the document's characters and those before the caret after a change (see
+    /// LiveCharacterCounter: right away for small documents, on a background copy for large ones).
     private func updateCharacterCount() {
-        let text = document.textStorage.mutableString
-        if text.length <= Self.immediateCharacterCountLimit {
-            characterCountGeneration += 1   // a background count still running is outdated now
-            isCharacterCountOutdated = false
-            documentCharacterCount = TextStatistics.characterCount(of: text, in: NSRange(location: 0, length: text.length))
-            updateStatusBar()
-            return
-        }
-        guard !isCountingCharactersInBackground else {
-            isCharacterCountOutdated = true   // counted again when the running count finishes
-            return
-        }
-        isCountingCharactersInBackground = true
-        isCharacterCountOutdated = false
-        characterCountGeneration += 1
-        let generation = characterCountGeneration
-        // The text storage may only be touched on the main thread and keeps changing while
-        // the user types, so count an immutable copy. Copying is a fast memory copy.
-        let snapshot = (text.copy() as? NSString) ?? ""
-        DispatchQueue.global(qos: .userInitiated).async {
-            let count = TextStatistics.characterCount(of: snapshot, in: NSRange(location: 0, length: snapshot.length))
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                self.isCountingCharactersInBackground = false
-                if generation == self.characterCountGeneration {
-                    self.documentCharacterCount = count
-                    self.updateStatusBar()
-                }
-                if self.isCharacterCountOutdated {
-                    self.updateCharacterCount()
-                }
-            }
-        }
+        documentCharacterCounter.recount()
+        caretPositionCounter.recount()
+        updateStatusBar()
     }
 
     private func showError(_ error: Error) {
@@ -863,6 +846,7 @@ extension EditorViewController: NSTextViewDelegate {
     }
 
     func textViewDidChangeSelection(_ notification: Notification) {
+        caretPositionCounter.recount()
         updateStatusBar()
         document.invalidateRestorableState()   // AppKit saves the new caret position soon
         lineNumberView.needsDisplay = true   // the highlighted current-line number may change
@@ -917,6 +901,11 @@ extension EditorViewController: StatusBarViewDelegate {
         toggleWordWrap(statusBar)
     }
 
+    func statusBarDidToggleOverwriteMode(_ statusBar: StatusBarView) {
+        toggleOverwriteMode(statusBar)
+        view.window?.makeFirstResponder(textView)   // keep typing in the text after the click
+    }
+
     private func reopen(with encoding: TextEncoding) {
         do {
             try document.reopen(with: encoding)
@@ -938,6 +927,8 @@ extension EditorViewController: NSMenuItemValidation {
             menuItem.state = layoutManager.showsInvisibles ? .on : .off
         } else if menuItem.action == #selector(toggleMinimap(_:)) {
             menuItem.state = minimapView.isHidden ? .off : .on
+        } else if menuItem.action == #selector(toggleOverwriteMode(_:)) {
+            menuItem.state = isOverwriteMode ? .on : .off
         } else if menuItem.action == #selector(copyHash(_:)), let hash = hash(for: menuItem) {
             // Say what is hashed: risk 9 in DESIGN.md.
             menuItem.title = textView.selectedRange().length > 0

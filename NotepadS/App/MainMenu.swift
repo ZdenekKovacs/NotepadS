@@ -67,6 +67,9 @@ enum MainMenu {
             editMenu.addItem(.separator())
             editMenu.addItem(NSMenuItem(title: String(localized: "Go to Line…", comment: "Edit menu item"),
                                         action: #selector(EditorViewController.goToLine(_:)), keyEquivalent: "l"))
+            // No shortcut: the Insert key (Help key on a Mac) toggles it, see EditorTextView.
+            editMenu.addItem(NSMenuItem(title: String(localized: "Overwrite Mode", comment: "Edit menu item: typing replaces the characters after the caret"),
+                                        action: #selector(EditorViewController.toggleOverwriteMode(_:)), keyEquivalent: ""))
         }
     }
 

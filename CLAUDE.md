@@ -151,6 +151,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Wrap checkbox in the status bar
 - [x] Save panel: list of languages and their extensions
 - [x] 35 more languages (Notepad++ set), language menus grouped by letter
+- [x] Status bar: caret position (Pos); INS/OVR overwrite mode
 
 ### Later
 - [ ] iOS app on `NotepadSCore`

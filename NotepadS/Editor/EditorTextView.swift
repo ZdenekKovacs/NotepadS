@@ -95,6 +95,52 @@ final class EditorTextView: NSTextView {
         insertText(String(repeating: " ", count: tabWidth - column % tabWidth), replacementRange: selection)
     }
 
+    // MARK: - Overwrite mode
+
+    /// Overwrite (OVR) instead of insert (INS) mode, set by EditorViewController. NSTextView has
+    /// no overwrite mode of its own, so `insertText` below widens the replaced range. The caret
+    /// turns orange as a reminder.
+    var isOverwriteMode = false {
+        didSet { insertionPointColor = isOverwriteMode ? .systemOrange : .textColor }
+    }
+
+    // Typing reaches `insertText(_:replacementRange:)` with `NSNotFound` as the range, meaning
+    // "replace the selection". Only that case overwrites: our own calls (Return, Tab as spaces,
+    // the edit gatekeeper) pass an explicit range, and Paste doesn't come through here at all,
+    // so they still insert. Return and Tab never overwrite, as in Notepad++.
+    // Accents typed with a dead key (⌥E, then E) are marked text first; they insert.
+    // The replacement goes through `shouldChangeText` like any typing, so the gatekeeper,
+    // undo ("Typing", coalesced as usual) and the "edited" state work unchanged.
+    override func insertText(_ string: Any, replacementRange: NSRange) {
+        let typed = (string as? String) ?? (string as? NSAttributedString)?.string ?? ""
+        let selection = selectedRange()
+        guard isOverwriteMode, replacementRange.location == NSNotFound, !hasMarkedText(),
+              selection.length == 0, !typed.isEmpty,
+              !typed.utf8.contains(where: { $0 == 0x09 || $0 == 0x0A || $0 == 0x0D }),
+              let text = textStorage?.mutableString else {
+            super.insertText(string, replacementRange: replacementRange)
+            return
+        }
+        let replaced = Overwrite.rangeReplaced(byTyping: typed.count, at: selection.location, in: text)
+        super.insertText(string, replacementRange: replaced)
+    }
+
+    /// The Insert key switches between insert and overwrite mode. Mac keyboards have no Insert
+    /// key; on a PC keyboard connected to a Mac it arrives as the Help key (NSHelpFunctionKey).
+    override func keyDown(with event: NSEvent) {
+        let otherModifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            .subtracting([.function, .numericPad])
+        if otherModifiers.isEmpty,
+           let key = event.charactersIgnoringModifiers?.unicodeScalars.first.map({ Int($0.value) }),
+           key == NSHelpFunctionKey || key == NSInsertFunctionKey {
+            // EditorViewController owns the mode; it is further up the responder chain.
+            if tryToPerform(#selector(EditorViewController.toggleOverwriteMode(_:)), with: self) {
+                return
+            }
+        }
+        super.keyDown(with: event)
+    }
+
     // MARK: - Setup
 
     private func configureForPlainText() {
