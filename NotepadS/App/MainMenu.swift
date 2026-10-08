@@ -83,16 +83,9 @@ enum MainMenu {
             [.formatJSON, .minifyJSON],
             [.base64Encode, .base64Decode, .urlEncode, .urlDecode],
             [.uppercase, .lowercase, .titleCase, .camelCase, .snakeCase, .kebabCase],
-            [.trimTrailingWhitespace],
         ]
         for (index, group) in groups.enumerated() {
             if index > 0 { menu.addItem(.separator()) }
-            if index == 3 {
-                let linesItem = NSMenuItem(title: String(localized: "Lines", comment: "Text menu: submenu with line operations"),
-                                           action: nil, keyEquivalent: "")
-                linesItem.submenu = makeLinesMenu()
-                menu.addItem(linesItem)
-            }
             for transform in group {
                 menu.addItem(transformItem(transform))
             }
@@ -105,6 +98,15 @@ enum MainMenu {
                 menu.addItem(hashItem)
             }
         }
+        menu.addItem(.separator())
+        let linesItem = NSMenuItem(title: String(localized: "Lines", comment: "Text menu: submenu with line operations"),
+                                   action: nil, keyEquivalent: "")
+        linesItem.submenu = makeLinesMenu()
+        menu.addItem(linesItem)
+        let whitespaceItem = NSMenuItem(title: String(localized: "Whitespace", comment: "Text menu: submenu with whitespace operations"),
+                                        action: nil, keyEquivalent: "")
+        whitespaceItem.submenu = makeWhitespaceMenu()
+        menu.addItem(whitespaceItem)
         return menu
     }
 
@@ -146,6 +148,24 @@ enum MainMenu {
         menu.addItem(.separator())
         for transform in [TextTransform.removeDuplicateLines, .removeConsecutiveDuplicateLines, .removeEmptyLines] {
             menu.addItem(transformItem(transform))
+        }
+        return menu
+    }
+
+    /// Text › Whitespace, like Notepad++'s Edit › Blank Operations. Works on the selected lines,
+    /// or the whole document; tab stops come from Settings.
+    private static func makeWhitespaceMenu() -> NSMenu {
+        let menu = NSMenu(title: String(localized: "Whitespace", comment: "Text menu: submenu with whitespace operations"))
+        let groups: [[TextTransform]] = [
+            [.trimLeadingWhitespace, .trimTrailingWhitespace, .trimWhitespace],
+            [.tabsToSpaces, .leadingSpacesToTabs],
+            [.lineBreaksToSpaces],
+        ]
+        for (index, group) in groups.enumerated() {
+            if index > 0 { menu.addItem(.separator()) }
+            for transform in group {
+                menu.addItem(transformItem(transform))
+            }
         }
         return menu
     }

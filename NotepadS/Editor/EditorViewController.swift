@@ -382,7 +382,8 @@ final class EditorViewController: NSViewController {
     private var transformContext: TransformContext {
         TransformContext(lineEnding: document.lineEnding, locale: Self.textLocale,
                          indentation: EditorDefaults.insertsSpacesForTab
-                             ? String(repeating: " ", count: EditorDefaults.tabWidth) : "\t")
+                             ? String(repeating: " ", count: EditorDefaults.tabWidth) : "\t",
+                         tabWidth: EditorDefaults.tabWidth)
     }
 
     /// The language rules for sorting and case conversion: the language the app's interface is

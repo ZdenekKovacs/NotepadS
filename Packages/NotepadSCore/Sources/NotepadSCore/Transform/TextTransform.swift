@@ -8,11 +8,14 @@ public struct TransformContext: Sendable {
     public var locale: Locale
     /// One level of indentation, for formatters (e.g. four spaces).
     public var indentation: String
+    /// Columns between tab stops, for converting tabs and spaces.
+    public var tabWidth: Int
 
-    public init(lineEnding: LineEnding, locale: Locale = .current, indentation: String = "    ") {
+    public init(lineEnding: LineEnding, locale: Locale = .current, indentation: String = "    ", tabWidth: Int = 4) {
         self.lineEnding = lineEnding
         self.locale = locale
         self.indentation = indentation
+        self.tabWidth = tabWidth
     }
 }
 
@@ -65,6 +68,11 @@ public enum TextTransform: String, CaseIterable, Sendable {
     case shuffleLines
     case removeConsecutiveDuplicateLines
     case removeEmptyLines
+    case trimLeadingWhitespace
+    case trimWhitespace
+    case tabsToSpaces
+    case leadingSpacesToTabs
+    case lineBreaksToSpaces
 
     /// Menu title.
     public var name: String {
@@ -113,6 +121,17 @@ public enum TextTransform: String, CaseIterable, Sendable {
         case .removeEmptyLines:
             return String(localized: "Remove Empty Lines", bundle: .module,
                           comment: "Text › Lines menu item: also lines with only spaces and tabs")
+        case .trimLeadingWhitespace:
+            return String(localized: "Trim Leading Whitespace", bundle: .module, comment: "Text › Whitespace menu item")
+        case .trimWhitespace:
+            return String(localized: "Trim Leading and Trailing Whitespace", bundle: .module, comment: "Text › Whitespace menu item")
+        case .tabsToSpaces:
+            return String(localized: "Convert Tabs to Spaces", bundle: .module, comment: "Text › Whitespace menu item")
+        case .leadingSpacesToTabs:
+            return String(localized: "Convert Leading Spaces to Tabs", bundle: .module,
+                          comment: "Text › Whitespace menu item: indentation only")
+        case .lineBreaksToSpaces:
+            return String(localized: "Convert Line Breaks to Spaces", bundle: .module, comment: "Text › Whitespace menu item")
         }
     }
 
@@ -121,7 +140,8 @@ public enum TextTransform: String, CaseIterable, Sendable {
     public var isLineBased: Bool {
         switch self {
         case .sortLinesAscending, .sortLinesDescending, .removeDuplicateLines, .trimTrailingWhitespace,
-             .joinLines, .reverseLines, .shuffleLines, .removeConsecutiveDuplicateLines, .removeEmptyLines:
+             .joinLines, .reverseLines, .shuffleLines, .removeConsecutiveDuplicateLines, .removeEmptyLines,
+             .trimLeadingWhitespace, .trimWhitespace, .tabsToSpaces, .leadingSpacesToTabs, .lineBreaksToSpaces:
             return true
         case .formatJSON, .minifyJSON, .base64Encode, .base64Decode, .urlEncode, .urlDecode,
              .uppercase, .lowercase, .titleCase, .camelCase, .snakeCase, .kebabCase:
@@ -175,6 +195,16 @@ public enum TextTransform: String, CaseIterable, Sendable {
             return LineTools.removeConsecutiveDuplicates(text, context: context)
         case .removeEmptyLines:
             return LineTools.removeEmptyLines(text, context: context)
+        case .trimLeadingWhitespace:
+            return WhitespaceTools.trimLeading(text)
+        case .trimWhitespace:
+            return LineTools.trimTrailingWhitespace(WhitespaceTools.trimLeading(text))
+        case .tabsToSpaces:
+            return WhitespaceTools.tabsToSpaces(text, tabWidth: context.tabWidth)
+        case .leadingSpacesToTabs:
+            return WhitespaceTools.leadingSpacesToTabs(text, tabWidth: context.tabWidth)
+        case .lineBreaksToSpaces:
+            return WhitespaceTools.lineBreaksToSpaces(text)
         }
     }
 }

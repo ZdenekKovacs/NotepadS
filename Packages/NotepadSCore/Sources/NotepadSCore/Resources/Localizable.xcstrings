@@ -16,6 +16,15 @@
     "Choose a different encoding with “Reopen with Encoding” in the status bar." : {
       "comment" : "Advice after the wrong-encoding error"
     },
+    "Convert Leading Spaces to Tabs" : {
+      "comment" : "Text › Whitespace menu item: indentation only"
+    },
+    "Convert Line Breaks to Spaces" : {
+      "comment" : "Text › Whitespace menu item"
+    },
+    "Convert Tabs to Spaces" : {
+      "comment" : "Text › Whitespace menu item"
+    },
     "Enter text to find." : {
       "comment" : "Search error"
     },
@@ -141,6 +150,12 @@
     },
     "Title Case" : {
       "comment" : "Text menu item: capitalize words"
+    },
+    "Trim Leading Whitespace" : {
+      "comment" : "Text › Whitespace menu item"
+    },
+    "Trim Leading and Trailing Whitespace" : {
+      "comment" : "Text › Whitespace menu item"
     },
     "Trim Trailing Whitespace" : {
       "comment" : "Text menu item"

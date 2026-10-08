@@ -308,6 +308,9 @@
     "Unsaved changes will be discarded and the file will be read again from disk." : {
       "comment" : "Reopen-with-encoding dialog"
     },
+    "Whitespace" : {
+      "comment" : "Text menu: submenu with whitespace operations"
+    },
     "Wrap" : {
       "comment" : "Status bar checkbox: wrap long lines"
     },
