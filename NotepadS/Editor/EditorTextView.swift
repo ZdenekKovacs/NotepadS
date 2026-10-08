@@ -10,7 +10,26 @@ import NotepadSCore
 /// anything touches `layoutManager`.
 ///
 /// Later phases add behaviour here (auto-indent, invisible characters, Go to Line).
+/// Multiple cursors are in EditorTextView+MultipleCursors.swift.
 final class EditorTextView: NSTextView {
+
+    // MARK: - Multiple cursors (state; behaviour in EditorTextView+MultipleCursors.swift)
+
+    /// Every cursor, sorted, while there is more than one (VS Code-style multiple cursors);
+    /// empty otherwise. NSTextView itself can't do this: it keeps only one caret, and typing
+    /// into several selections changes only the first. So NSTextView shows the primary cursor
+    /// as its own selection, and this view draws, moves and edits the others.
+    var cursors: [Cursor] = []
+    /// The cursor NSTextView shows (and scrolls to): the one added last.
+    var primaryCursorIndex = 0
+    /// Column for Add Cursor Above/Below: where the first cursor was, so a column of cursors
+    /// stays straight across shorter lines.
+    var columnForAddedCursors = 0
+    /// True while this view changes the selection itself; any other selection change (a click,
+    /// Select All, Undo) goes back to a single cursor.
+    var isUpdatingCursors = false
+    /// Applies edits at several cursors after the edit gatekeeper's checks.
+    weak var multiCursorDelegate: EditorTextViewMultiCursorDelegate?
 
     override init(frame frameRect: NSRect, textContainer container: NSTextContainer?) {
         super.init(frame: frameRect, textContainer: container)
@@ -20,6 +39,58 @@ final class EditorTextView: NSTextView {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) is not supported")
+    }
+
+    // MARK: - Multiple cursors: NSTextView methods that need to know about them
+
+    override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool) {
+        super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
+        if !isUpdatingCursors, !cursors.isEmpty {
+            cursors = []   // a click, Select All, Undo …: one cursor again
+            setNeedsDisplay(visibleRect)
+        }
+    }
+
+    override func copy(_ sender: Any?) {
+        guard hasMultipleCursors else {
+            super.copy(sender)
+            return
+        }
+        if !copySelectionsAtEveryCursor() { NSSound.beep() }
+    }
+
+    override func cut(_ sender: Any?) {
+        guard adoptMultipleSelections() else {
+            super.cut(sender)
+            return
+        }
+        cutAtEveryCursor()
+    }
+
+    override func paste(_ sender: Any?) {
+        guard adoptMultipleSelections() else {
+            super.paste(sender)
+            return
+        }
+        pasteAtEveryCursor()
+    }
+
+    /// Input methods (accents with a dead key, Japanese …) compose text at one place only.
+    override func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        removeExtraCursors()
+        super.setMarkedText(string, selectedRange: selectedRange, replacementRange: replacementRange)
+    }
+
+    // `drawBackground(in:)` runs before the text is drawn, `draw(_:)` around it: selections of
+    // the other cursors go under the text, their carets on top.
+    override func drawBackground(in rect: NSRect) {
+        super.drawBackground(in: rect)
+        if hasMultipleCursors { drawSelectionsOfOtherCursors() }
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        if hasMultipleCursors { drawCaretsOfOtherCursors() }
     }
 
     // MARK: - Line breaks
@@ -57,7 +128,7 @@ final class EditorTextView: NSTextView {
     }
 
     /// Spaces and tabs at the start of the line containing `location`, up to `location`.
-    private func leadingWhitespace(ofLineBefore location: Int) -> String {
+    func leadingWhitespace(ofLineBefore location: Int) -> String {
         let text = textStorage?.mutableString ?? NSMutableString()
         var lineStart = location
         while lineStart > 0 {
@@ -82,17 +153,24 @@ final class EditorTextView: NSTextView {
             return
         }
         let selection = selectedRange()
+        insertText(tabText(at: selection.location), replacementRange: selection)
+    }
+
+    /// What Tab inserts at `location`: a tab character, or with "Insert spaces when pressing
+    /// Tab" the spaces up to the next tab stop.
+    func tabText(at location: Int) -> String {
+        guard EditorDefaults.insertsSpacesForTab else { return "\t" }
         let text = textStorage?.mutableString ?? NSMutableString()
         let tabWidth = EditorDefaults.tabWidth
-        var lineStart = selection.location
+        var lineStart = location
         while lineStart > 0, ![0x0A, 0x0D].contains(text.character(at: lineStart - 1)) {
             lineStart -= 1
         }
         var column = 0
-        for index in lineStart..<selection.location {
+        for index in lineStart..<location {
             column = text.character(at: index) == 0x09 ? (column / tabWidth + 1) * tabWidth : column + 1
         }
-        insertText(String(repeating: " ", count: tabWidth - column % tabWidth), replacementRange: selection)
+        return String(repeating: " ", count: tabWidth - column % tabWidth)
     }
 
     // MARK: - Overwrite mode
@@ -113,6 +191,10 @@ final class EditorTextView: NSTextView {
     // undo ("Typing", coalesced as usual) and the "edited" state work unchanged.
     override func insertText(_ string: Any, replacementRange: NSRange) {
         let typed = (string as? String) ?? (string as? NSAttributedString)?.string ?? ""
+        if replacementRange.location == NSNotFound, !hasMarkedText(), adoptMultipleSelections() {
+            typeAtEveryCursor(typed)
+            return
+        }
         let selection = selectedRange()
         guard isOverwriteMode, replacementRange.location == NSNotFound, !hasMarkedText(),
               selection.length == 0, !typed.isEmpty,

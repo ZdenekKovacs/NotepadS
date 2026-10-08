@@ -70,6 +70,14 @@ enum MainMenu {
             // No shortcut: the Insert key (Help key on a Mac) toggles it, see EditorTextView.
             editMenu.addItem(NSMenuItem(title: String(localized: "Overwrite Mode", comment: "Edit menu item: typing replaces the characters after the caret"),
                                         action: #selector(EditorViewController.toggleOverwriteMode(_:)), keyEquivalent: ""))
+            // ⌃⌥↑ / ⌃⌥↓ like Ctrl+Alt+↑/↓ in VS Code on Windows (⌥⌘↑/↓ already moves lines).
+            editMenu.addItem(.separator())
+            editMenu.addItem(withModifiers([.control, .option], NSMenuItem(title: String(localized: "Add Cursor Above", comment: "Edit menu item: another caret on the line above"),
+                                                                           action: #selector(EditorTextView.addCursorAbove(_:)),
+                                                                           keyEquivalent: arrowKey(NSUpArrowFunctionKey))))
+            editMenu.addItem(withModifiers([.control, .option], NSMenuItem(title: String(localized: "Add Cursor Below", comment: "Edit menu item: another caret on the line below"),
+                                                                           action: #selector(EditorTextView.addCursorBelow(_:)),
+                                                                           keyEquivalent: arrowKey(NSDownArrowFunctionKey))))
         }
     }
 
@@ -123,9 +131,8 @@ enum MainMenu {
     /// caret's line (or the selected lines), the rest on the selected lines or the whole document.
     private static func makeLinesMenu() -> NSMenu {
         let menu = NSMenu(title: String(localized: "Lines", comment: "Text menu: submenu with line operations"))
-        // Arrow keys as key equivalents are their function-key characters.
-        let upArrow = String(Character(UnicodeScalar(UInt16(NSUpArrowFunctionKey))!))
-        let downArrow = String(Character(UnicodeScalar(UInt16(NSDownArrowFunctionKey))!))
+        let upArrow = arrowKey(NSUpArrowFunctionKey)
+        let downArrow = arrowKey(NSDownArrowFunctionKey)
         menu.addItem(NSMenuItem(title: String(localized: "Duplicate Line", comment: "Text › Lines menu item"),
                                 action: #selector(EditorViewController.duplicateLines(_:)), keyEquivalent: "d"))
         menu.addItem(withModifiers([.shift, .command], NSMenuItem(title: String(localized: "Delete Line", comment: "Text › Lines menu item"),
@@ -226,6 +233,12 @@ enum MainMenu {
     private static func withModifiers(_ modifiers: NSEvent.ModifierFlags, _ item: NSMenuItem) -> NSMenuItem {
         item.keyEquivalentModifierMask = modifiers
         return item
+    }
+
+    /// Arrow keys as key equivalents are their function-key characters (NSUpArrowFunctionKey …).
+    private static func arrowKey(_ functionKey: Int) -> String {
+        // Function-key characters are in the Private Use Area, always valid scalars.
+        String(Character(UnicodeScalar(UInt16(functionKey))!))
     }
 
     private static func hiddenAlias(_ item: NSMenuItem) -> NSMenuItem {

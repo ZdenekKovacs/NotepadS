@@ -24,6 +24,12 @@
     "Actual Size" : {
       "comment" : "View menu item: default font size"
     },
+    "Add Cursor Above" : {
+      "comment" : "Edit menu item: another caret on the line above"
+    },
+    "Add Cursor Below" : {
+      "comment" : "Edit menu item: another caret on the line below"
+    },
     "Cancel" : {
       "comment" : "Dialog button"
     },
@@ -60,8 +66,14 @@
     "Copy %@ of Selection" : {
       "comment" : "Text › Hash menu item"
     },
+    "Cut" : {
+      "comment" : "Undo action name"
+    },
     "Decrease Font Size" : {
       "comment" : "View menu item"
+    },
+    "Delete" : {
+      "comment" : "Undo action name"
     },
     "Delete Line" : {
       "comment" : "Text › Lines menu item\nUndo action name"
@@ -206,6 +218,9 @@
     "Overwrite mode: typing replaces the characters after the caret. Click, press Insert or choose Edit › Overwrite Mode to insert instead." : {
       "comment" : "Status bar tooltip"
     },
+    "Paste" : {
+      "comment" : "Undo action name"
+    },
     "Pos is the caret’s position in the document, in characters as you see them: an emoji or a CRLF line break counts as one." : {
       "comment" : "Status bar tooltip"
     },
@@ -304,6 +319,9 @@
     },
     "This text mixes line-break styles. New line breaks use %@. Choose “Convert to …” to unify them." : {
       "comment" : "Status bar tooltip; the style is LF, CRLF or CR"
+    },
+    "Typing" : {
+      "comment" : "Undo action name"
     },
     "Unsaved changes will be discarded and the file will be read again from disk." : {
       "comment" : "Reopen-with-encoding dialog"

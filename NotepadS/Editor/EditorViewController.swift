@@ -120,6 +120,7 @@ final class EditorViewController: NSViewController {
 
         // Delegates last: their callbacks use the gutter and the status bar.
         textView.delegate = self
+        textView.multiCursorDelegate = self
         statusBar.delegate = self
 
         for subview in [scrollView, minimapView, statusBar] as [NSView] {
@@ -950,6 +951,30 @@ extension EditorViewController: NSTextViewDelegate {
 
     func textDidChange(_ notification: Notification) {
         updateStatusBar()
+    }
+}
+
+// MARK: - EditorTextViewMultiCursorDelegate
+
+extension EditorViewController: EditorTextViewMultiCursorDelegate {
+
+    /// The edit gatekeeper for typing at several cursors (the single-cursor one is
+    /// `textView(_:shouldChangeTextIn:replacementString:)`). Line breaks already have the
+    /// document's style; here only the encoding is checked (invariant 2).
+    func textView(_ textView: EditorTextView, perform edit: MultiCursorEdit, actionName: String) {
+        let apply = { [weak self, weak textView] in
+            guard let self, let textView else { return }
+            // NSTextView passes a multi-range change to the single-range gatekeeper as one range
+            // with the text in between; that text is already in the document, so let it through.
+            self.isPerformingProgrammaticEdit = true
+            textView.applyMultiCursorEdit(edit, actionName: actionName)
+            self.isPerformingProgrammaticEdit = false
+        }
+        if let character = document.rejectionReason(forInserting: edit.replacements.map(\.string).joined()) {
+            offerConversionToUTF8(character: character, thenPerform: apply)
+            return
+        }
+        apply()
     }
 }
 
