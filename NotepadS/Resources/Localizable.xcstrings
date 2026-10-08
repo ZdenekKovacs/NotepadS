@@ -30,6 +30,9 @@
     "Add Cursor Below" : {
       "comment" : "Edit menu item: another caret on the line below"
     },
+    "All Files" : {
+      "comment" : "Open panel filter: no filter"
+    },
     "Cancel" : {
       "comment" : "Dialog button"
     },
@@ -83,6 +86,9 @@
     },
     "Enter a line number from 1 to %lld." : {
       "comment" : "Go to Line dialog"
+    },
+    "Files of other languages are shown grayed out." : {
+      "comment" : "Open panel filter tooltip"
     },
     "Files with these extensions get syntax highlighting. You can also type any other extension." : {
       "comment" : "Save panel tooltip"
@@ -277,6 +283,9 @@
     },
     "Show Minimap" : {
       "comment" : "View menu item: miniature of the document beside the text"
+    },
+    "Show:" : {
+      "comment" : "Open panel: label before the language filter"
     },
     "Size: %lld pt" : {
       "comment" : "Settings: font size"

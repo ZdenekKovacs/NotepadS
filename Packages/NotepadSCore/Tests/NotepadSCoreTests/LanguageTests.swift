@@ -170,4 +170,24 @@ final class LanguageTests: XCTestCase {
         XCTAssertEqual(Language.fileName("archive.tar.gz", withExtension: "txt"), "archive.tar.gz.txt")
         XCTAssertEqual(Language.fileName(".env", withExtension: "ini"), ".env.ini", "a dotfile name is not an extension")
     }
+
+    // MARK: - Open panel filter
+
+    func testIncludesFileNameByExtensionOrName() {
+        XCTAssertTrue(Language.python.includes(fileName: "Main.PY"), "case doesn't matter")
+        XCTAssertTrue(Language.makefile.includes(fileName: "Makefile"))
+        XCTAssertTrue(Language.shell.includes(fileName: ".zshrc"))
+        XCTAssertTrue(Language.json.includes(fileName: "app.webmanifest"), "every extension, not just the usual one")
+        XCTAssertFalse(Language.python.includes(fileName: "data.json"))
+        XCTAssertFalse(Language.python.includes(fileName: "py"), "a name without a dot has no extension")
+        XCTAssertFalse(Language.json.includes(fileName: "archive.tar.gz"))
+    }
+
+    func testSharedExtensionAndPlainTextInFilter() {
+        XCTAssertTrue(Language.matlab.includes(fileName: "model.m"))
+        XCTAssertTrue(Language.objectiveC.includes(fileName: "model.m"))
+        XCTAssertTrue(Language.plainText.includes(fileName: "notes.txt"))
+        XCTAssertTrue(Language.cmake.includes(fileName: "CMakeLists.txt"))
+        XCTAssertFalse(Language.plainText.includes(fileName: "README"))
+    }
 }

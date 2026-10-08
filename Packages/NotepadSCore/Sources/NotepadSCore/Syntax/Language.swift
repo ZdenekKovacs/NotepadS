@@ -365,6 +365,18 @@ public enum Language: String, CaseIterable, Hashable, Sendable {
         }
     }
 
+    /// True if a file called `fileName` belongs to this language by its name or extension, for
+    /// the Open panel's filter. Unlike `detect`, both languages of a shared extension match
+    /// (".m": MATLAB and Objective-C), because the file isn't read. Plain text matches ".txt".
+    public func includes(fileName: String) -> Bool {
+        let name = fileName.lowercased()
+        if Self.byFileName[name] == self {
+            return true
+        }
+        let pathExtension = (name as NSString).pathExtension
+        return !pathExtension.isEmpty && fileExtensions.contains(pathExtension)
+    }
+
     /// Whole file names (lowercase) recognized as this language, such as "Makefile" or ".zshrc".
     public var fileNames: [String] {
         Self.byFileName.filter { $0.value == self }.keys.sorted()

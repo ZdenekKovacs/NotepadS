@@ -156,6 +156,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Text › Whitespace (trim leading/both, tabs ↔ spaces, line breaks → spaces)
 - [x] More case conversions (Notepad++ set), SHA-512
 - [x] Multiple cursors (⌃⌥↑/↓, Option-drag column selection)
+- [x] Open panel: language filter
 
 ### Later
 - [ ] iOS app on `NotepadSCore`
