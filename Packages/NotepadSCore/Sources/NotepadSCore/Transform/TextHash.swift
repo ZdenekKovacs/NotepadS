@@ -6,6 +6,7 @@ import Foundation
 /// - for a selection, its UTF-8 bytes as stored, line breaks included.
 public enum TextHash: String, CaseIterable, Sendable {
     case sha256
+    case sha512
     case sha1
     case md5
 
@@ -13,6 +14,7 @@ public enum TextHash: String, CaseIterable, Sendable {
     public var name: String {
         switch self {
         case .sha256: return "SHA-256"
+        case .sha512: return "SHA-512"
         case .sha1: return "SHA-1"
         case .md5: return "MD5"
         }
@@ -23,6 +25,7 @@ public enum TextHash: String, CaseIterable, Sendable {
         // SHA-1 and MD5 are "Insecure" in CryptoKit: fine for checksums, not for security.
         switch self {
         case .sha256: return Self.hex(SHA256.hash(data: data))
+        case .sha512: return Self.hex(SHA512.hash(data: data))
         case .sha1: return Self.hex(Insecure.SHA1.hash(data: data))
         case .md5: return Self.hex(Insecure.MD5.hash(data: data))
         }

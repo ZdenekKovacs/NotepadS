@@ -97,7 +97,7 @@
       "comment" : "Edit menu item"
     },
     "Hash" : {
-      "comment" : "Text menu: submenu with SHA-256, SHA-1, MD5"
+      "comment" : "Text menu: submenu with SHA-256, SHA-512, SHA-1, MD5"
     },
     "INS" : {
       "comment" : "Status bar: insert mode, typing inserts characters"

@@ -135,7 +135,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Transformation framework (selection or document, one undo step, errors with line)
 - [x] JSON prettify/minify (token-based, order-preserving)
 - [x] Base64, URL encode/decode
-- [x] SHA-256 / SHA-1 / MD5 (replace or copy)
+- [x] SHA-256 / SHA-512 / SHA-1 / MD5 (replace or copy)
 - [x] Case conversions
 - [x] Sort, dedupe, trim trailing whitespace
 

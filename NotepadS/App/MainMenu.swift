@@ -92,7 +92,7 @@ enum MainMenu {
             if index == 1 {
                 // Hashes after the encodings.
                 menu.addItem(.separator())
-                let hashItem = NSMenuItem(title: String(localized: "Hash", comment: "Text menu: submenu with SHA-256, SHA-1, MD5"),
+                let hashItem = NSMenuItem(title: String(localized: "Hash", comment: "Text menu: submenu with SHA-256, SHA-512, SHA-1, MD5"),
                                           action: nil, keyEquivalent: "")
                 hashItem.submenu = makeHashMenu()
                 menu.addItem(hashItem)
@@ -171,7 +171,7 @@ enum MainMenu {
     }
 
     private static func makeHashMenu() -> NSMenu {
-        let menu = NSMenu(title: String(localized: "Hash", comment: "Text menu: submenu with SHA-256, SHA-1, MD5"))
+        let menu = NSMenu(title: String(localized: "Hash", comment: "Text menu: submenu with SHA-256, SHA-512, SHA-1, MD5"))
         // Titles say "of Selection" or "of Document"; EditorViewController sets them when the menu opens.
         for hash in TextHash.allCases {
             let item = NSMenuItem(title: String(localized: "Copy \(hash.name) of Document", comment: "Text › Hash menu item"),
