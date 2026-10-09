@@ -5,7 +5,7 @@ protocol StatusBarViewDelegate: AnyObject {
     func statusBar(_ statusBar: StatusBarView, reopenWith encoding: TextEncoding)
     func statusBar(_ statusBar: StatusBarView, convertTo encoding: TextEncoding)
     func statusBar(_ statusBar: StatusBarView, convertLineEndingsTo lineEnding: LineEnding)
-    func statusBar(_ statusBar: StatusBarView, didSelect language: Language)
+    func statusBar(_ statusBar: StatusBarView, didSelect language: SyntaxLanguage)
     func statusBarDidToggleWordWrap(_ statusBar: StatusBarView)
     func statusBarDidToggleOverwriteMode(_ statusBar: StatusBarView)
 }
@@ -36,6 +36,9 @@ final class StatusBarView: NSView {
     private var languageItems: [NSMenuItem] = []
     /// The letter submenus (A, B, C …) of the language menu.
     private var languageGroupItems: [NSMenuItem] = []
+    /// What `setLanguage` showed last, to show it again after the menu is rebuilt.
+    private var shownLanguage = SyntaxLanguage.plainText
+    private var isShownHighlightingOff = false
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -140,12 +143,14 @@ final class StatusBarView: NSView {
     }
 
     @objc private func languageItemChosen(_ sender: NSMenuItem) {
-        guard let language = sender.representedObject as? Language else { return }
+        guard let language = sender.representedObject as? SyntaxLanguage else { return }
         delegate?.statusBar(self, didSelect: language)
     }
 
     /// Shows the document's language; `isHighlightingOff` adds a note when the file is too large.
-    func setLanguage(_ language: Language, isHighlightingOff: Bool) {
+    func setLanguage(_ language: SyntaxLanguage, isHighlightingOff: Bool) {
+        shownLanguage = language
+        isShownHighlightingOff = isHighlightingOff
         let title = isHighlightingOff
             ? String(localized: "\(language.displayName) (highlighting off)",
                      comment: "Status bar: language name, highlighting disabled for a very large file")
@@ -156,7 +161,7 @@ final class StatusBarView: NSView {
                      comment: "Status bar tooltip")
             : String(localized: "Syntax highlighting language", comment: "Status bar tooltip")
         for item in languageItems {
-            item.state = (item.representedObject as? Language) == language ? .on : .off
+            item.state = (item.representedObject as? SyntaxLanguage) == language ? .on : .off
         }
         // A checkmark on the letter, too, so the current language is easy to find.
         for groupItem in languageGroupItems {
@@ -166,19 +171,36 @@ final class StatusBarView: NSView {
 
     // MARK: - Setup
 
-    private func buildMenus() {
+    /// Rebuilds the language menu with the user's own languages (Settings › Languages).
+    func setUserLanguages(_ userLanguages: [UserLanguage]) {
+        buildLanguageMenu(userLanguages: userLanguages)
+        setLanguage(shownLanguage, isHighlightingOff: isShownHighlightingOff)
+    }
+
+    /// Plain Text, the user's own languages, then one submenu per letter (A, B, C …), like
+    /// Notepad++'s Language menu. Each item carries its `SyntaxLanguage`.
+    private func buildLanguageMenu(userLanguages: [UserLanguage]) {
+        languageItems = []
+        languageGroupItems = []
         let languageMenu = NSMenu()
         languageMenu.autoenablesItems = false
         languageMenu.addItem(NSMenuItem())   // item 0 of a pull-down is its title, not a choice
-        // Plain Text, then one submenu per letter (A, B, C …), like Notepad++'s Language menu.
-        languageItems.append(addItem(Language.plainText.displayName, value: Language.plainText,
+        languageItems.append(addItem(SyntaxLanguage.plainText.displayName, value: SyntaxLanguage.plainText,
                                      action: #selector(languageItemChosen(_:)), to: languageMenu))
         languageMenu.addItem(.separator())
+        if !userLanguages.isEmpty {
+            languageMenu.addItem(NSMenuItem.sectionHeader(title: String(localized: "My Languages", comment: "Language menu section: user-defined languages")))
+            for language in userLanguages.sorted(by: { $0.name.localizedStandardCompare($1.name) == .orderedAscending }) {
+                languageItems.append(addItem(language.name, value: SyntaxLanguage.user(language),
+                                             action: #selector(languageItemChosen(_:)), to: languageMenu))
+            }
+            languageMenu.addItem(.separator())
+        }
         for group in Language.groupedByInitial {
             let submenu = NSMenu()
             submenu.autoenablesItems = false
             for language in group.languages {
-                languageItems.append(addItem(language.displayName, value: language,
+                languageItems.append(addItem(language.displayName, value: SyntaxLanguage.builtIn(language),
                                              action: #selector(languageItemChosen(_:)), to: submenu))
             }
             let groupItem = NSMenuItem(title: group.initial, action: nil, keyEquivalent: "")
@@ -187,6 +209,10 @@ final class StatusBarView: NSView {
             languageGroupItems.append(groupItem)
         }
         configure(languageButton, menu: languageMenu, toolTip: "")
+    }
+
+    private func buildMenus() {
+        buildLanguageMenu(userLanguages: [])
 
         let encodingMenu = NSMenu()
         encodingMenu.autoenablesItems = false

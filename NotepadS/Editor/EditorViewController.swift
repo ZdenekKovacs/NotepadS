@@ -147,6 +147,9 @@ final class EditorViewController: NSViewController {
         document.editorPositionProvider = { [weak self] in self?.currentPosition() }
         document.onRestoreEditorPosition = { [weak self] position in self?.restore(position) }
         highlighting.setLanguage(detectedLanguage())
+        statusBar.setUserLanguages(UserLanguageStore.shared.languages)
+        NotificationCenter.default.addObserver(self, selector: #selector(userLanguagesDidChange(_:)),
+                                               name: .userLanguagesDidChange, object: nil)
     }
 
     override func viewDidAppear() {
@@ -752,12 +755,13 @@ final class EditorViewController: NSViewController {
     // MARK: - Syntax highlighting
 
     /// The language from the file name, or from a `#!` line for files without a known extension.
-    private func detectedLanguage() -> Language {
+    private func detectedLanguage() -> SyntaxLanguage {
         let firstLineRange = lineIndex.contentRange(ofLine: 0)
         // Only the start of the first line matters; never copy a huge first line.
         let firstLine = document.textStorage.mutableString.substring(
             with: NSRange(location: 0, length: min(firstLineRange.length, 200)))
-        return Language.detect(fileName: document.fileURL?.lastPathComponent, firstLine: firstLine)
+        return SyntaxLanguage.detect(fileName: document.fileURL?.lastPathComponent, firstLine: firstLine,
+                                     userLanguages: UserLanguageStore.shared.languages)
     }
 
     /// Saved under a new name (e.g. an untitled document saved as "script.py"): pick the
@@ -767,6 +771,23 @@ final class EditorViewController: NSViewController {
         let language = detectedLanguage()
         guard !isLanguageChosenByUser, language != highlighting.language else { return }
         highlighting.setLanguage(language)
+    }
+
+    /// The user added, changed or removed one of their languages (Settings › Languages):
+    /// recolor with the new definition, or detect the language again.
+    @objc private func userLanguagesDidChange(_ notification: Notification) {
+        let userLanguages = UserLanguageStore.shared.languages
+        statusBar.setUserLanguages(userLanguages)
+        let language: SyntaxLanguage
+        if isLanguageChosenByUser, let updated = highlighting.language.updated(from: userLanguages) {
+            language = updated
+        } else {
+            isLanguageChosenByUser = false   // the chosen language was deleted
+            language = detectedLanguage()
+        }
+        if language != highlighting.language {
+            highlighting.setLanguage(language)
+        }
     }
 
     @objc private func visibleTextDidChange(_ notification: Notification) {
@@ -1038,7 +1059,7 @@ extension EditorViewController: StatusBarViewDelegate {
         }
     }
 
-    func statusBar(_ statusBar: StatusBarView, didSelect language: Language) {
+    func statusBar(_ statusBar: StatusBarView, didSelect language: SyntaxLanguage) {
         isLanguageChosenByUser = true
         highlighting.setLanguage(language)
     }

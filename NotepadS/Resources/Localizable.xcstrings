@@ -36,8 +36,20 @@
     "Add Cursor Below" : {
       "comment" : "Edit menu item: another caret on the line below"
     },
+    "Add a language" : {
+      "comment" : "Languages button tooltip"
+    },
+    "Add a language with +, then describe its keywords, comments and strings. Files with its extensions are colored with it, also when a built-in language uses the same extension." : {
+      "comment" : "Languages: shown when no language is selected"
+    },
     "All Files" : {
       "comment" : "Open panel filter: no filter"
+    },
+    "Block comment end" : {
+      "comment" : "Languages: field"
+    },
+    "Block comment start" : {
+      "comment" : "Languages: field"
     },
     "Cancel" : {
       "comment" : "Dialog button"
@@ -56,6 +68,12 @@
     },
     "Close All" : {
       "comment" : "File menu item: close every document, then open a new empty one"
+    },
+    "Color numbers" : {
+      "comment" : "Languages: option"
+    },
+    "Comments and Strings" : {
+      "comment" : "Languages: section"
     },
     "Convert Line Endings" : {
       "comment" : "Undo action name"
@@ -84,14 +102,26 @@
     "Cut" : {
       "comment" : "Undo action name"
     },
+    "Cyan, like variables" : {
+      "comment" : "Languages: color of a keyword group"
+    },
     "Decrease Font Size" : {
       "comment" : "View menu item"
     },
     "Delete" : {
-      "comment" : "Undo action name"
+      "comment" : "Languages: delete dialog button\nUndo action name"
     },
     "Delete Line" : {
       "comment" : "Text › Lines menu item\nUndo action name"
+    },
+    "Delete the selected language" : {
+      "comment" : "Languages button tooltip"
+    },
+    "Delete “%@”?" : {
+      "comment" : "Languages: delete dialog title"
+    },
+    "Documents in this language will be colored as their extension says again." : {
+      "comment" : "Languages: delete dialog"
     },
     "Double-click a character to insert it. Codes 128–255 are Windows-1252." : {
       "comment" : "ASCII panel hint"
@@ -99,8 +129,20 @@
     "Duplicate Line" : {
       "comment" : "Text › Lines menu item\nUndo action name"
     },
+    "Editor" : {
+      "comment" : "Settings tab"
+    },
     "Enter a line number from 1 to %lld." : {
       "comment" : "Go to Line dialog"
+    },
+    "Escape character" : {
+      "comment" : "Languages: field"
+    },
+    "Export All…" : {
+      "comment" : "Languages: export to a file"
+    },
+    "File extensions" : {
+      "comment" : "Languages: field"
     },
     "Files of other languages are shown grayed out." : {
       "comment" : "Open panel filter tooltip"
@@ -132,6 +174,9 @@
     "Go to Line…" : {
       "comment" : "Edit menu item"
     },
+    "Group %lld" : {
+      "comment" : "Languages: keyword group, followed by its color"
+    },
     "HTML Name" : {
       "comment" : "ASCII panel column, e.g. &euro;"
     },
@@ -150,11 +195,20 @@
     "Ignore case" : {
       "comment" : "Find panel option"
     },
+    "Import or export languages" : {
+      "comment" : "Languages button tooltip"
+    },
+    "Import…" : {
+      "comment" : "Languages: import from a file"
+    },
     "Increase Font Size" : {
       "comment" : "View menu item"
     },
     "Indentation" : {
       "comment" : "Settings section"
+    },
+    "Indigo, like constants" : {
+      "comment" : "Languages: color of a keyword group"
     },
     "Insert" : {
       "comment" : "ASCII panel button"
@@ -168,6 +222,12 @@
     "Keep indentation on new lines" : {
       "comment" : "Settings: auto-indent"
     },
+    "Keywords" : {
+      "comment" : "Languages: section"
+    },
+    "Languages" : {
+      "comment" : "Settings tab: user-defined languages"
+    },
     "Line %lld, column %lld: %@" : {
       "comment" : "Transformation error with its position in the document",
       "localizations" : {
@@ -178,6 +238,9 @@
           }
         }
       }
+    },
+    "Line comment" : {
+      "comment" : "Languages: field"
     },
     "Line endings" : {
       "comment" : "Status bar tooltip"
@@ -233,6 +296,15 @@
     "Move Line Up" : {
       "comment" : "Text › Lines menu item\nUndo action name"
     },
+    "My Languages" : {
+      "comment" : "Language menu section: user-defined languages"
+    },
+    "Name" : {
+      "comment" : "Languages: field"
+    },
+    "New Language" : {
+      "comment" : "Languages: name of a new language"
+    },
     "New Windows" : {
       "comment" : "Settings section"
     },
@@ -242,11 +314,17 @@
     "Not found" : {
       "comment" : "Find panel status"
     },
+    "NotepadS Languages.json" : {
+      "comment" : "Languages: suggested export file name"
+    },
     "OVR" : {
       "comment" : "Status bar: overwrite mode, typing replaces the characters after the caret"
     },
     "Or type your own extension." : {
       "comment" : "Save panel hint"
+    },
+    "Orange" : {
+      "comment" : "Languages: color of a keyword group"
     },
     "Overwrite Mode" : {
       "comment" : "Edit menu item: typing replaces the characters after the caret"
@@ -257,11 +335,17 @@
     "Paste" : {
       "comment" : "Undo action name"
     },
+    "Pink" : {
+      "comment" : "Languages: color of a keyword group"
+    },
     "Pos is the caret’s position in the document, in characters as you see them: an emoji or a CRLF line break counts as one." : {
       "comment" : "Status bar tooltip"
     },
     "Previous" : {
       "comment" : "Find panel button"
+    },
+    "Purple, like keywords" : {
+      "comment" : "Languages: color of a keyword group"
     },
     "Regular expression" : {
       "comment" : "Find panel option"
@@ -347,6 +431,9 @@
     "Split lines longer than this many characters at spaces:" : {
       "comment" : "Split Lines dialog"
     },
+    "String quotes" : {
+      "comment" : "Languages: field"
+    },
     "Syntax highlighting is off: the file is very large or has very long lines." : {
       "comment" : "Status bar tooltip"
     },
@@ -361,6 +448,9 @@
     },
     "Tab width: %lld spaces" : {
       "comment" : "Settings"
+    },
+    "Teal, like functions" : {
+      "comment" : "Languages: color of a keyword group"
     },
     "Text" : {
       "comment" : "Menu bar: text transformations"
@@ -382,6 +472,12 @@
     },
     "Unsaved changes will be discarded and the file will be read again from disk." : {
       "comment" : "Reopen-with-encoding dialog"
+    },
+    "Untitled" : {
+      "comment" : "Languages: language without a name"
+    },
+    "Upper and lower case are the same (IF = if)" : {
+      "comment" : "Languages: option"
     },
     "Value" : {
       "comment" : "ASCII panel column: decimal code"

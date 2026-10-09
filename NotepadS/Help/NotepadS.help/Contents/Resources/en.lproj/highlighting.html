@@ -15,6 +15,15 @@
 <p>NotepadS colors the text based on the file’s language. The language is detected from the file name or extension, or from a <code>#!</code> line such as <code>#!/usr/bin/env python3</code>. The status bar shows it; click it to choose another language for this window (languages are grouped by their first letter).</p>
 <p>A <code>.m</code> file is Objective-C when its first line starts with <code>#</code>, <code>//</code>, <code>/*</code> or <code>@</code>, and MATLAB otherwise. AutoLISP files (<code>.lsp</code>) use the Lisp colors; Delphi projects (<code>.dpr</code>) use Pascal.</p>
 <p>The colors follow Light and Dark mode. For very large files (over 10 MB) or files with extremely long lines, highlighting turns off to keep editing fast; the status bar then says <b>(highlighting off)</b>.</p>
+<h2>Your own languages</h2>
+<p>For a file format NotepadS doesn’t know, define a language in <b>NotepadS › Settings… › Languages</b>: click <b>+</b>, give it a name and its file extensions, and fill in what it has:</p>
+<ul>
+<li><b>Line comment</b> (such as <code>#</code> or <code>//</code>) and <b>block comment</b> start and end (such as <code>/*</code> and <code>*/</code>);</li>
+<li><b>String quotes</b> (such as <code>"</code> and <code>'</code>; a string ends at the end of its line) and the <b>escape character</b> (such as <code>\</code>);</li>
+<li>up to four <b>keyword groups</b>, each with its own color, words separated by spaces or line breaks. Words may contain symbols, such as <code>#define</code> or <code>@media</code>;</li>
+<li>whether upper and lower case are the same (<code>IF</code> = <code>if</code>), and whether numbers are colored.</li>
+</ul>
+<p>Changes show at once in open documents. Files with the language’s extensions are colored with it, also when a built-in language uses the same extension. Your languages are listed under <b>My Languages</b> in the status bar and in the Open and Save windows. <b>Export All…</b> saves them to a file, and <b>Import…</b> adds the languages from such a file, for example on another Mac. <b>Restore Defaults</b> doesn’t delete them.</p>
 <h2>Languages and file extensions</h2>
 <table>
 <tr><th>Language</th><th>Extensions</th></tr>

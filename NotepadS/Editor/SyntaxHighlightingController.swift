@@ -28,7 +28,7 @@ final class SyntaxHighlightingController {
     private let text: NSTextStorage
     private let lineIndexProvider: () -> LineIndex
 
-    private(set) var language: Language = .plainText
+    private(set) var language = SyntaxLanguage.plainText
     /// True when the file is too large or has a too-long line (shown in the status bar).
     private(set) var isTurnedOffForSize = false
     private var highlighter: Highlighter?
@@ -54,7 +54,7 @@ final class SyntaxHighlightingController {
     }
 
     /// Switches language and recolors everything.
-    func setLanguage(_ language: Language) {
+    func setLanguage(_ language: SyntaxLanguage) {
         self.language = language
         restart()
     }

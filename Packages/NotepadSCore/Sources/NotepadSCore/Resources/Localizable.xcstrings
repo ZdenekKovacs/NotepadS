@@ -16,6 +16,9 @@
     "Choose a different encoding with “Reopen with Encoding” in the status bar." : {
       "comment" : "Advice after the wrong-encoding error"
     },
+    "Choose a file that was made with Export in Settings › Languages." : {
+      "comment" : "Import languages: error suggestion"
+    },
     "Convert Leading Spaces to Tabs" : {
       "comment" : "Text › Whitespace menu item: indentation only"
     },
@@ -153,6 +156,9 @@
     },
     "The text isn’t valid Base64." : {
       "comment" : "Base64 decode error"
+    },
+    "This file doesn’t contain NotepadS languages." : {
+      "comment" : "Import languages: error"
     },
     "Title Case" : {
       "comment" : "Text menu item: capitalize words"

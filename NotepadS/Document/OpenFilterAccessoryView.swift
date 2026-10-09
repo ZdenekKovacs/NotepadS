@@ -15,8 +15,8 @@ final class OpenFilterAccessoryView: NSView, NSOpenSavePanelDelegate {
     private let pullDown = NSPopUpButton(frame: .zero, pullsDown: true)
     private let allFilesItem = NSMenuItem()
     /// nil shows all files.
-    private var language: Language? = UserDefaults.standard.string(forKey: OpenFilterAccessoryView.filterKey)
-        .flatMap(Language.init(rawValue:))
+    private var language: SyntaxLanguage? = UserDefaults.standard.string(forKey: OpenFilterAccessoryView.filterKey)
+        .flatMap { SyntaxLanguage(identifier: $0, userLanguages: UserLanguageStore.shared.languages) }
 
     /// Sets itself as the panel's accessory view and delegate. The panel keeps its accessory
     /// view (strong reference); its `delegate` is weak, so this view must be that accessory view.
@@ -71,12 +71,12 @@ final class OpenFilterAccessoryView: NSView, NSOpenSavePanelDelegate {
 
     @objc private func languageChosen(_ sender: NSMenuItem) {
         guard let rawValue = sender.representedObject as? String else { return }
-        choose(Language(rawValue: rawValue))
+        choose(SyntaxLanguage(identifier: rawValue, userLanguages: UserLanguageStore.shared.languages))
     }
 
-    private func choose(_ newLanguage: Language?) {
+    private func choose(_ newLanguage: SyntaxLanguage?) {
         language = newLanguage
-        UserDefaults.standard.set(newLanguage?.rawValue ?? "", forKey: Self.filterKey)
+        UserDefaults.standard.set(newLanguage?.identifier ?? "", forKey: Self.filterKey)
         showChoice()
         // Asks the delegate again for every visible file (documented for this purpose).
         openPanel?.validateVisibleColumns()
@@ -90,11 +90,11 @@ final class OpenFilterAccessoryView: NSView, NSOpenSavePanelDelegate {
         for item in pullDown.menu?.items ?? [] {
             if let submenu = item.submenu {
                 for languageItem in submenu.items {
-                    languageItem.state = languageItem.representedObject as? String == language?.rawValue ? .on : .off
+                    languageItem.state = languageItem.representedObject as? String == language?.identifier ? .on : .off
                 }
                 item.state = submenu.items.contains { $0.state == .on } ? .on : .off
             } else if item.representedObject is String {
-                item.state = item.representedObject as? String == language?.rawValue ? .on : .off
+                item.state = item.representedObject as? String == language?.identifier ? .on : .off
             }
         }
     }

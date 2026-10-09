@@ -61,7 +61,7 @@ final class SaveExtensionAccessoryView: NSView {
     @objc private func languageChosen(_ sender: NSMenuItem) {
         guard let savePanel,
               let rawValue = sender.representedObject as? String,
-              let language = Language(rawValue: rawValue),
+              let language = SyntaxLanguage(identifier: rawValue, userLanguages: UserLanguageStore.shared.languages),
               let newExtension = language.fileExtensions.first else { return }
         savePanel.nameFieldStringValue = Language.fileName(savePanel.nameFieldStringValue, withExtension: newExtension)
     }
