@@ -1,7 +1,7 @@
 import AppKit
 import NotepadSCore
 
-/// Colors the visible text of one editor with the document's language.
+/// Colors the visible text of an editor's panes (one, or two when split) with the document's language.
 ///
 /// Colors are **temporary attributes** of the layout manager, not attributes of the text
 /// storage: they only affect drawing, so they never mark the document as edited, never create
@@ -17,8 +17,14 @@ final class SyntaxHighlightingController {
     static let maximumTextLength = 10_000_000   // UTF-16 units, about 10 MB of mostly ASCII text
     static let maximumLineLength = 20_000
 
-    private let layoutManager: NSLayoutManager
-    private weak var textView: NSTextView?
+    /// A pane to color. Temporary attributes belong to a layout manager, so each pane (with its
+    /// own layout manager) is colored separately; the tokenizer state is shared.
+    private struct View {
+        let layoutManager: NSLayoutManager
+        weak var textView: NSTextView?
+    }
+
+    private var views: [View] = []
     private let text: NSTextStorage
     private let lineIndexProvider: () -> LineIndex
 
@@ -31,12 +37,20 @@ final class SyntaxHighlightingController {
     /// Called when `language` or `isTurnedOffForSize` changed.
     var onStateChanged: (() -> Void)?
 
-    init(layoutManager: NSLayoutManager, textView: NSTextView, text: NSTextStorage,
-         lineIndexProvider: @escaping () -> LineIndex) {
-        self.layoutManager = layoutManager
-        self.textView = textView
+    init(text: NSTextStorage, lineIndexProvider: @escaping () -> LineIndex) {
         self.text = text
         self.lineIndexProvider = lineIndexProvider
+    }
+
+    /// Starts coloring a pane.
+    func addView(layoutManager: NSLayoutManager, textView: NSTextView) {
+        views.append(View(layoutManager: layoutManager, textView: textView))
+        scheduleRecolor()
+    }
+
+    /// Stops coloring a pane (its split was closed).
+    func removeView(_ textView: NSTextView) {
+        views.removeAll { $0.textView === textView || $0.textView == nil }
     }
 
     /// Switches language and recolors everything.
@@ -107,9 +121,17 @@ final class SyntaxHighlightingController {
     }
 
     private func recolorVisibleLines() {
-        guard let highlighter, let textView, let textContainer = textView.textContainer else { return }
+        guard let highlighter else { return }
         let lineIndex = lineIndexProvider()
         guard highlighter.lineCount == lineIndex.lineCount else { return }   // an edit is still being processed
+        for view in views {
+            recolorVisibleLines(of: view, highlighter: highlighter, lineIndex: lineIndex)
+        }
+    }
+
+    private func recolorVisibleLines(of view: View, highlighter: Highlighter, lineIndex: LineIndex) {
+        guard let textView = view.textView, let textContainer = textView.textContainer else { return }
+        let layoutManager = view.layoutManager
 
         // The characters visible in the text view (the same calculation as the line-number gutter).
         var visibleRect = textView.visibleRect
@@ -132,7 +154,9 @@ final class SyntaxHighlightingController {
     }
 
     private func removeAllColors() {
-        layoutManager.removeTemporaryAttribute(.foregroundColor,
-                                               forCharacterRange: NSRange(location: 0, length: text.length))
+        for view in views {
+            view.layoutManager.removeTemporaryAttribute(.foregroundColor,
+                                                        forCharacterRange: NSRange(location: 0, length: text.length))
+        }
     }
 }

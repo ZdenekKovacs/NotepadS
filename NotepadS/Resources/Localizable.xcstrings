@@ -320,6 +320,12 @@
     "Split" : {
       "comment" : "Split Lines dialog button"
     },
+    "Split Editor Side by Side" : {
+      "comment" : "View menu item: two views of the same document"
+    },
+    "Split Editor Top and Bottom" : {
+      "comment" : "View menu item: two views of the same document"
+    },
     "Split Lines" : {
       "comment" : "Split Lines dialog title\nUndo action name"
     },

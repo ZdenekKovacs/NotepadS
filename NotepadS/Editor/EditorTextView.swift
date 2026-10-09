@@ -41,6 +41,17 @@ final class EditorTextView: NSTextView {
         fatalError("init(coder:) is not supported")
     }
 
+    // MARK: - Focus
+
+    /// Called when this view gets the keyboard focus (a split editor's pane was clicked).
+    var onBecomeFirstResponder: (() -> Void)?
+
+    override func becomeFirstResponder() -> Bool {
+        let accepted = super.becomeFirstResponder()
+        if accepted { onBecomeFirstResponder?() }
+        return accepted
+    }
+
     // MARK: - Multiple cursors: NSTextView methods that need to know about them
 
     override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool) {

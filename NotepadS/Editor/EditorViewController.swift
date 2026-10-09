@@ -4,11 +4,14 @@ import NotepadSCore
 /// The editor for one document: text view, line-number gutter, minimap and status bar.
 ///
 ///     view
-///     ├─ scrollView (NSScrollView)
-///     │   ├─ documentView: textView (EditorTextView, TextKit 1)
-///     │   └─ verticalRulerView: lineNumberView (LineNumberRulerView)
-///     ├─ minimapView (MinimapView), right of the scroll view; can be hidden
+///     ├─ splitView (NSSplitView): one pane, or two with View › Split Editor
+///     │   └─ pane.scrollView (NSScrollView), see EditorPane
+///     │       ├─ documentView: pane.textView (EditorTextView, TextKit 1)
+///     │       └─ verticalRulerView: pane.lineNumberView (LineNumberRulerView)
+///     ├─ minimapView (MinimapView), right of the panes, follows the first pane; can be hidden
 ///     └─ statusBar (StatusBarView)
+///
+/// Menu commands and the status bar work on the *active* pane, the one last clicked into.
 ///
 /// Text flow: the document owns the NSTextStorage. Every change to it (typing, undo, paste,
 /// revert) posts `didProcessEditingNotification`; we update `lineIndex` incrementally there.
@@ -16,11 +19,17 @@ final class EditorViewController: NSViewController {
 
     let document: TextDocument
 
-    private let layoutManager: InvisiblesLayoutManager
-    private let textView: EditorTextView
-    private let scrollView = NSScrollView()
+    /// The first (or only) pane; the minimap follows it.
+    private let primaryPane: EditorPane
+    /// The second pane while the editor is split.
+    private var secondaryPane: EditorPane?
+    /// The pane with the keyboard focus. Menu commands and the status bar use it.
+    private var activePane: EditorPane
+    private var panes: [EditorPane] { [primaryPane] + (secondaryPane.map { [$0] } ?? []) }
+    /// The active pane's text view: every command acts on what the user is looking at.
+    private var textView: EditorTextView { activePane.textView }
+    private let splitView = NSSplitView()
     private let statusBar = StatusBarView(frame: .zero)
-    private var lineNumberView: LineNumberRulerView!
     private var minimapView: MinimapView!
     /// The minimap's width: `MinimapView.width` when shown, 0 when hidden.
     private var minimapWidthConstraint: NSLayoutConstraint!
@@ -55,22 +64,8 @@ final class EditorViewController: NSViewController {
 
     init(document: TextDocument) {
         self.document = document
-
-        // Build the TextKit 1 stack explicitly: storage → layout manager → container → view.
-        // Because the container belongs to an NSLayoutManager, the text view is TextKit 1 from
-        // the start, and using `layoutManager` later can never trigger a TextKit 2 fallback.
-        let layoutManager = InvisiblesLayoutManager()
-        // Lay out only what is visible (plus a margin). This is what keeps multi-MB files fast.
-        layoutManager.allowsNonContiguousLayout = true
-        layoutManager.showsInvisibles = EditorDefaults.showsInvisibles
-        document.textStorage.addLayoutManager(layoutManager)
-
-        let textContainer = NSTextContainer(size: NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
-        textContainer.widthTracksTextView = true   // word wrap at the view width
-        layoutManager.addTextContainer(textContainer)
-
-        self.layoutManager = layoutManager
-        self.textView = EditorTextView(frame: .zero, textContainer: textContainer)
+        primaryPane = EditorPane(textStorage: document.textStorage, showsInvisibles: EditorDefaults.showsInvisibles)
+        activePane = primaryPane
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -85,53 +80,32 @@ final class EditorViewController: NSViewController {
         let size = NSSize(width: 900, height: 650)
         let root = NSView(frame: NSRect(origin: .zero, size: size))
 
-        // Apple's recipe for a text view in a scroll view: give both a real initial size, let
-        // the text view grow vertically and track the visible width through autoresizing.
-        scrollView.frame = NSRect(x: 0, y: StatusBarView.height,
-                                  width: size.width, height: size.height - StatusBarView.height)
-        scrollView.borderType = .noBorder
-        scrollView.hasVerticalScroller = true
-        scrollView.hasHorizontalScroller = false
-        scrollView.drawsBackground = false
+        primaryPane.installViews(size: NSSize(width: size.width, height: size.height - StatusBarView.height),
+                                 wrapsLines: wrapsLines) { [unowned self] in self.lineIndex }
+        highlighting = SyntaxHighlightingController(text: document.textStorage) { [unowned self] in self.lineIndex }
+        // Side by side, with a thin divider; each pane takes half when split.
+        splitView.isVertical = true
+        splitView.dividerStyle = .thin
+        splitView.addArrangedSubview(primaryPane.scrollView)
 
-        textView.frame = NSRect(origin: .zero, size: scrollView.contentSize)
-        textView.minSize = NSSize(width: 0, height: scrollView.contentSize.height)
-        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-        textView.isVerticallyResizable = true
-        textView.isHorizontallyResizable = false
-        textView.autoresizingMask = [.width]
-        scrollView.documentView = textView
-        applyWordWrap()
-
-        // The gutter must be created after the text view is inside the scroll view.
-        lineNumberView = LineNumberRulerView(textView: textView) { [unowned self] in self.lineIndex }
-        highlighting = SyntaxHighlightingController(layoutManager: layoutManager, textView: textView,
-                                                    text: document.textStorage) { [unowned self] in self.lineIndex }
-        scrollView.verticalRulerView = lineNumberView
-        scrollView.hasVerticalRuler = true
-        scrollView.rulersVisible = true
-
-        minimapView = MinimapView(text: document.textStorage, scrollView: scrollView,
+        minimapView = MinimapView(text: document.textStorage, scrollView: primaryPane.scrollView,
                                   lineIndexProvider: { [unowned self] in self.lineIndex },
-                                  visibleCharactersProvider: { [unowned self] in self.visibleCharacterRange() },
+                                  visibleCharactersProvider: { [unowned self] in self.primaryPane.visibleCharacterRange() },
                                   tokensProvider: { [unowned self] lines in self.highlighting.tokens(forLines: lines) })
         minimapWidthConstraint = minimapView.widthAnchor.constraint(equalToConstant: 0)
         applyMinimapVisibility(EditorDefaults.showsMinimap)
 
-        // Delegates last: their callbacks use the gutter and the status bar.
-        textView.delegate = self
-        textView.multiCursorDelegate = self
         statusBar.delegate = self
 
-        for subview in [scrollView, minimapView, statusBar] as [NSView] {
+        for subview in [splitView, minimapView, statusBar] as [NSView] {
             subview.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(subview)
         }
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: root.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: root.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: minimapView.leadingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: statusBar.topAnchor),
+            splitView.topAnchor.constraint(equalTo: root.topAnchor),
+            splitView.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+            splitView.trailingAnchor.constraint(equalTo: minimapView.leadingAnchor),
+            splitView.bottomAnchor.constraint(equalTo: statusBar.topAnchor),
             minimapView.topAnchor.constraint(equalTo: root.topAnchor),
             minimapView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
             minimapView.bottomAnchor.constraint(equalTo: statusBar.topAnchor),
@@ -154,13 +128,7 @@ final class EditorViewController: NSViewController {
                                                name: NSTextStorage.didProcessEditingNotification,
                                                object: document.textStorage)
 
-        // Recolor when other text becomes visible: scrolling moves the clip view's bounds,
-        // resizing or re-wrapping changes the text view's frame. (The gutter already asked both
-        // views to post these notifications.)
-        NotificationCenter.default.addObserver(self, selector: #selector(visibleTextDidChange(_:)),
-                                               name: NSView.boundsDidChangeNotification, object: scrollView.contentView)
-        NotificationCenter.default.addObserver(self, selector: #selector(visibleTextDidChange(_:)),
-                                               name: NSView.frameDidChangeNotification, object: textView)
+        connect(primaryPane)
 
         // The Settings window writes to UserDefaults; follow font and tab-width changes live.
         NotificationCenter.default.addObserver(self, selector: #selector(userDefaultsDidChange(_:)),
@@ -168,7 +136,7 @@ final class EditorViewController: NSViewController {
 
         lineIndex.rebuild(from: document.textStorage.mutableString)
         applyFont()
-        lineNumberView.lineCountDidChange(lineIndex.lineCount)
+        primaryPane.lineNumberView.lineCountDidChange(lineIndex.lineCount)
         statusBar.setWrapsLines(wrapsLines)
         updateCharacterCount()
         documentSettingsDidChange()
@@ -223,43 +191,99 @@ final class EditorViewController: NSViewController {
         }
     }
 
-    /// Scrolls so that the line containing `character` is at the top of the visible area.
-    ///
-    /// With non-contiguous layout (on for speed), the layout manager only estimates the height of
-    /// text it hasn't laid out yet. Scrolling to a line's position can therefore land a few lines
-    /// off, because laying out the newly visible text corrects the estimates. Each round below
-    /// measures where the line really is now and scrolls again; it settles after a round or two.
     private func scrollToTop(character: Int) {
-        let clipView = scrollView.contentView
-        let glyph = layoutManager.glyphIndexForCharacter(at: character)
-        for _ in 0..<4 {
-            layoutManager.ensureLayout(forGlyphRange: NSRange(location: glyph, length: 1))
-            let lineFragment = layoutManager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
-            // Line fragments are in text-container coordinates, offset by `textContainerOrigin`.
-            // Scroll the clip view directly, keeping its x origin: it extends under the gutter
-            // (its bounds start at a negative x), which `NSView.scroll(_:)` doesn't account for.
-            let target = NSPoint(x: clipView.bounds.origin.x, y: lineFragment.minY + textView.textContainerOrigin.y)
-            clipView.scroll(to: clipView.constrainBoundsRect(NSRect(origin: target, size: clipView.bounds.size)).origin)
-            scrollView.reflectScrolledClipView(clipView)
-            if visibleCharacterRange().location >= lineFragmentStart(ofGlyph: glyph) { break }
+        activePane.scrollToTop(character: character)
+    }
+
+    private func visibleCharacterRange() -> NSRange {
+        activePane.visibleCharacterRange()
+    }
+
+    // MARK: - Panes and Split Editor (View menu)
+
+    /// Hooks a pane up to this controller: gatekeeper, cursors, focus, coloring, scroll updates.
+    private func connect(_ pane: EditorPane) {
+        pane.textView.delegate = self
+        pane.textView.multiCursorDelegate = self
+        pane.textView.onBecomeFirstResponder = { [weak self, weak pane] in
+            guard let self, let pane, self.activePane !== pane else { return }
+            self.activePane = pane
+            self.updateCharacterCount()   // "Pos" and Ln/Col of the newly focused pane
+        }
+        highlighting.addView(layoutManager: pane.layoutManager, textView: pane.textView)
+        // Recolor when other text becomes visible: scrolling moves the clip view's bounds,
+        // resizing or re-wrapping changes the text view's frame. (The gutter already asked both
+        // views to post these notifications.)
+        NotificationCenter.default.addObserver(self, selector: #selector(visibleTextDidChange(_:)),
+                                               name: NSView.boundsDidChangeNotification, object: pane.scrollView.contentView)
+        NotificationCenter.default.addObserver(self, selector: #selector(visibleTextDidChange(_:)),
+                                               name: NSView.frameDidChangeNotification, object: pane.textView)
+    }
+
+    /// View › Split Editor Side by Side (⌃⌘E). Chosen again, it closes the split.
+    @objc func splitEditorSideBySide(_ sender: Any?) {
+        toggleSplit(sideBySide: true)
+    }
+
+    /// View › Split Editor Top and Bottom (⇧⌃⌘E). Chosen again, it closes the split.
+    @objc func splitEditorTopAndBottom(_ sender: Any?) {
+        toggleSplit(sideBySide: false)
+    }
+
+    private func toggleSplit(sideBySide: Bool) {
+        if secondaryPane != nil, splitView.isVertical == sideBySide {
+            closeSplit()
+            return
+        }
+        // NSSplitView calls side by side "vertical": the divider is a vertical line.
+        splitView.isVertical = sideBySide
+        if secondaryPane == nil {
+            openSplit()
+        }
+        // Half each. The split view has to lay out the new arrangement first.
+        splitView.layoutSubtreeIfNeeded()
+        let length = sideBySide ? splitView.bounds.width : splitView.bounds.height
+        splitView.setPosition(((length - splitView.dividerThickness) / 2).rounded(), ofDividerAt: 0)
+    }
+
+    /// Adds a second pane on the same text, showing the same place as the active one.
+    private func openSplit() {
+        let selection = textView.selectedRange()
+        let firstVisible = activePane.visibleCharacterRange().location
+        let pane = EditorPane(textStorage: document.textStorage,
+                              showsInvisibles: primaryPane.layoutManager.showsInvisibles)
+        pane.installViews(size: primaryPane.scrollView.frame.size, wrapsLines: wrapsLines) { [unowned self] in self.lineIndex }
+        secondaryPane = pane
+        splitView.addArrangedSubview(pane.scrollView)
+        connect(pane)
+        applyFont()   // font, tab stops and typing attributes of the new text view
+        documentSettingsDidChange()   // line-break style for Enter
+        pane.textView.isOverwriteMode = isOverwriteMode
+        pane.lineNumberView.lineCountDidChange(lineIndex.lineCount)
+
+        view.window?.makeFirstResponder(pane.textView)   // the new pane gets the focus, as in VS Code
+        pane.textView.setSelectedRange(selection)
+        DispatchQueue.main.async {   // after the split view has given the pane its size
+            if firstVisible < self.document.textStorage.length {
+                pane.scrollToTop(character: firstVisible)
+            }
         }
     }
 
-    /// The first character of the line fragment containing `glyph`.
-    private func lineFragmentStart(ofGlyph glyph: Int) -> Int {
-        var fragmentGlyphs = NSRange()
-        layoutManager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: &fragmentGlyphs)
-        return layoutManager.characterIndexForGlyph(at: fragmentGlyphs.location)
-    }
-
-    /// The characters currently visible in the text view.
-    private func visibleCharacterRange() -> NSRange {
-        guard let textContainer = textView.textContainer else { return NSRange(location: 0, length: 0) }
-        var visibleRect = textView.visibleRect
-        visibleRect.origin.x -= textView.textContainerOrigin.x
-        visibleRect.origin.y -= textView.textContainerOrigin.y
-        let glyphRange = layoutManager.glyphRange(forBoundingRect: visibleRect, in: textContainer)
-        return layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
+    private func closeSplit() {
+        guard let pane = secondaryPane else { return }
+        secondaryPane = nil
+        if activePane === pane {
+            activePane = primaryPane
+        }
+        highlighting.removeView(pane.textView)
+        NotificationCenter.default.removeObserver(self, name: nil, object: pane.scrollView.contentView)
+        NotificationCenter.default.removeObserver(self, name: nil, object: pane.textView)
+        pane.textView.delegate = nil
+        pane.scrollView.removeFromSuperview()   // also removes it from the split view's arranged subviews
+        pane.detach(from: document.textStorage)
+        view.window?.makeFirstResponder(primaryPane.textView)
+        updateCharacterCount()
     }
 
     // MARK: - Word wrap (View menu)
@@ -271,30 +295,10 @@ final class EditorViewController: NSViewController {
         statusBar.setWrapsLines(wrapsLines)
     }
 
-    /// Wrap on: the text container is as wide as the text view, which follows the visible width.
-    /// Wrap off: the container is practically infinitely wide, so lines never break, and the text
-    /// view grows sideways with the longest line; the horizontal scroller appears.
-    /// (Apple's "Text System User Interface Layer" guide describes both setups.)
     private func applyWordWrap() {
-        guard let textContainer = textView.textContainer else { return }
-        // FLT_MAX, not CGFloat.greatestFiniteMagnitude: TextKit 1 computes with Float precision
-        // in places and misbehaves with larger widths.
-        let unlimited = CGFloat(Float.greatestFiniteMagnitude)
-        scrollView.hasHorizontalScroller = !wrapsLines
-        textView.isHorizontallyResizable = !wrapsLines
-        textContainer.widthTracksTextView = wrapsLines
-        if wrapsLines {
-            // The visible width, without the part of the clip view under the line-number gutter.
-            let clipView = scrollView.contentView
-            let visibleWidth = clipView.frame.width - clipView.contentInsets.left - clipView.contentInsets.right
-            textView.setFrameSize(NSSize(width: visibleWidth, height: textView.frame.height))
-            textContainer.containerSize = NSSize(width: textView.frame.width, height: unlimited)
-        } else {
-            textContainer.containerSize = NSSize(width: unlimited, height: unlimited)
+        for pane in panes {
+            pane.applyWordWrap(wrapsLines)
         }
-        // Let the text view take its new size from the laid-out text right away.
-        textView.sizeToFit()
-        lineNumberView?.needsDisplay = true
     }
 
     // MARK: - Minimap (View menu)
@@ -622,8 +626,11 @@ final class EditorViewController: NSViewController {
     // MARK: - Invisible characters (View menu)
 
     @objc func toggleInvisibles(_ sender: Any?) {
-        layoutManager.showsInvisibles.toggle()
-        EditorDefaults.showsInvisibles = layoutManager.showsInvisibles   // new windows start the same
+        let showsInvisibles = !primaryPane.layoutManager.showsInvisibles
+        for pane in panes {
+            pane.layoutManager.showsInvisibles = showsInvisibles
+        }
+        EditorDefaults.showsInvisibles = showsInvisibles   // new windows start the same
     }
 
     // MARK: - Settings
@@ -677,16 +684,18 @@ final class EditorViewController: NSViewController {
             .foregroundColor: NSColor.textColor,   // dynamic color: follows Light/Dark mode
             .paragraphStyle: paragraphStyle,
         ]
-        textView.font = font
-        textView.defaultParagraphStyle = paragraphStyle
-        textView.typingAttributes = attributes
+        for pane in panes {
+            pane.textView.font = font
+            pane.textView.defaultParagraphStyle = paragraphStyle
+            pane.textView.typingAttributes = attributes
+            pane.lineNumberView.textFontDidChange(font)
+        }
 
         let storage = document.textStorage
         storage.beginEditing()
         storage.setAttributes(attributes, range: NSRange(location: 0, length: storage.length))
         storage.endEditing()
 
-        lineNumberView.textFontDidChange(font)
         minimapView.needsDisplay = true   // the tab width may have changed
     }
 
@@ -704,7 +713,9 @@ final class EditorViewController: NSViewController {
                                                        changeInLength: storage.changeInLength,
                                                        in: storage.mutableString)
         highlighting.textDidChange(change)
-        lineNumberView.needsDisplay = true
+        for pane in panes {
+            pane.lineNumberView.needsDisplay = true
+        }
         minimapView.textDidChange(change)
         updateCharacterCount()
 
@@ -713,7 +724,9 @@ final class EditorViewController: NSViewController {
             // is still processing this edit; do it right after.
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
-                self.lineNumberView.lineCountDidChange(self.lineIndex.lineCount)
+                for pane in self.panes {
+                    pane.lineNumberView.lineCountDidChange(self.lineIndex.lineCount)
+                }
             }
         }
     }
@@ -723,7 +736,9 @@ final class EditorViewController: NSViewController {
         applyFont()   // text read from disk has no attributes yet
         let caret = min(textView.selectedRange().location, document.textStorage.length)
         textView.setSelectedRange(NSRange(location: caret, length: 0))
-        lineNumberView.needsDisplay = true
+        for pane in panes {
+            pane.lineNumberView.needsDisplay = true
+        }
         minimapView.needsDisplay = true
         updateCharacterCount()
         documentSettingsDidChange()   // reading the file may have changed the line-break style
@@ -767,7 +782,9 @@ final class EditorViewController: NSViewController {
 
     /// The document's encoding or line-break style changed.
     private func documentSettingsDidChange() {
-        textView.lineBreakToInsert = document.lineEnding
+        for pane in panes {
+            pane.textView.lineBreakToInsert = document.lineEnding
+        }
         updateStatusBar()
     }
 
@@ -776,7 +793,9 @@ final class EditorViewController: NSViewController {
     /// Switches between insert (INS) and overwrite (OVR) mode for this window.
     @objc func toggleOverwriteMode(_ sender: Any?) {
         isOverwriteMode.toggle()
-        textView.isOverwriteMode = isOverwriteMode
+        for pane in panes {
+            pane.textView.isOverwriteMode = isOverwriteMode
+        }
         statusBar.setOverwriteMode(isOverwriteMode)
     }
 
@@ -955,7 +974,8 @@ extension EditorViewController: NSTextViewDelegate {
         caretPositionCounter.recount()
         updateStatusBar()
         document.invalidateRestorableState()   // AppKit saves the new caret position soon
-        lineNumberView.needsDisplay = true   // the highlighted current-line number may change
+        // The highlighted current-line number of that pane may change.
+        (notification.object as? NSTextView)?.enclosingScrollView?.verticalRulerView?.needsDisplay = true
     }
 
     func textDidChange(_ notification: Notification) {
@@ -1054,9 +1074,13 @@ extension EditorViewController: NSMenuItemValidation {
         if menuItem.action == #selector(toggleWordWrap(_:)) {
             menuItem.state = wrapsLines ? .on : .off
         } else if menuItem.action == #selector(toggleInvisibles(_:)) {
-            menuItem.state = layoutManager.showsInvisibles ? .on : .off
+            menuItem.state = primaryPane.layoutManager.showsInvisibles ? .on : .off
         } else if menuItem.action == #selector(toggleMinimap(_:)) {
             menuItem.state = minimapView.isHidden ? .off : .on
+        } else if menuItem.action == #selector(splitEditorSideBySide(_:)) {
+            menuItem.state = secondaryPane != nil && splitView.isVertical ? .on : .off
+        } else if menuItem.action == #selector(splitEditorTopAndBottom(_:)) {
+            menuItem.state = secondaryPane != nil && !splitView.isVertical ? .on : .off
         } else if menuItem.action == #selector(toggleOverwriteMode(_:)) {
             menuItem.state = isOverwriteMode ? .on : .off
         } else if menuItem.action == #selector(copyHash(_:)), let hash = hash(for: menuItem) {

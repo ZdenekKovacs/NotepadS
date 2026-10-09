@@ -42,9 +42,10 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
   (Xcode template) and is adjusted in `App/MainMenu.swift`.
 - **`TextDocument`** (NSDocument) owns the `NSTextStorage`, `encoding` and `lineEnding`
   (the style for newly inserted line breaks). Autosave in place is on.
-- **`EditorViewController`** builds the TextKit 1 stack (storage → `NSLayoutManager` → `NSTextContainer`
-  → `EditorTextView`), the gutter (`LineNumberRulerView`) and `StatusBarView`, keeps `LineIndex` current,
-  and is the **edit gatekeeper** (line-break style of inserted text, encodability dialog).
+- **`EditorViewController`** owns one or two `EditorPane`s (each: TextKit 1 stack storage → `NSLayoutManager`
+  → `NSTextContainer` → `EditorTextView`, scroll view, gutter `LineNumberRulerView`) and `StatusBarView`, keeps
+  `LineIndex` current, and is the **edit gatekeeper** (line-break style of inserted text, encodability dialog).
+  Commands use the active (focused) pane's text view.
 - **`NotepadSCore`** (local Swift package): encodings, detection, line endings, `LineIndex`;
   later grammars, highlighter, text transformations. Foundation only, fully unit-tested, reusable on iOS.
 
@@ -158,6 +159,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Multiple cursors (⌃⌥↑/↓, Option-drag column selection)
 - [x] Open panel: language filter
 - [x] File › Close All (+ new empty document), ASCII Character Panel
+- [x] Split editor (two panes on one document)
 
 ### Later
 - [ ] iOS app on `NotepadSCore`

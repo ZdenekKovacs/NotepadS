@@ -233,6 +233,13 @@ enum MainMenu {
             withModifiers([.control, .command], NSMenuItem(title: String(localized: "Show Minimap", comment: "View menu item: miniature of the document beside the text"),
                                                            action: #selector(EditorViewController.toggleMinimap(_:)),
                                                            keyEquivalent: "m")),
+            // ⌃⌘E: letters work on every keyboard layout (on a Czech one, the backslash needs ⌥).
+            withModifiers([.control, .command], NSMenuItem(title: String(localized: "Split Editor Side by Side", comment: "View menu item: two views of the same document"),
+                                                           action: #selector(EditorViewController.splitEditorSideBySide(_:)),
+                                                           keyEquivalent: "e")),
+            withModifiers([.shift, .control, .command], NSMenuItem(title: String(localized: "Split Editor Top and Bottom", comment: "View menu item: two views of the same document"),
+                                                                   action: #selector(EditorViewController.splitEditorTopAndBottom(_:)),
+                                                                   keyEquivalent: "E")),
             NSMenuItem.separator(),
         ]
         for (index, item) in items.enumerated() {
