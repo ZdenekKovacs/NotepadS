@@ -7,6 +7,9 @@ import AppKit
 final class DocumentWindowController: NSWindowController {
 
     private static let defaultContentSize = NSSize(width: 900, height: 650)
+    /// The name under which the frame of the last document window the user moved, resized or
+    /// closed is kept in UserDefaults (by `NSWindow.saveFrame(usingName:)`).
+    private static let frameAutosaveName = "NotepadSDocumentWindow"
 
     init(document: TextDocument) {
         let window = DocumentWindow(
@@ -29,8 +32,23 @@ final class DocumentWindowController: NSWindowController {
         window.contentViewController = EditorViewController(document: document)
         // Setting contentViewController resizes the window to the view; restore our default.
         window.setContentSize(Self.defaultContentSize)
-        window.center()
+        // A new window opens where the user last put a document window (e.g. snapped to the left
+        // half of the screen), also after Close All; the first time ever, centered.
+        if !window.setFrameUsingName(Self.frameAutosaveName) {
+            window.center()
+        }
         shouldCascadeWindows = true
+        // Remember the frame whenever this window moves, resizes or closes. Not with
+        // `setFrameAutosaveName`: only one open window can own a name, so after closing that
+        // window (or tab) the others wouldn't be remembered any more.
+        for name in [NSWindow.didMoveNotification, NSWindow.didResizeNotification, NSWindow.willCloseNotification] {
+            NotificationCenter.default.addObserver(self, selector: #selector(rememberFrame(_:)), name: name, object: window)
+        }
+    }
+
+    @objc private func rememberFrame(_ notification: Notification) {
+        guard let window, !window.styleMask.contains(.fullScreen) else { return }   // a full-screen frame isn't a place
+        window.saveFrame(usingName: Self.frameAutosaveName)
     }
 
     @available(*, unavailable)
