@@ -11,6 +11,8 @@ struct SettingsView: View {
     @AppStorage(EditorDefaults.Key.autoIndents) private var autoIndents = true
     @AppStorage(EditorDefaults.Key.wrapsLines) private var wrapsLines = true
 
+    @State private var isConfirmingRestore = false
+
     /// Installed fixed-width fonts (PostScript name and display name), read once.
     private let monospacedFonts: [(name: String, displayName: String)] = SettingsView.loadMonospacedFonts()
 
@@ -38,6 +40,24 @@ struct SettingsView: View {
             Section(String(localized: "New Windows", comment: "Settings section")) {
                 Toggle(String(localized: "Wrap lines", comment: "Settings: word wrap default"), isOn: $wrapsLines)
             }
+            Section {
+                HStack {
+                    Spacer()
+                    Button(String(localized: "Restore Defaults…", comment: "Settings button")) {
+                        isConfirmingRestore = true
+                    }
+                }
+            }
+        }
+        .alert(String(localized: "Restore all settings to their defaults?", comment: "Restore Defaults dialog title"),
+               isPresented: $isConfirmingRestore) {
+            Button(String(localized: "Restore Defaults", comment: "Restore Defaults dialog button"), role: .destructive) {
+                EditorDefaults.restoreAll()
+            }
+            Button(String(localized: "Cancel", comment: "Dialog button"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "Font, indentation, wrapping, the minimap, invisible characters, the tab bar, panel options and window positions go back to how they were when NotepadS was new. Your documents and your own languages stay.",
+                        comment: "Restore Defaults dialog"))
         }
         .formStyle(.grouped)
         .frame(width: 440)

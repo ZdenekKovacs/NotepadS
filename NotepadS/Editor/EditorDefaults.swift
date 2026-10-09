@@ -78,4 +78,16 @@ enum EditorDefaults {
         get { defaults.object(forKey: Key.showsMinimap) as? Bool ?? true }
         set { defaults.set(newValue, forKey: Key.showsMinimap) }
     }
+
+    /// Settings › Restore Defaults: forgets every setting and everything the app remembered
+    /// (font, tab width, toggles, the Open panel filter, the Find panel options, window and
+    /// panel positions). Open documents and user-defined languages are not settings and stay;
+    /// open windows keep their current wrap, minimap and invisibles until closed, while the
+    /// font changes at once (editors follow UserDefaults).
+    static func restoreAll() {
+        // All of the app's settings live in its own defaults domain (inside the sandbox container).
+        guard let domain = Bundle.main.bundleIdentifier else { return }
+        defaults.removePersistentDomain(forName: domain)
+        AppDelegate.setFixedDefaults()
+    }
 }

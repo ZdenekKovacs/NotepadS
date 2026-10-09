@@ -120,6 +120,9 @@
     "Font" : {
       "comment" : "Settings section\nSettings: font picker"
     },
+    "Font, indentation, wrapping, the minimap, invisible characters, the tab bar, panel options and window positions go back to how they were when NotepadS was new. Your documents and your own languages stay." : {
+      "comment" : "Restore Defaults dialog"
+    },
     "Go" : {
       "comment" : "Go to Line dialog button"
     },
@@ -295,6 +298,15 @@
     },
     "Replacement ($1 = group, \\n = line break)" : {
       "comment" : "Find panel placeholder"
+    },
+    "Restore Defaults" : {
+      "comment" : "Restore Defaults dialog button"
+    },
+    "Restore Defaults…" : {
+      "comment" : "Settings button"
+    },
+    "Restore all settings to their defaults?" : {
+      "comment" : "Restore Defaults dialog title"
     },
     "Set Extension" : {
       "comment" : "Save panel: pull-down title; lists languages with syntax highlighting"
