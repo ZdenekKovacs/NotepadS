@@ -7,6 +7,8 @@ import NotepadSCore
 /// - Line starts come from `LineIndex`, so drawing never scans the text.
 /// - Positions come from the layout manager, so a wrapped line gets one number.
 /// - The current line's number is drawn in the primary label color.
+/// - A triangle at the right marks a block that can fold (▼) or is folded (▶); click it to
+///   toggle. Lines inside a folded block get no number.
 final class LineNumberRulerView: NSRulerView {
 
     private weak var textView: NSTextView?
@@ -15,6 +17,11 @@ final class LineNumberRulerView: NSRulerView {
     private var lineCount = 1
     private var digitCount = 0
     private let horizontalPadding: CGFloat = 8
+    /// The column at the right edge with the fold triangles.
+    private let foldMarkerWidth: CGFloat = 12
+
+    /// The pane's folds, for the triangles and for hiding numbers of folded lines.
+    weak var folding: FoldingController?
 
     /// - Parameters:
     ///   - textView: must already be the scroll view's document view.
@@ -76,7 +83,7 @@ final class LineNumberRulerView: NSRulerView {
         guard digits != digitCount else { return }
         digitCount = digits
         let digitWidth = ("8" as NSString).size(withAttributes: [.font: numberFont]).width
-        ruleThickness = ceil(CGFloat(digits) * digitWidth + 2 * horizontalPadding)
+        ruleThickness = ceil(CGFloat(digits) * digitWidth + 2 * horizontalPadding + foldMarkerWidth)
         scrollView?.tile()   // re-layout the scroll view for the new gutter width
     }
 
@@ -114,6 +121,11 @@ final class LineNumberRulerView: NSRulerView {
         while line < lineIndex.lineCount {
             let start = lineIndex.lineStart(of: line)
             if start > NSMaxRange(visibleCharacters) { break }
+            // A line inside a folded block isn't shown; its number would land on the fold's line.
+            if let folding, folding.isLineHidden(startingAt: start) {
+                line += 1
+                continue
+            }
 
             let lineFragment: NSRect
             if start < textLength {
@@ -125,6 +137,9 @@ final class LineNumberRulerView: NSRulerView {
             }
             if !lineFragment.isEmpty {
                 drawNumber(line + 1, lineFragment: lineFragment, in: textView, isCurrentLine: line == caretLine)
+                if let folding, let region = folding.regionsByStartLine[line] {
+                    drawFoldMarker(isFolded: folding.isFolded(region), lineFragment: lineFragment, in: textView)
+                }
             }
             line += 1
         }
@@ -140,8 +155,44 @@ final class LineNumberRulerView: NSRulerView {
         let label = String(number) as NSString
         let size = label.size(withAttributes: attributes)
         // Right-aligned, vertically centred on the line's first fragment.
-        let point = NSPoint(x: bounds.width - horizontalPadding - size.width,
+        let point = NSPoint(x: bounds.width - foldMarkerWidth - horizontalPadding / 2 - size.width,
                             y: top + (lineFragment.height - size.height) / 2)
         label.draw(at: point, withAttributes: attributes)
+    }
+
+    /// ▼ for a block that can fold, ▶ for a folded one, centered in the marker column.
+    private func drawFoldMarker(isFolded: Bool, lineFragment: NSRect, in textView: NSTextView) {
+        let top = convert(NSPoint(x: 0, y: lineFragment.minY + textView.textContainerOrigin.y), from: textView).y
+        let size: CGFloat = 7
+        let center = NSPoint(x: bounds.width - foldMarkerWidth / 2 - 1, y: top + min(lineFragment.height, 20) / 2)
+        let triangle = NSBezierPath()
+        if isFolded {   // pointing right; the view is flipped, y grows downwards
+            triangle.move(to: NSPoint(x: center.x - size / 3, y: center.y - size / 2))
+            triangle.line(to: NSPoint(x: center.x + size / 2, y: center.y))
+            triangle.line(to: NSPoint(x: center.x - size / 3, y: center.y + size / 2))
+        } else {        // pointing down
+            triangle.move(to: NSPoint(x: center.x - size / 2, y: center.y - size / 3))
+            triangle.line(to: NSPoint(x: center.x + size / 2, y: center.y - size / 3))
+            triangle.line(to: NSPoint(x: center.x, y: center.y + size / 2))
+        }
+        triangle.close()
+        (isFolded ? NSColor.secondaryLabelColor : NSColor.tertiaryLabelColor).setFill()
+        triangle.fill()
+    }
+
+    // MARK: - Clicking a fold triangle
+
+    override func mouseDown(with event: NSEvent) {
+        guard let textView, let folding, let layoutManager = textView.layoutManager,
+              let textContainer = textView.textContainer, let storage = textView.textStorage else { return }
+        // The line under the click: find the glyph at that height in the text view.
+        let pointInTextView = textView.convert(event.locationInWindow, from: nil)
+        let pointInContainer = NSPoint(x: 0, y: pointInTextView.y - textView.textContainerOrigin.y)
+        let glyph = layoutManager.glyphIndex(for: pointInContainer, in: textContainer)
+        let character = min(layoutManager.characterIndexForGlyph(at: glyph), storage.length)
+        let line = lineIndexProvider().line(containing: character)
+        if folding.toggle(line: line) {
+            needsDisplay = true
+        }
     }
 }

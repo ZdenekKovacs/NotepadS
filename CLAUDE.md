@@ -163,6 +163,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Settings › Restore Defaults; user-defined languages (Settings › Languages)
 - [x] Function list (View › Show Function List, ⌃⌘L)
 - [x] Find in Files (⇧⌘F)
+- [x] Code folding (gutter triangles, ⌥⌘← / ⌥⌘→)
 
 ### Later
 - [ ] iOS app on `NotepadSCore`

@@ -40,6 +40,12 @@ final class EditorViewController: NSViewController {
     /// Increases with every function-list search started; an older result is thrown away.
     private var functionListGeneration = 0
     private var functionListUpdate: DispatchWorkItem?
+    /// The foldable blocks of the text, shared by both panes; computed in the background.
+    private var foldRegions: [FoldRegion] = []
+    /// True after an edit until `foldRegions` is computed again.
+    private var areFoldRegionsOutdated = true
+    private var foldingGeneration = 0
+    private var foldingUpdate: DispatchWorkItem?
     private var highlighting: SyntaxHighlightingController!
     /// True once the user picked a language in the status bar; it then sticks for this window.
     private var isLanguageChosenByUser = false
@@ -157,6 +163,7 @@ final class EditorViewController: NSViewController {
             self?.updateLanguageInStatusBar()
             self?.minimapView.syntaxDidChange()   // another language, or highlighting turned off
             self?.scheduleFunctionListUpdate(after: 0)
+            self?.scheduleFoldingUpdate(after: 0)
         }
         applyFunctionListVisibility(EditorDefaults.showsFunctionList)
         document.editorPositionProvider = { [weak self] in self?.currentPosition() }
@@ -278,6 +285,7 @@ final class EditorViewController: NSViewController {
         documentSettingsDidChange()   // line-break style for Enter
         pane.textView.isOverwriteMode = isOverwriteMode
         pane.lineNumberView.lineCountDidChange(lineIndex.lineCount)
+        pane.folding.setRegions(foldRegions)   // the new pane starts unfolded
 
         view.window?.makeFirstResponder(pane.textView)   // the new pane gets the focus, as in VS Code
         pane.textView.setSelectedRange(selection)
@@ -403,6 +411,96 @@ final class EditorViewController: NSViewController {
         textView.centerSelectionInVisibleArea(nil)
         view.window?.makeFirstResponder(textView)
         textView.showFindIndicator(for: symbol.range)
+    }
+
+    // MARK: - Code folding (View menu, gutter)
+
+    /// View › Fold: folds the innermost block around the caret (or starting on its line).
+    @objc func foldBlock(_ sender: Any?) {
+        updateFoldRegionsIfOutdated()
+        let line = lineIndex.line(containing: min(textView.selectedRange().location, document.textStorage.length))
+        let unfolded = foldRegions.filter { $0.startLine <= line && line <= $0.endLine && !activePane.folding.isFolded($0) }
+        guard let region = unfolded.max(by: { $0.startLine < $1.startLine }) else {
+            NSSound.beep()
+            return
+        }
+        activePane.folding.fold(region.hiddenRange)
+        // Put the caret on the fold's line, so it isn't left inside the hidden text.
+        textView.setSelectedRange(NSRange(location: region.hiddenRange.location, length: 0))
+    }
+
+    /// View › Unfold: unfolds the folded block on the caret's line.
+    @objc func unfoldBlock(_ sender: Any?) {
+        updateFoldRegionsIfOutdated()
+        let line = lineIndex.line(containing: min(textView.selectedRange().location, document.textStorage.length))
+        guard let region = activePane.folding.regionsByStartLine[line], activePane.folding.isFolded(region) else {
+            NSSound.beep()
+            return
+        }
+        activePane.folding.unfold(region.hiddenRange)
+    }
+
+    @objc func foldAllBlocks(_ sender: Any?) {
+        updateFoldRegionsIfOutdated()
+        activePane.folding.foldAll()
+        // The caret goes to the start of its line's fold, if it was inside one.
+        let caret = textView.selectedRange().location
+        if let hiding = activePane.folding.foldedRanges.first(where: { caret > $0.location && caret < NSMaxRange($0) }) {
+            textView.setSelectedRange(NSRange(location: hiding.location, length: 0))
+        }
+    }
+
+    @objc func unfoldAllBlocks(_ sender: Any?) {
+        activePane.folding.unfoldAll()
+    }
+
+    /// Finds the foldable blocks again after `delay` seconds (in the background, like the
+    /// function list); a newer request replaces a waiting one.
+    private func scheduleFoldingUpdate(after delay: TimeInterval) {
+        foldingUpdate?.cancel()
+        let update = DispatchWorkItem { [weak self] in self?.updateFoldRegions() }
+        foldingUpdate = update
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: update)
+    }
+
+    private func updateFoldRegions() {
+        guard let (text, lineIndex, language) = foldingInput() else { return }
+        foldingGeneration += 1
+        let generation = foldingGeneration
+        DispatchQueue.global(qos: .userInitiated).async {
+            let regions = Folding.regions(in: text, lineIndex: lineIndex, language: language)
+            DispatchQueue.main.async { [weak self] in
+                guard let self, generation == self.foldingGeneration else { return }
+                self.apply(regions)
+            }
+        }
+    }
+
+    /// Before a fold command: compute the blocks right away if the text changed since.
+    private func updateFoldRegionsIfOutdated() {
+        guard areFoldRegionsOutdated, let (text, lineIndex, language) = foldingInput() else { return }
+        foldingGeneration += 1   // a background computation for older text is now outdated
+        apply(Folding.regions(in: text, lineIndex: lineIndex, language: language))
+    }
+
+    /// A copy of the text and its line index for computing the blocks; nil (and no blocks)
+    /// for user-defined languages and very large files.
+    private func foldingInput() -> (NSString, LineIndex, Language)? {
+        guard case .builtIn(let language) = highlighting.language,
+              document.textStorage.length <= SyntaxHighlightingController.maximumTextLength else {
+            apply([])
+            return nil
+        }
+        return ((document.textStorage.mutableString.copy() as? NSString) ?? "", lineIndex, language)
+    }
+
+    private func apply(_ regions: [FoldRegion]) {
+        foldRegions = regions
+        areFoldRegionsOutdated = false
+        for pane in panes {
+            pane.folding.setRegions(regions)
+            pane.lineNumberView.needsDisplay = true
+        }
     }
 
     // MARK: - Go to Line (Edit menu)
@@ -809,6 +907,11 @@ final class EditorViewController: NSViewController {
         highlighting.textDidChange(change)
         scheduleFunctionListUpdate(after: 0.4)
         for pane in panes {
+            pane.folding.textDidChange(editedRange: storage.editedRange, changeInLength: storage.changeInLength)
+        }
+        areFoldRegionsOutdated = true
+        scheduleFoldingUpdate(after: 0.4)
+        for pane in panes {
             pane.lineNumberView.needsDisplay = true
         }
         minimapView.textDidChange(change)
@@ -1084,6 +1187,13 @@ extension EditorViewController: NSTextViewDelegate {
     }
 
     func textViewDidChangeSelection(_ notification: Notification) {
+        // A caret or selection end inside a folded block (Find, Go to Line …) opens the block.
+        if let changedView = notification.object as? NSTextView,
+           let pane = panes.first(where: { $0.textView === changedView }) {
+            let selection = changedView.selectedRange()
+            pane.folding.unfoldBlocks(hiding: selection.location)
+            pane.folding.unfoldBlocks(hiding: NSMaxRange(selection))
+        }
         if !functionListView.isHidden {
             functionListView.showCaret(atLine: lineIndex.line(containing: min(textView.selectedRange().location,
                                                                                 document.textStorage.length)))

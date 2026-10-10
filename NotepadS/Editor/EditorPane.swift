@@ -13,6 +13,8 @@ final class EditorPane {
     let textView: EditorTextView
     let scrollView = NSScrollView()
     private(set) var lineNumberView: LineNumberRulerView!
+    /// This pane's folded blocks (the layout manager's delegate).
+    private(set) var folding: FoldingController!
 
     /// Builds the TextKit 1 stack explicitly: storage → layout manager → container → view.
     /// Because the container belongs to an NSLayoutManager, the text view is TextKit 1 from the
@@ -27,6 +29,7 @@ final class EditorPane {
         textContainer.widthTracksTextView = true   // word wrap at the view width
         layoutManager.addTextContainer(textContainer)
         textView = EditorTextView(frame: .zero, textContainer: textContainer)
+        folding = FoldingController(layoutManager: layoutManager)
     }
 
     /// Puts the text view into the scroll view and adds the gutter. `size` is a first size; the
@@ -54,6 +57,11 @@ final class EditorPane {
         scrollView.verticalRulerView = lineNumberView
         scrollView.hasVerticalRuler = true
         scrollView.rulersVisible = true
+        lineNumberView.folding = folding
+        folding.onChange = { [weak self] in
+            self?.lineNumberView.needsDisplay = true
+            self?.textView.needsDisplay = true
+        }
     }
 
     /// Removes this pane's layout manager from the text storage, so it no longer lays out the

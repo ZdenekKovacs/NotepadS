@@ -211,6 +211,12 @@
     "Find:" : {
       "comment" : "Find in Files label\nFind panel label"
     },
+    "Fold" : {
+      "comment" : "View menu item: collapse the code block at the caret"
+    },
+    "Fold All" : {
+      "comment" : "View menu item"
+    },
     "Folder:" : {
       "comment" : "Find in Files label"
     },
@@ -584,6 +590,12 @@
     },
     "Typing" : {
       "comment" : "Undo action name"
+    },
+    "Unfold" : {
+      "comment" : "View menu item: expand the code block at the caret"
+    },
+    "Unfold All" : {
+      "comment" : "View menu item"
     },
     "Unicode" : {
       "comment" : "ASCII panel column: code point, e.g. U+20AC"

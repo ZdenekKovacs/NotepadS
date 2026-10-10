@@ -52,7 +52,9 @@ final class InvisiblesLayoutManager: NSLayoutManager {
             default:
                 mark = nil
             }
-            if let mark {
+            // No marks inside a folded block: its characters aren't shown (the first one is "…").
+            let isFolded = (delegate as? FoldingController)?.isHidden(index) ?? false
+            if let mark, !isFolded {
                 draw(mark, atCharacter: index, origin: origin, in: textStorage)
             }
             index += length
