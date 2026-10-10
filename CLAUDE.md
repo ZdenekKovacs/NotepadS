@@ -161,6 +161,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] File › Close All (+ new empty document), ASCII Character Panel
 - [x] Split editor (two panes on one document)
 - [x] Settings › Restore Defaults; user-defined languages (Settings › Languages)
+- [x] Function list (View › Show Function List, ⌃⌘L)
 
 ### Later
 - [ ] iOS app on `NotepadSCore`

@@ -9,6 +9,7 @@ import NotepadSCore
 ///     │       ├─ documentView: pane.textView (EditorTextView, TextKit 1)
 ///     │       └─ verticalRulerView: pane.lineNumberView (LineNumberRulerView)
 ///     ├─ minimapView (MinimapView), right of the panes, follows the first pane; can be hidden
+///     ├─ functionListView (FunctionListView), at the right edge; can be hidden
 ///     └─ statusBar (StatusBarView)
 ///
 /// Menu commands and the status bar work on the *active* pane, the one last clicked into.
@@ -33,6 +34,12 @@ final class EditorViewController: NSViewController {
     private var minimapView: MinimapView!
     /// The minimap's width: `MinimapView.width` when shown, 0 when hidden.
     private var minimapWidthConstraint: NSLayoutConstraint!
+    private let functionListView = FunctionListView(frame: .zero)
+    /// The function list's width: `FunctionListView.width` when shown, 0 when hidden.
+    private var functionListWidthConstraint: NSLayoutConstraint!
+    /// Increases with every function-list search started; an older result is thrown away.
+    private var functionListGeneration = 0
+    private var functionListUpdate: DispatchWorkItem?
     private var highlighting: SyntaxHighlightingController!
     /// True once the user picked a language in the status bar; it then sticks for this window.
     private var isLanguageChosenByUser = false
@@ -96,8 +103,10 @@ final class EditorViewController: NSViewController {
         applyMinimapVisibility(EditorDefaults.showsMinimap)
 
         statusBar.delegate = self
+        functionListWidthConstraint = functionListView.widthAnchor.constraint(equalToConstant: 0)
+        functionListView.onSelect = { [weak self] symbol in self?.jump(to: symbol) }
 
-        for subview in [splitView, minimapView, statusBar] as [NSView] {
+        for subview in [splitView, minimapView, functionListView, statusBar] as [NSView] {
             subview.translatesAutoresizingMaskIntoConstraints = false
             root.addSubview(subview)
         }
@@ -107,9 +116,13 @@ final class EditorViewController: NSViewController {
             splitView.trailingAnchor.constraint(equalTo: minimapView.leadingAnchor),
             splitView.bottomAnchor.constraint(equalTo: statusBar.topAnchor),
             minimapView.topAnchor.constraint(equalTo: root.topAnchor),
-            minimapView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            minimapView.trailingAnchor.constraint(equalTo: functionListView.leadingAnchor),
             minimapView.bottomAnchor.constraint(equalTo: statusBar.topAnchor),
             minimapWidthConstraint,
+            functionListView.topAnchor.constraint(equalTo: root.topAnchor),
+            functionListView.trailingAnchor.constraint(equalTo: root.trailingAnchor),
+            functionListView.bottomAnchor.constraint(equalTo: statusBar.topAnchor),
+            functionListWidthConstraint,
             statusBar.leadingAnchor.constraint(equalTo: root.leadingAnchor),
             statusBar.trailingAnchor.constraint(equalTo: root.trailingAnchor),
             statusBar.bottomAnchor.constraint(equalTo: root.bottomAnchor),
@@ -143,7 +156,9 @@ final class EditorViewController: NSViewController {
         highlighting.onStateChanged = { [weak self] in
             self?.updateLanguageInStatusBar()
             self?.minimapView.syntaxDidChange()   // another language, or highlighting turned off
+            self?.scheduleFunctionListUpdate(after: 0)
         }
+        applyFunctionListVisibility(EditorDefaults.showsFunctionList)
         document.editorPositionProvider = { [weak self] in self?.currentPosition() }
         document.onRestoreEditorPosition = { [weak self] position in self?.restore(position) }
         highlighting.setLanguage(detectedLanguage())
@@ -318,6 +333,62 @@ final class EditorViewController: NSViewController {
     private func applyMinimapVisibility(_ isVisible: Bool) {
         minimapView.isHidden = !isVisible
         minimapWidthConstraint.constant = isVisible ? MinimapView.width : 0
+    }
+
+    // MARK: - Function list (View menu)
+
+    @objc func toggleFunctionList(_ sender: Any?) {
+        applyFunctionListVisibility(functionListView.isHidden)
+        EditorDefaults.showsFunctionList = !functionListView.isHidden   // new windows start the same
+    }
+
+    private func applyFunctionListVisibility(_ isVisible: Bool) {
+        functionListView.isHidden = !isVisible
+        functionListWidthConstraint.constant = isVisible ? FunctionListView.width : 0
+        if isVisible { scheduleFunctionListUpdate(after: 0) }
+    }
+
+    /// Finds the symbols again after `delay` seconds; a newer request replaces a waiting one,
+    /// so typing doesn't search after every keystroke. The search runs on a background thread
+    /// on a copy of the text, so a long file never makes typing wait.
+    private func scheduleFunctionListUpdate(after delay: TimeInterval) {
+        guard !functionListView.isHidden else { return }
+        functionListUpdate?.cancel()
+        let update = DispatchWorkItem { [weak self] in self?.updateFunctionList() }
+        functionListUpdate = update
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: update)
+    }
+
+    private func updateFunctionList() {
+        // User-defined languages have no definition patterns (yet): nothing to list.
+        guard case .builtIn(let language) = highlighting.language,
+              document.textStorage.length <= SyntaxHighlightingController.maximumTextLength else {
+            functionListView.setSymbols([], isSupported: false)
+            return
+        }
+        functionListGeneration += 1
+        let generation = functionListGeneration
+        let text = (document.textStorage.mutableString.copy() as? NSString) ?? ""
+        let lineIndex = self.lineIndex   // a value: this copy matches `text`
+        let caretLine = lineIndex.line(containing: min(textView.selectedRange().location, text.length))
+        DispatchQueue.global(qos: .userInitiated).async {
+            let symbols = FunctionList.symbols(in: text, lineIndex: lineIndex, language: language)
+            DispatchQueue.main.async { [weak self] in
+                guard let self, generation == self.functionListGeneration else { return }
+                self.functionListView.setSymbols(symbols, isSupported: language.hasFunctionList)
+                self.functionListView.showCaret(atLine: caretLine)
+            }
+        }
+    }
+
+    /// Clicking a symbol in the function list: select its name, scroll it to the middle, flash it.
+    private func jump(to symbol: CodeSymbol) {
+        // The list may be a moment older than the text; stay inside it.
+        guard NSMaxRange(symbol.range) <= document.textStorage.length else { return }
+        textView.setSelectedRange(symbol.range)
+        textView.centerSelectionInVisibleArea(nil)
+        view.window?.makeFirstResponder(textView)
+        textView.showFindIndicator(for: symbol.range)
     }
 
     // MARK: - Go to Line (Edit menu)
@@ -716,6 +787,7 @@ final class EditorViewController: NSViewController {
                                                        changeInLength: storage.changeInLength,
                                                        in: storage.mutableString)
         highlighting.textDidChange(change)
+        scheduleFunctionListUpdate(after: 0.4)
         for pane in panes {
             pane.lineNumberView.needsDisplay = true
         }
@@ -992,6 +1064,10 @@ extension EditorViewController: NSTextViewDelegate {
     }
 
     func textViewDidChangeSelection(_ notification: Notification) {
+        if !functionListView.isHidden {
+            functionListView.showCaret(atLine: lineIndex.line(containing: min(textView.selectedRange().location,
+                                                                                document.textStorage.length)))
+        }
         caretPositionCounter.recount()
         updateStatusBar()
         document.invalidateRestorableState()   // AppKit saves the new caret position soon
@@ -1098,6 +1174,8 @@ extension EditorViewController: NSMenuItemValidation {
             menuItem.state = primaryPane.layoutManager.showsInvisibles ? .on : .off
         } else if menuItem.action == #selector(toggleMinimap(_:)) {
             menuItem.state = minimapView.isHidden ? .off : .on
+        } else if menuItem.action == #selector(toggleFunctionList(_:)) {
+            menuItem.state = functionListView.isHidden ? .off : .on
         } else if menuItem.action == #selector(splitEditorSideBySide(_:)) {
             menuItem.state = secondaryPane != nil && splitView.isVertical ? .on : .off
         } else if menuItem.action == #selector(splitEditorTopAndBottom(_:)) {

@@ -18,6 +18,7 @@ enum EditorDefaults {
         static let wrapsLines = "EditorWrapsLines"
         static let showsInvisibles = "EditorShowsInvisibles"
         static let showsMinimap = "EditorShowsMinimap"
+        static let showsFunctionList = "EditorShowsFunctionList"
     }
 
     private static var defaults: UserDefaults { .standard }
@@ -77,6 +78,12 @@ enum EditorDefaults {
     static var showsMinimap: Bool {
         get { defaults.object(forKey: Key.showsMinimap) as? Bool ?? true }
         set { defaults.set(newValue, forKey: Key.showsMinimap) }
+    }
+
+    /// Function list beside the text for new windows: the user's last choice, off by default.
+    static var showsFunctionList: Bool {
+        get { defaults.bool(forKey: Key.showsFunctionList) }
+        set { defaults.set(newValue, forKey: Key.showsFunctionList) }
     }
 
     /// Settings › Restore Defaults: forgets every setting and everything the app remembered

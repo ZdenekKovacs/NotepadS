@@ -18,6 +18,17 @@
     "%@ (highlighting off)" : {
       "comment" : "Status bar: language name, highlighting disabled for a very large file"
     },
+    "%@ — line %lld" : {
+      "comment" : "Function list tooltip: name and line",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ — line %2$lld"
+          }
+        }
+      }
+    },
     "%lld selected" : {
       "comment" : "Status bar: number of selected characters"
     },
@@ -152,6 +163,9 @@
     },
     "Files with these extensions get syntax highlighting. You can also type any other extension." : {
       "comment" : "Save panel tooltip"
+    },
+    "Filter" : {
+      "comment" : "Function list: search field"
     },
     "Find and Replace" : {
       "comment" : "Find panel title"
@@ -314,6 +328,12 @@
     "Next" : {
       "comment" : "Find panel button"
     },
+    "No function list for this language" : {
+      "comment" : "Function list: language without patterns"
+    },
+    "No functions found" : {
+      "comment" : "Function list: empty"
+    },
     "Not found" : {
       "comment" : "Find panel status"
     },
@@ -400,6 +420,9 @@
     },
     "Settings…" : {
       "comment" : "App menu item"
+    },
+    "Show Function List" : {
+      "comment" : "View menu item: list of the document's functions, classes and headings"
     },
     "Show Invisibles" : {
       "comment" : "View menu item: marks for spaces, tabs and line breaks"
