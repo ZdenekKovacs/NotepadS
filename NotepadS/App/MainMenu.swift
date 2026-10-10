@@ -101,6 +101,9 @@ enum MainMenu {
                                                                            action: #selector(EditorTextView.addCursorBelow(_:)),
                                                                            keyEquivalent: arrowKey(NSDownArrowFunctionKey))))
             editMenu.addItem(.separator())
+            let bookmarksItem = NSMenuItem(title: String(localized: "Bookmarks", comment: "Edit menu: submenu"), action: nil, keyEquivalent: "")
+            bookmarksItem.submenu = makeBookmarksMenu()
+            editMenu.addItem(bookmarksItem)
             editMenu.addItem(NSMenuItem(title: String(localized: "ASCII Character Panel", comment: "Edit menu item: table of characters 0–255 to insert"),
                                         action: #selector(AppDelegate.showCharacterPanel(_:)), keyEquivalent: ""))
         }
@@ -225,6 +228,27 @@ enum MainMenu {
                 menu.addItem(transformItem(transform))
             }
         }
+        return menu
+    }
+
+    /// Edit › Bookmarks, with Notepad++'s keys: ⌘F2 toggles, F2 and ⇧F2 go to the next and
+    /// previous bookmark. Clicking a line number toggles a bookmark, too.
+    private static func makeBookmarksMenu() -> NSMenu {
+        let menu = NSMenu(title: String(localized: "Bookmarks", comment: "Edit menu: submenu"))
+        let f2 = String(Character(UnicodeScalar(UInt16(NSF2FunctionKey))!))   // function keys are valid scalars
+        menu.addItem(withModifiers([.command], NSMenuItem(title: String(localized: "Toggle Bookmark", comment: "Edit › Bookmarks menu item"),
+                                                          action: #selector(EditorViewController.toggleBookmark(_:)), keyEquivalent: f2)))
+        menu.addItem(withModifiers([], NSMenuItem(title: String(localized: "Next Bookmark", comment: "Edit › Bookmarks menu item"),
+                                                  action: #selector(EditorViewController.nextBookmark(_:)), keyEquivalent: f2)))
+        menu.addItem(withModifiers([.shift], NSMenuItem(title: String(localized: "Previous Bookmark", comment: "Edit › Bookmarks menu item"),
+                                                        action: #selector(EditorViewController.previousBookmark(_:)), keyEquivalent: f2)))
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: String(localized: "Copy Bookmarked Lines", comment: "Edit › Bookmarks menu item"),
+                                action: #selector(EditorViewController.copyBookmarkedLines(_:)), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: String(localized: "Remove Bookmarked Lines", comment: "Edit › Bookmarks menu item"),
+                                action: #selector(EditorViewController.removeBookmarkedLines(_:)), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: String(localized: "Clear All Bookmarks", comment: "Edit › Bookmarks menu item"),
+                                action: #selector(EditorViewController.clearBookmarks(_:)), keyEquivalent: ""))
         return menu
     }
 

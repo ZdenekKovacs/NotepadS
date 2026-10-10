@@ -46,6 +46,8 @@ final class EditorViewController: NSViewController {
     private var areFoldRegionsOutdated = true
     private var foldingGeneration = 0
     private var foldingUpdate: DispatchWorkItem?
+    /// Bookmarked lines (Edit › Bookmarks), shared by both panes; not saved with the file.
+    private var bookmarks = Bookmarks()
     private var highlighting: SyntaxHighlightingController!
     /// True once the user picked a language in the status bar; it then sticks for this window.
     private var isLanguageChosenByUser = false
@@ -228,6 +230,8 @@ final class EditorViewController: NSViewController {
 
     /// Hooks a pane up to this controller: gatekeeper, cursors, focus, coloring, scroll updates.
     private func connect(_ pane: EditorPane) {
+        pane.lineNumberView.bookmarkedLines = { [unowned self] in self.bookmarks.lines }
+        pane.lineNumberView.onToggleBookmark = { [weak self] line in self?.toggleBookmark(atLine: line) }
         pane.textView.delegate = self
         pane.textView.multiCursorDelegate = self
         pane.textView.onBecomeFirstResponder = { [weak self, weak pane] in
@@ -501,6 +505,93 @@ final class EditorViewController: NSViewController {
             pane.folding.setRegions(regions)
             pane.lineNumberView.needsDisplay = true
         }
+    }
+
+    // MARK: - Bookmarks (Edit › Bookmarks, clicking a line number)
+
+    @objc func toggleBookmark(_ sender: Any?) {
+        toggleBookmark(atLine: lineIndex.line(containing: min(textView.selectedRange().location, document.textStorage.length)))
+    }
+
+    private func toggleBookmark(atLine line: Int) {
+        bookmarks.toggle(line)
+        for pane in panes {
+            pane.lineNumberView.needsDisplay = true
+        }
+    }
+
+    @objc func nextBookmark(_ sender: Any?) {
+        goToBookmark(bookmarks.next(after: caretLine))
+    }
+
+    @objc func previousBookmark(_ sender: Any?) {
+        goToBookmark(bookmarks.previous(before: caretLine))
+    }
+
+    private var caretLine: Int {
+        lineIndex.line(containing: min(textView.selectedRange().location, document.textStorage.length))
+    }
+
+    private func goToBookmark(_ line: Int?) {
+        guard let line else {
+            NSSound.beep()   // no bookmarks
+            return
+        }
+        moveCaret(toLine: line)
+    }
+
+    @objc func clearBookmarks(_ sender: Any?) {
+        bookmarks.removeAll()
+        for pane in panes {
+            pane.lineNumberView.needsDisplay = true
+        }
+    }
+
+    /// Copies the bookmarked lines, each with the document's line break.
+    @objc func copyBookmarkedLines(_ sender: Any?) {
+        let text = document.textStorage.mutableString
+        let lines = bookmarks.lines.sorted().map { text.substring(with: lineIndex.contentRange(ofLine: $0)) }
+        guard !lines.isEmpty else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(lines.map { $0 + document.lineEnding.string }.joined(), forType: .string)
+    }
+
+    /// Deletes the bookmarked lines as one undo step; their bookmarks go with them.
+    @objc func removeBookmarkedLines(_ sender: Any?) {
+        guard !bookmarks.isEmpty else { return }
+        let length = document.textStorage.length
+        // Whole lines with their breaks; a last line without a break takes the break before it.
+        var ranges = bookmarks.lines.sorted().map { line -> NSRange in
+            let full = lineIndex.fullRange(ofLine: line)
+            if NSMaxRange(full) == length, line > 0, full.length == lineIndex.contentRange(ofLine: line).length {
+                let start = NSMaxRange(lineIndex.contentRange(ofLine: line - 1))
+                return NSRange(location: start, length: NSMaxRange(full) - start)
+            }
+            return full
+        }
+        // Neighbouring ranges merge, so the multi-range change never overlaps.
+        ranges = ranges.reduce(into: []) { merged, range in
+            if let last = merged.last, NSMaxRange(last) >= range.location {
+                merged[merged.count - 1] = NSUnionRange(last, range)
+            } else {
+                merged.append(range)
+            }
+        }
+        bookmarks.removeAll()
+        textView.breakUndoCoalescing()
+        isPerformingProgrammaticEdit = true
+        if textView.shouldChangeText(inRanges: ranges.map { NSValue(range: $0) },
+                                     replacementStrings: Array(repeating: "", count: ranges.count)) {
+            let storage = document.textStorage
+            storage.beginEditing()
+            for range in ranges.reversed() {   // from the end, so earlier ranges stay valid
+                storage.replaceCharacters(in: range, with: "")
+            }
+            storage.endEditing()
+            textView.didChangeText()
+        }
+        isPerformingProgrammaticEdit = false
+        document.undoManager?.setActionName(String(localized: "Remove Bookmarked Lines", comment: "Undo action name"))
     }
 
     // MARK: - Compare (File › Compare With)
@@ -932,6 +1023,7 @@ final class EditorViewController: NSViewController {
                                                        changeInLength: storage.changeInLength,
                                                        in: storage.mutableString)
         highlighting.textDidChange(change)
+        bookmarks.apply(change, lineCount: lineIndex.lineCount)
         scheduleFunctionListUpdate(after: 0.4)
         for pane in panes {
             pane.folding.textDidChange(editedRange: storage.editedRange, changeInLength: storage.changeInLength)
@@ -1331,6 +1423,9 @@ extension EditorViewController: NSMenuItemValidation {
             menuItem.state = primaryPane.layoutManager.showsInvisibles ? .on : .off
         } else if menuItem.action == #selector(toggleMinimap(_:)) {
             menuItem.state = minimapView.isHidden ? .off : .on
+        } else if [#selector(nextBookmark(_:)), #selector(previousBookmark(_:)), #selector(copyBookmarkedLines(_:)),
+                    #selector(removeBookmarkedLines(_:)), #selector(clearBookmarks(_:))].contains(menuItem.action) {
+            return !bookmarks.isEmpty
         } else if menuItem.action == #selector(compareWithSavedVersion(_:)) {
             return document.fileURL != nil   // an untitled document has no saved version
         } else if menuItem.action == #selector(toggleFunctionList(_:)) {

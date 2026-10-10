@@ -98,6 +98,9 @@
     "Block comment start" : {
       "comment" : "Languages: field"
     },
+    "Bookmarks" : {
+      "comment" : "Edit menu: submenu"
+    },
     "Cancel" : {
       "comment" : "Dialog button"
     },
@@ -124,6 +127,9 @@
     },
     "Choose…" : {
       "comment" : "Find in Files: choose folder button"
+    },
+    "Clear All Bookmarks" : {
+      "comment" : "Edit › Bookmarks menu item"
     },
     "Close All" : {
       "comment" : "File menu item: close every document, then open a new empty one"
@@ -166,6 +172,9 @@
     },
     "Copy %@ of Selection" : {
       "comment" : "Text › Hash menu item"
+    },
+    "Copy Bookmarked Lines" : {
+      "comment" : "Edit › Bookmarks menu item"
     },
     "Cut" : {
       "comment" : "Undo action name"
@@ -426,6 +435,9 @@
     "Next" : {
       "comment" : "Find panel button"
     },
+    "Next Bookmark" : {
+      "comment" : "Edit › Bookmarks menu item"
+    },
     "Next difference (⌥⌘↓)" : {
       "comment" : "Compare button tooltip"
     },
@@ -477,6 +489,9 @@
     "Previous" : {
       "comment" : "Find panel button"
     },
+    "Previous Bookmark" : {
+      "comment" : "Edit › Bookmarks menu item"
+    },
     "Previous difference (⌥⌘↑)" : {
       "comment" : "Compare button tooltip"
     },
@@ -488,6 +503,9 @@
     },
     "Regular expression" : {
       "comment" : "Find in Files option\nFind panel option"
+    },
+    "Remove Bookmarked Lines" : {
+      "comment" : "Edit › Bookmarks menu item\nUndo action name"
     },
     "Reopen" : {
       "comment" : "Dialog button"
@@ -653,6 +671,9 @@
     },
     "This text mixes line-break styles. New line breaks use %@. Choose “Convert to …” to unify them." : {
       "comment" : "Status bar tooltip; the style is LF, CRLF or CR"
+    },
+    "Toggle Bookmark" : {
+      "comment" : "Edit › Bookmarks menu item"
     },
     "Typing" : {
       "comment" : "Undo action name"

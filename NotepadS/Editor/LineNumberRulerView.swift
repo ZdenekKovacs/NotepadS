@@ -9,6 +9,7 @@ import NotepadSCore
 /// - The current line's number is drawn in the primary label color.
 /// - A triangle at the right marks a block that can fold (▼) or is folded (▶); click it to
 ///   toggle. Lines inside a folded block get no number.
+/// - Bookmarked lines get a blue mark behind the number; click a number to toggle it.
 final class LineNumberRulerView: NSRulerView {
 
     private weak var textView: NSTextView?
@@ -22,6 +23,10 @@ final class LineNumberRulerView: NSRulerView {
 
     /// The pane's folds, for the triangles and for hiding numbers of folded lines.
     weak var folding: FoldingController?
+    /// The bookmarked lines (0-based), owned by the editor.
+    var bookmarkedLines: () -> Set<Int> = { [] }
+    /// Called with the 0-based line when the user clicks a line number.
+    var onToggleBookmark: ((Int) -> Void)?
 
     /// - Parameters:
     ///   - textView: must already be the scroll view's document view.
@@ -116,6 +121,7 @@ final class LineNumberRulerView: NSRulerView {
         let visibleCharacters = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
 
         let caretLine = lineIndex.line(containing: min(textView.selectedRange().location, textLength))
+        let bookmarks = bookmarkedLines()
         var line = lineIndex.line(containing: visibleCharacters.location)
 
         while line < lineIndex.lineCount {
@@ -136,6 +142,9 @@ final class LineNumberRulerView: NSRulerView {
                 lineFragment = layoutManager.extraLineFragmentRect
             }
             if !lineFragment.isEmpty {
+                if bookmarks.contains(line) {
+                    drawBookmark(lineFragment: lineFragment, in: textView)
+                }
                 drawNumber(line + 1, lineFragment: lineFragment, in: textView, isCurrentLine: line == caretLine)
                 if let folding, let region = folding.regionsByStartLine[line] {
                     drawFoldMarker(isFolded: folding.isFolded(region), lineFragment: lineFragment, in: textView)
@@ -158,6 +167,15 @@ final class LineNumberRulerView: NSRulerView {
         let point = NSPoint(x: bounds.width - foldMarkerWidth - horizontalPadding / 2 - size.width,
                             y: top + (lineFragment.height - size.height) / 2)
         label.draw(at: point, withAttributes: attributes)
+    }
+
+    /// A rounded blue bar behind the line number, like a bookmark ribbon.
+    private func drawBookmark(lineFragment: NSRect, in textView: NSTextView) {
+        let top = convert(NSPoint(x: 0, y: lineFragment.minY + textView.textContainerOrigin.y), from: textView).y
+        let height = min(lineFragment.height, 20)
+        let rect = NSRect(x: 2, y: top + 1, width: bounds.width - foldMarkerWidth - 2, height: height - 2)
+        NSColor.controlAccentColor.withAlphaComponent(0.35).setFill()
+        NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4).fill()
     }
 
     /// ▼ for a block that can fold, ▶ for a folded one, centered in the marker column.
@@ -183,7 +201,7 @@ final class LineNumberRulerView: NSRulerView {
     // MARK: - Clicking a fold triangle
 
     override func mouseDown(with event: NSEvent) {
-        guard let textView, let folding, let layoutManager = textView.layoutManager,
+        guard let textView, let layoutManager = textView.layoutManager,
               let textContainer = textView.textContainer, let storage = textView.textStorage else { return }
         // The line under the click: find the glyph at that height in the text view.
         let pointInTextView = textView.convert(event.locationInWindow, from: nil)
@@ -191,7 +209,12 @@ final class LineNumberRulerView: NSRulerView {
         let glyph = layoutManager.glyphIndex(for: pointInContainer, in: textContainer)
         let character = min(layoutManager.characterIndexForGlyph(at: glyph), storage.length)
         let line = lineIndexProvider().line(containing: character)
-        if folding.toggle(line: line) {
+        // The triangle column folds; anywhere else on the number toggles a bookmark.
+        let pointInRuler = convert(event.locationInWindow, from: nil)
+        if pointInRuler.x >= bounds.width - foldMarkerWidth - 2, let folding, folding.toggle(line: line) {
+            needsDisplay = true
+        } else {
+            onToggleBookmark?(line)
             needsDisplay = true
         }
     }
