@@ -304,6 +304,9 @@
     "Hex" : {
       "comment" : "ASCII panel column: hexadecimal code"
     },
+    "How many times?" : {
+      "comment" : "Play Macro dialog"
+    },
     "INS" : {
       "comment" : "Status bar: insert mode, typing inserts characters"
     },
@@ -414,6 +417,9 @@
         }
       }
     },
+    "Macro" : {
+      "comment" : "Edit menu: submenu"
+    },
     "Move Line Down" : {
       "comment" : "Text › Lines menu item\nUndo action name"
     },
@@ -482,6 +488,15 @@
     },
     "Pink" : {
       "comment" : "Languages: color of a keyword group"
+    },
+    "Play" : {
+      "comment" : "Edit › Macro menu item: play the recorded macro\nPlay Macro dialog button"
+    },
+    "Play Macro" : {
+      "comment" : "Play Macro dialog title\nUndo action name"
+    },
+    "Play Multiple Times…" : {
+      "comment" : "Edit › Macro menu item"
     },
     "Pos is the caret’s position in the document, in characters as you see them: an emoji or a CRLF line break counts as one." : {
       "comment" : "Status bar tooltip"
@@ -608,8 +623,14 @@
     "Split lines longer than this many characters at spaces:" : {
       "comment" : "Split Lines dialog"
     },
+    "Start Recording" : {
+      "comment" : "Edit › Macro menu item"
+    },
     "Stop" : {
       "comment" : "Find in Files button while searching"
+    },
+    "Stop Recording" : {
+      "comment" : "Edit › Macro menu item"
     },
     "Stopped after %lld matches in %lld files." : {
       "comment" : "Find in Files status: too many matches",
@@ -749,6 +770,9 @@
           }
         }
       }
+    },
+    "● Recording macro" : {
+      "comment" : "Status bar: a macro is being recorded"
     }
   },
   "version" : "1.0"

@@ -101,6 +101,9 @@ enum MainMenu {
                                                                            action: #selector(EditorTextView.addCursorBelow(_:)),
                                                                            keyEquivalent: arrowKey(NSDownArrowFunctionKey))))
             editMenu.addItem(.separator())
+            let macroItem = NSMenuItem(title: String(localized: "Macro", comment: "Edit menu: submenu"), action: nil, keyEquivalent: "")
+            macroItem.submenu = makeMacroMenu()
+            editMenu.addItem(macroItem)
             let bookmarksItem = NSMenuItem(title: String(localized: "Bookmarks", comment: "Edit menu: submenu"), action: nil, keyEquivalent: "")
             bookmarksItem.submenu = makeBookmarksMenu()
             editMenu.addItem(bookmarksItem)
@@ -228,6 +231,19 @@ enum MainMenu {
                 menu.addItem(transformItem(transform))
             }
         }
+        return menu
+    }
+
+    /// Edit › Macro: record typing and editing commands, then play them back.
+    private static func makeMacroMenu() -> NSMenu {
+        let menu = NSMenu(title: String(localized: "Macro", comment: "Edit menu: submenu"))
+        // The title changes to "Stop Recording" while recording (AppDelegate.validateMenuItem).
+        menu.addItem(withModifiers([.control, .command], NSMenuItem(title: String(localized: "Start Recording", comment: "Edit › Macro menu item"),
+                                                                    action: #selector(AppDelegate.toggleMacroRecording(_:)), keyEquivalent: "r")))
+        menu.addItem(withModifiers([.control, .command], NSMenuItem(title: String(localized: "Play", comment: "Edit › Macro menu item: play the recorded macro"),
+                                                                    action: #selector(EditorViewController.playMacro(_:)), keyEquivalent: "p")))
+        menu.addItem(NSMenuItem(title: String(localized: "Play Multiple Times…", comment: "Edit › Macro menu item"),
+                                action: #selector(EditorViewController.playMacroMultipleTimes(_:)), keyEquivalent: ""))
         return menu
     }
 

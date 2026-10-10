@@ -167,6 +167,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Compare two texts (File › Compare With)
 - [x] Bookmarks (Edit › Bookmarks, click a line number)
 - [x] Format / Minify XML
+- [x] Macros (Edit › Macro, ⌃⌘R / ⌃⌘P)
 
 ### Later
 - [ ] iOS app on `NotepadSCore`

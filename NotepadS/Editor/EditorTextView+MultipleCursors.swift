@@ -129,6 +129,11 @@ extension EditorTextView {
     /// …; see "Text System Defaults and Key Bindings"). With several cursors the ones below act at
     /// every cursor; anything else first goes back to one cursor.
     override func doCommand(by selector: Selector) {
+        // Key commands are part of a macro being recorded (`noop:` is a key without a command).
+        let name = NSStringFromSelector(selector)
+        if name != "noop:" {
+            MacroRecorder.shared.record(.keyCommand(name))
+        }
         guard adoptMultipleSelections(), let text = textStorage?.mutableString else {
             super.doCommand(by: selector)
             return

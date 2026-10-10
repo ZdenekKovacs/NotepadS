@@ -27,6 +27,8 @@ final class StatusBarView: NSView {
     private let languageButton = NSPopUpButton(frame: .zero, pullsDown: true)
     private let encodingButton = NSPopUpButton(frame: .zero, pullsDown: true)
     private let lineEndingButton = NSPopUpButton(frame: .zero, pullsDown: true)
+    /// "● Recording" while a macro is being recorded.
+    private let recordingLabel = StatusBarView.makeLabel()
     /// "INS" or "OVR"; a click switches the mode.
     private let overwriteModeButton = NSButton(title: "", target: nil, action: nil)
 
@@ -123,6 +125,10 @@ final class StatusBarView: NSView {
 
     @objc private func overwriteModeButtonClicked(_ sender: NSButton) {
         delegate?.statusBarDidToggleOverwriteMode(self)
+    }
+
+    func setRecordingMacro(_ isRecording: Bool) {
+        recordingLabel.isHidden = !isRecording
     }
 
     /// Shows "INS" (typing inserts) or "OVR" (typing overwrites).
@@ -289,7 +295,10 @@ final class StatusBarView: NSView {
         stack.orientation = .horizontal
         stack.spacing = 16
         stack.edgeInsets = NSEdgeInsets(top: 0, left: 10, bottom: 0, right: 8)
-        stack.setViews([positionLabel, selectionLabel], in: .leading)
+        recordingLabel.stringValue = String(localized: "● Recording macro", comment: "Status bar: a macro is being recorded")
+        recordingLabel.textColor = .systemRed
+        recordingLabel.isHidden = true
+        stack.setViews([positionLabel, selectionLabel, recordingLabel], in: .leading)
         stack.setViews([documentSizeLabel, wrapCheckbox, languageButton, encodingButton, lineEndingButton,
                        overwriteModeButton], in: .trailing)
 

@@ -1,6 +1,6 @@
 import AppKit
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         // The first NSDocumentController ever created becomes `NSDocumentController.shared`.
@@ -43,6 +43,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let editor = NSApp.mainWindow?.contentViewController as? EditorViewController
         FindInFilesWindowController.shared.show(selectedText: editor?.selectedTextForSearch,
                                                 suggestedFolder: editor?.document.fileURL?.deletingLastPathComponent())
+    }
+
+    /// Edit › Macro › Start/Stop Recording (⌃⌘R). Recording works in every document.
+    @objc func toggleMacroRecording(_ sender: Any?) {
+        let recorder = MacroRecorder.shared
+        if recorder.isRecording {
+            recorder.stopRecording()
+        } else {
+            recorder.startRecording()
+        }
+    }
+
+    /// The menu item says what it will do.
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(toggleMacroRecording(_:)) {
+            menuItem.title = MacroRecorder.shared.isRecording
+                ? String(localized: "Stop Recording", comment: "Edit › Macro menu item")
+                : String(localized: "Start Recording", comment: "Edit › Macro menu item")
+        }
+        return true
     }
 
     /// Edit › ASCII Character Panel

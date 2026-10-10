@@ -172,6 +172,9 @@ final class EditorViewController: NSViewController {
         document.onRestoreEditorPosition = { [weak self] position in self?.restore(position) }
         highlighting.setLanguage(detectedLanguage())
         statusBar.setUserLanguages(UserLanguageStore.shared.languages)
+        statusBar.setRecordingMacro(MacroRecorder.shared.isRecording)
+        NotificationCenter.default.addObserver(self, selector: #selector(macroRecordingDidChange(_:)),
+                                               name: .macroRecordingDidChange, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(userLanguagesDidChange(_:)),
                                                name: .userLanguagesDidChange, object: nil)
     }
@@ -507,6 +510,94 @@ final class EditorViewController: NSViewController {
         }
     }
 
+    // MARK: - Macros (Edit › Macro)
+
+    @objc func playMacro(_ sender: Any?) {
+        playMacro(times: 1)
+    }
+
+    /// Edit › Macro › Play Multiple Times…: asks how often.
+    @objc func playMacroMultipleTimes(_ sender: Any?) {
+        guard let window = view.window, window.attachedSheet == nil else { return }
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 220, height: 24))
+        field.stringValue = "10"
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Play Macro", comment: "Play Macro dialog title")
+        alert.informativeText = String(localized: "How many times?", comment: "Play Macro dialog")
+        alert.accessoryView = field
+        alert.addButton(withTitle: String(localized: "Play", comment: "Play Macro dialog button"))
+        alert.addButton(withTitle: String(localized: "Cancel", comment: "Dialog button"))
+        alert.window.initialFirstResponder = field
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard response == .alertFirstButtonReturn else { return }
+            guard let times = LineNumberInput.number(from: field.stringValue, maximum: 100_000) else {
+                NSSound.beep()
+                return
+            }
+            // After the sheet has closed: playing stops if a sheet is showing.
+            DispatchQueue.main.async { self?.playMacro(times: times) }
+        }
+    }
+
+    /// Plays the last recorded macro on this document, as one undo step. Stops early if a dialog
+    /// appears (e.g. the encoding dialog, or an error of a Text menu command).
+    private func playMacro(times: Int) {
+        let macro = MacroRecorder.shared.macro
+        guard !macro.isEmpty, let undoManager = document.undoManager else {
+            NSSound.beep()
+            return
+        }
+        let recorder = MacroRecorder.shared
+        recorder.isPlaying = true
+        defer { recorder.isPlaying = false }
+        textView.breakUndoCoalescing()
+        undoManager.beginUndoGrouping()
+        playing: for _ in 0..<times {
+            for step in macro.steps {
+                guard view.window?.attachedSheet == nil else { break playing }
+                switch step {
+                case .insert(let text):
+                    textView.insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
+                case .keyCommand(let name):
+                    // Recorded from the key bindings: public NSResponder action names.
+                    textView.doCommand(by: NSSelectorFromString(name))
+                case .clipboard(let name):
+                    switch name {
+                    case "cut:": textView.cut(nil)
+                    case "copy:": textView.copy(nil)
+                    default: textView.paste(nil)
+                    }
+                case .transform(let rawValue):
+                    if let transform = TextTransform(rawValue: rawValue) { apply(transform) }
+                case .lineCommand(let name):
+                    if let command = Self.lineCommand(named: name) {
+                        runLineCommand(command, actionName: String(localized: "Play Macro", comment: "Undo action name"))
+                    }
+                }
+            }
+        }
+        textView.breakUndoCoalescing()
+        undoManager.endUndoGrouping()
+        undoManager.setActionName(String(localized: "Play Macro", comment: "Undo action name"))
+    }
+
+    private static func name(of command: LineCommand) -> String {
+        switch command {
+        case .duplicate: return "duplicate"
+        case .delete: return "delete"
+        case .moveUp: return "moveUp"
+        case .moveDown: return "moveDown"
+        }
+    }
+
+    private static func lineCommand(named name: String) -> LineCommand? {
+        [LineCommand.duplicate, .delete, .moveUp, .moveDown].first { Self.name(of: $0) == name }
+    }
+
+    @objc private func macroRecordingDidChange(_ notification: Notification) {
+        statusBar.setRecordingMacro(MacroRecorder.shared.isRecording)
+    }
+
     // MARK: - Bookmarks (Edit › Bookmarks, clicking a line number)
 
     @objc func toggleBookmark(_ sender: Any?) {
@@ -674,6 +765,11 @@ final class EditorViewController: NSViewController {
     @objc func applyTextTransform(_ sender: NSMenuItem) {
         guard let rawValue = sender.representedObject as? String,
               let transform = TextTransform(rawValue: rawValue) else { return }
+        apply(transform)
+    }
+
+    private func apply(_ transform: TextTransform) {
+        MacroRecorder.shared.record(.transform(transform.rawValue))
         let range = transform == .joinLines ? joinLinesRange() : targetRange(lineBased: transform.isLineBased)
         let original = document.textStorage.mutableString.substring(with: range)
         let context = transformContext
@@ -753,6 +849,7 @@ final class EditorViewController: NSViewController {
 
     /// Runs a line command (NotepadSCore computes the edit) as one undo step.
     private func runLineCommand(_ command: LineCommand, actionName: String) {
+        MacroRecorder.shared.record(.lineCommand(Self.name(of: command)))
         guard let edit = command.edit(in: document.textStorage.mutableString, lineIndex: lineIndex,
                                       selection: textView.selectedRange(), lineEnding: document.lineEnding) else {
             NSSound.beep()   // e.g. moving the first line up
@@ -1423,6 +1520,8 @@ extension EditorViewController: NSMenuItemValidation {
             menuItem.state = primaryPane.layoutManager.showsInvisibles ? .on : .off
         } else if menuItem.action == #selector(toggleMinimap(_:)) {
             menuItem.state = minimapView.isHidden ? .off : .on
+        } else if menuItem.action == #selector(playMacro(_:)) || menuItem.action == #selector(playMacroMultipleTimes(_:)) {
+            return !MacroRecorder.shared.macro.isEmpty && !MacroRecorder.shared.isRecording
         } else if [#selector(nextBookmark(_:)), #selector(previousBookmark(_:)), #selector(copyBookmarkedLines(_:)),
                     #selector(removeBookmarkedLines(_:)), #selector(clearBookmarks(_:))].contains(menuItem.action) {
             return !bookmarks.isEmpty

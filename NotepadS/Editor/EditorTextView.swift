@@ -63,6 +63,7 @@ final class EditorTextView: NSTextView {
     }
 
     override func copy(_ sender: Any?) {
+        MacroRecorder.shared.record(.clipboard("copy:"))
         guard hasMultipleCursors else {
             super.copy(sender)
             return
@@ -71,6 +72,7 @@ final class EditorTextView: NSTextView {
     }
 
     override func cut(_ sender: Any?) {
+        MacroRecorder.shared.record(.clipboard("cut:"))
         guard adoptMultipleSelections() else {
             super.cut(sender)
             return
@@ -79,6 +81,7 @@ final class EditorTextView: NSTextView {
     }
 
     override func paste(_ sender: Any?) {
+        MacroRecorder.shared.record(.clipboard("paste:"))
         guard adoptMultipleSelections() else {
             super.paste(sender)
             return
@@ -202,6 +205,9 @@ final class EditorTextView: NSTextView {
     // undo ("Typing", coalesced as usual) and the "edited" state work unchanged.
     override func insertText(_ string: Any, replacementRange: NSRange) {
         let typed = (string as? String) ?? (string as? NSAttributedString)?.string ?? ""
+        if replacementRange.location == NSNotFound {
+            MacroRecorder.shared.record(.insert(typed))   // typing (our own insertions pass a range)
+        }
         if replacementRange.location == NSNotFound, !hasMarkedText(), adoptMultipleSelections() {
             typeAtEveryCursor(typed)
             return
