@@ -503,6 +503,33 @@ final class EditorViewController: NSViewController {
         }
     }
 
+    // MARK: - Compare (File › Compare With)
+
+    @objc func compareWithDocument(_ sender: NSMenuItem) {
+        guard let other = sender.representedObject as? TextDocument else { return }
+        CompareWindowController.show(left: .document(document), right: .document(other))
+    }
+
+    /// Compares the current text with the file as last saved on disk.
+    @objc func compareWithSavedVersion(_ sender: Any?) {
+        guard let url = document.fileURL else { return }
+        CompareWindowController.show(left: .file(url), right: .document(document))
+    }
+
+    @objc func compareWithFile(_ sender: Any?) {
+        guard let window = view.window else { return }
+        let panel = NSOpenPanel()
+        panel.message = String(localized: "Choose a file to compare with “\(document.displayName)”.",
+                               comment: "Compare With: open panel message")
+        panel.prompt = String(localized: "Compare", comment: "Compare With: open panel button")
+        panel.directoryURL = document.fileURL?.deletingLastPathComponent()
+        panel.showsHiddenFiles = true
+        panel.beginSheetModal(for: window) { [weak self] response in
+            guard let self, response == .OK, let url = panel.url else { return }
+            CompareWindowController.show(left: .document(self.document), right: .file(url))
+        }
+    }
+
     // MARK: - Go to Line (Edit menu)
 
     @objc func goToLine(_ sender: Any?) {
@@ -1304,6 +1331,8 @@ extension EditorViewController: NSMenuItemValidation {
             menuItem.state = primaryPane.layoutManager.showsInvisibles ? .on : .off
         } else if menuItem.action == #selector(toggleMinimap(_:)) {
             menuItem.state = minimapView.isHidden ? .off : .on
+        } else if menuItem.action == #selector(compareWithSavedVersion(_:)) {
+            return document.fileURL != nil   // an untitled document has no saved version
         } else if menuItem.action == #selector(toggleFunctionList(_:)) {
             menuItem.state = functionListView.isHidden ? .off : .on
         } else if menuItem.action == #selector(splitEditorSideBySide(_:)) {

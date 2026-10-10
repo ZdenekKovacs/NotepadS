@@ -29,6 +29,28 @@
         }
       }
     },
+    "%@ ↔ %@" : {
+      "comment" : "Compare window title: the two names",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ ↔ %2$@"
+          }
+        }
+      }
+    },
+    "%lld differences: %lld lines changed, %lld removed, %lld added" : {
+      "comment" : "Compare summary; removed = only on the left, added = only on the right",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld differences: %2$lld lines changed, %3$lld removed, %4$lld added"
+          }
+        }
+      }
+    },
     "%lld matches in %lld files (%lld searched)." : {
       "comment" : "Find in Files status",
       "localizations" : {
@@ -94,6 +116,9 @@
     "Choose" : {
       "comment" : "Find in Files: folder panel button"
     },
+    "Choose a file to compare with “%@”." : {
+      "comment" : "Compare With: open panel message"
+    },
     "Choose the folder to search." : {
       "comment" : "Find in Files: folder panel message"
     },
@@ -108,6 +133,15 @@
     },
     "Comments and Strings" : {
       "comment" : "Languages: section"
+    },
+    "Compare" : {
+      "comment" : "Compare With: open panel button"
+    },
+    "Compare With" : {
+      "comment" : "File menu: submenu to compare documents"
+    },
+    "Compare again, for example after editing one of the documents." : {
+      "comment" : "Compare button tooltip"
     },
     "Convert Line Endings" : {
       "comment" : "Undo action name"
@@ -156,6 +190,17 @@
     },
     "Delete “%@”?" : {
       "comment" : "Languages: delete dialog title"
+    },
+    "Difference %lld of %lld" : {
+      "comment" : "Compare: position in the list of differences",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Difference %1$lld of %2$lld"
+          }
+        }
+      }
     },
     "Documents in this language will be colored as their extension says again." : {
       "comment" : "Languages: delete dialog"
@@ -254,7 +299,10 @@
       "comment" : "Status bar: insert mode, typing inserts characters"
     },
     "Ignore case" : {
-      "comment" : "Find in Files option\nFind panel option"
+      "comment" : "Compare option\nFind in Files option\nFind panel option"
+    },
+    "Ignore whitespace" : {
+      "comment" : "Compare option"
     },
     "Import or export languages" : {
       "comment" : "Languages button tooltip"
@@ -291,6 +339,9 @@
     },
     "Languages" : {
       "comment" : "Settings tab: user-defined languages"
+    },
+    "Last Saved Version" : {
+      "comment" : "File › Compare With: the file on disk"
     },
     "Line %lld, column %lld: %@" : {
       "comment" : "Transformation error with its position in the document",
@@ -375,6 +426,9 @@
     "Next" : {
       "comment" : "Find panel button"
     },
+    "Next difference (⌥⌘↓)" : {
+      "comment" : "Compare button tooltip"
+    },
     "No folder chosen" : {
       "comment" : "Find in Files: folder placeholder"
     },
@@ -402,6 +456,9 @@
     "Orange" : {
       "comment" : "Languages: color of a keyword group"
     },
+    "Other File…" : {
+      "comment" : "File › Compare With: choose a file"
+    },
     "Overwrite Mode" : {
       "comment" : "Edit menu item: typing replaces the characters after the caret"
     },
@@ -420,8 +477,14 @@
     "Previous" : {
       "comment" : "Find panel button"
     },
+    "Previous difference (⌥⌘↑)" : {
+      "comment" : "Compare button tooltip"
+    },
     "Purple, like keywords" : {
       "comment" : "Languages: color of a keyword group"
+    },
+    "Refresh" : {
+      "comment" : "Compare button: compare again"
     },
     "Regular expression" : {
       "comment" : "Find in Files option\nFind panel option"
@@ -584,6 +647,9 @@
     },
     "Text to find" : {
       "comment" : "Find in Files field"
+    },
+    "The texts are identical." : {
+      "comment" : "Compare summary"
     },
     "This text mixes line-break styles. New line breaks use %@. Choose “Convert to …” to unify them." : {
       "comment" : "Status bar tooltip; the style is LF, CRLF or CR"

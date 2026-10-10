@@ -164,6 +164,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Function list (View › Show Function List, ⌃⌘L)
 - [x] Find in Files (⇧⌘F)
 - [x] Code folding (gutter triangles, ⌥⌘← / ⌥⌘→)
+- [x] Compare two texts (File › Compare With)
 
 ### Later
 - [ ] iOS app on `NotepadSCore`

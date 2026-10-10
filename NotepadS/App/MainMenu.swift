@@ -69,6 +69,17 @@ enum MainMenu {
         }
         if let fileMenu = submenu(containing: "performClose:", in: mainMenu),
            let closeIndex = fileMenu.items.firstIndex(where: { $0.action == NSSelectorFromString("performClose:") }) {
+            // File › Compare With ▸ (filled each time it opens, with the other open documents).
+            let compareItem = NSMenuItem(title: String(localized: "Compare With", comment: "File menu: submenu to compare documents"),
+                                         action: nil, keyEquivalent: "")
+            let compareMenu = NSMenu(title: compareItem.title)
+            compareMenu.delegate = compareMenuFiller
+            compareItem.submenu = compareMenu
+            fileMenu.insertItem(compareItem, at: closeIndex)
+            fileMenu.insertItem(.separator(), at: closeIndex + 1)
+        }
+        if let fileMenu = submenu(containing: "performClose:", in: mainMenu),
+           let closeIndex = fileMenu.items.firstIndex(where: { $0.action == NSSelectorFromString("performClose:") }) {
             // No shortcut: AppKit already uses ⌥⌘W for "Close Other Tabs".
             fileMenu.insertItem(NSMenuItem(title: String(localized: "Close All", comment: "File menu item: close every document, then open a new empty one"),
                                            action: #selector(AppDelegate.closeAllDocuments(_:)), keyEquivalent: ""),
@@ -96,6 +107,30 @@ enum MainMenu {
     }
 
     // MARK: - Our items
+
+    /// Kept alive here: a menu's delegate is a weak reference.
+    private static let compareMenuFiller = CompareMenuFiller()
+
+    /// Fills File › Compare With when it opens: the other open documents, the saved version of
+    /// this one, and "Other File…". The items go to the front window's EditorViewController.
+    private final class CompareMenuFiller: NSObject, NSMenuDelegate {
+        func menuNeedsUpdate(_ menu: NSMenu) {
+            menu.removeAllItems()
+            let current = NSApp.mainWindow?.windowController?.document as? TextDocument
+            let others = NSDocumentController.shared.documents.compactMap { $0 as? TextDocument }.filter { $0 !== current }
+            for document in others.sorted(by: { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }) {
+                let item = NSMenuItem(title: document.displayName,
+                                      action: #selector(EditorViewController.compareWithDocument(_:)), keyEquivalent: "")
+                item.representedObject = document
+                menu.addItem(item)
+            }
+            if !others.isEmpty { menu.addItem(.separator()) }
+            menu.addItem(NSMenuItem(title: String(localized: "Last Saved Version", comment: "File › Compare With: the file on disk"),
+                                    action: #selector(EditorViewController.compareWithSavedVersion(_:)), keyEquivalent: ""))
+            menu.addItem(NSMenuItem(title: String(localized: "Other File…", comment: "File › Compare With: choose a file"),
+                                    action: #selector(EditorViewController.compareWithFile(_:)), keyEquivalent: ""))
+        }
+    }
 
     /// The Text menu: transformations from NotepadSCore, applied by EditorViewController to the
     /// selection or the whole document.
