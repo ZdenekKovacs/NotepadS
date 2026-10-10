@@ -27,6 +27,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SettingsWindowController.shared.showWindow(sender)
     }
 
+    /// "Define a Language…" in the status bar's language menu: Settings at the Languages tab.
+    @objc func showLanguageSettings(_ sender: Any?) {
+        SettingsWindowController.shared.show(.languages)
+    }
+
     /// File › Close All. (The app delegate is always in the responder chain of menu actions.)
     @objc func closeAllDocuments(_ sender: Any?) {
         (NSDocumentController.shared as? DocumentController)?.closeAllAndOpenNew()

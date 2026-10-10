@@ -1,27 +1,9 @@
 import AppKit
 import SwiftUI
 
-/// The Settings window's content: the Editor tab and the Languages tab.
-struct SettingsView: View {
-    /// The tab shown last, shown again next time.
-    @AppStorage("SettingsTab") private var tab = "editor"
-
-    var body: some View {
-        TabView(selection: $tab) {
-            EditorSettingsView()
-                .tabItem { Label(String(localized: "Editor", comment: "Settings tab"), systemImage: "textformat") }
-                .tag("editor")
-            LanguagesSettingsView()
-                .tabItem { Label(String(localized: "Languages", comment: "Settings tab: user-defined languages"),
-                                 systemImage: "chevron.left.forwardslash.chevron.right") }
-                .tag("languages")
-        }
-    }
-}
-
 /// Settings › Editor. Every control writes straight to UserDefaults (`@AppStorage`); open
 /// editors follow font and tab-width changes immediately.
-private struct EditorSettingsView: View {
+struct EditorSettingsView: View {
     @AppStorage(EditorDefaults.Key.fontName) private var fontName = ""
     @AppStorage(EditorDefaults.Key.fontSize) private var fontSize = Double(EditorDefaults.defaultFontSize)
     @AppStorage(EditorDefaults.Key.tabWidth) private var tabWidth = 4
@@ -80,7 +62,6 @@ private struct EditorSettingsView: View {
         .formStyle(.grouped)
         .frame(width: 440)
         .fixedSize()
-        .frame(maxWidth: .infinity)   // centered when the Languages tab makes the window wider
     }
 
     private static func loadMonospacedFonts() -> [(name: String, displayName: String)] {

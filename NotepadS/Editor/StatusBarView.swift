@@ -208,6 +208,10 @@ final class StatusBarView: NSView {
             languageMenu.addItem(groupItem)
             languageGroupItems.append(groupItem)
         }
+        languageMenu.addItem(.separator())
+        // Nil target: the action goes up the responder chain to the app delegate.
+        languageMenu.addItem(NSMenuItem(title: String(localized: "Define Your Own Language…", comment: "Language menu: opens Settings › Languages"),
+                                        action: #selector(AppDelegate.showLanguageSettings(_:)), keyEquivalent: ""))
         configure(languageButton, menu: languageMenu, toolTip: "")
     }
 

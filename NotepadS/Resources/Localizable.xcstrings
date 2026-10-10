@@ -108,6 +108,9 @@
     "Decrease Font Size" : {
       "comment" : "View menu item"
     },
+    "Define Your Own Language…" : {
+      "comment" : "Language menu: opens Settings › Languages"
+    },
     "Delete" : {
       "comment" : "Languages: delete dialog button\nUndo action name"
     },
@@ -394,9 +397,6 @@
     },
     "Set Extension" : {
       "comment" : "Save panel: pull-down title; lists languages with syntax highlighting"
-    },
-    "Settings" : {
-      "comment" : "Settings window title"
     },
     "Settings…" : {
       "comment" : "App menu item"
