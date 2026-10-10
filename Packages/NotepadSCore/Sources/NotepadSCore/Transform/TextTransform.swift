@@ -49,6 +49,8 @@ public struct TransformError: Error, Equatable, LocalizedError {
 public enum TextTransform: String, CaseIterable, Sendable {
     case formatJSON
     case minifyJSON
+    case formatXML
+    case minifyXML
     case base64Encode
     case base64Decode
     case urlEncode
@@ -86,6 +88,10 @@ public enum TextTransform: String, CaseIterable, Sendable {
             return String(localized: "Format JSON", bundle: .module, comment: "Text menu item: pretty-print JSON")
         case .minifyJSON:
             return String(localized: "Minify JSON", bundle: .module, comment: "Text menu item: remove whitespace from JSON")
+        case .formatXML:
+            return String(localized: "Format XML", bundle: .module, comment: "Text menu item: indent XML")
+        case .minifyXML:
+            return String(localized: "Minify XML", bundle: .module, comment: "Text menu item: remove whitespace between XML tags")
         case .base64Encode:
             return String(localized: "Base64 Encode", bundle: .module, comment: "Text menu item")
         case .base64Decode:
@@ -160,7 +166,7 @@ public enum TextTransform: String, CaseIterable, Sendable {
              .joinLines, .reverseLines, .shuffleLines, .removeConsecutiveDuplicateLines, .removeEmptyLines,
              .trimLeadingWhitespace, .trimWhitespace, .tabsToSpaces, .leadingSpacesToTabs, .lineBreaksToSpaces:
             return true
-        case .formatJSON, .minifyJSON, .base64Encode, .base64Decode, .urlEncode, .urlDecode,
+        case .formatJSON, .minifyJSON, .formatXML, .minifyXML, .base64Encode, .base64Decode, .urlEncode, .urlDecode,
              .uppercase, .lowercase, .titleCase, .camelCase, .snakeCase, .kebabCase,
              .titleCaseKeepingOtherLetters, .sentenceCase, .sentenceCaseKeepingOtherLetters, .invertCase, .randomCase:
             return false
@@ -174,6 +180,10 @@ public enum TextTransform: String, CaseIterable, Sendable {
             return try JSONFormatter.format(text, indent: context.indentation, lineEnding: context.lineEnding)
         case .minifyJSON:
             return try JSONFormatter.minify(text, lineEnding: context.lineEnding)
+        case .formatXML:
+            return try XMLFormatter.format(text, indent: context.indentation, lineEnding: context.lineEnding)
+        case .minifyXML:
+            return try XMLFormatter.minify(text)
         case .base64Encode:
             return Codecs.base64Encode(text)
         case .base64Decode:

@@ -166,6 +166,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Code folding (gutter triangles, ⌥⌘← / ⌥⌘→)
 - [x] Compare two texts (File › Compare With)
 - [x] Bookmarks (Edit › Bookmarks, click a line number)
+- [x] Format / Minify XML
 
 ### Later
 - [ ] iOS app on `NotepadSCore`

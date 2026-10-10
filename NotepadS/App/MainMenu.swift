@@ -140,7 +140,7 @@ enum MainMenu {
     private static func makeTextMenu() -> NSMenu {
         let menu = NSMenu(title: String(localized: "Text", comment: "Menu bar: text transformations"))
         let groups: [[TextTransform]] = [
-            [.formatJSON, .minifyJSON],
+            [.formatJSON, .minifyJSON, .formatXML, .minifyXML],
             [.base64Encode, .base64Decode, .urlEncode, .urlDecode],
             [.uppercase, .lowercase, .titleCase, .titleCaseKeepingOtherLetters, .sentenceCase,
              .sentenceCaseKeepingOtherLetters, .invertCase, .randomCase],
