@@ -37,6 +37,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         (NSDocumentController.shared as? DocumentController)?.closeAllAndOpenNew()
     }
 
+    /// Edit › Find › Find in Files… (⇧⌘F). A selection in the front document becomes the search
+    /// text, and its folder is where "Choose…" starts.
+    @objc func showFindInFiles(_ sender: Any?) {
+        let editor = NSApp.mainWindow?.contentViewController as? EditorViewController
+        FindInFilesWindowController.shared.show(selectedText: editor?.selectedTextForSearch,
+                                                suggestedFolder: editor?.document.fileURL?.deletingLastPathComponent())
+    }
+
     /// Edit › ASCII Character Panel
     @objc func showCharacterPanel(_ sender: Any?) {
         CharacterPanelController.shared.showWindow(sender)

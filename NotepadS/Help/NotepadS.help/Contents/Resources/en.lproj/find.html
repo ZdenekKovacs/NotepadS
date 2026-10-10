@@ -23,5 +23,8 @@
 </ul>
 <p>In the replacement, <code>$1</code>, <code>$2</code> … insert the groups in parentheses, <code>\n</code> a line break and <code>\t</code> a tab. <b>Replace All</b> is a single Undo step. Press Return for <b>Next</b> and Esc to close the panel.</p>
 <p class="note">Example: find <code>(\w+)@(\w+)</code> and replace with <code>$2: $1</code> turns <code>ann@example</code> into <code>example: ann</code>.</p>
+<h2>Find in Files</h2>
+<p><b>Edit › Find › Find in Files…</b> (<kbd>⇧⌘F</kbd>) searches every file in a folder. Click <b>Choose…</b> to pick the folder (macOS lets NotepadS read a folder only after you choose it; choose it again after restarting NotepadS). In <b>Files</b>, limit the search to some files, for example <code>*.swift *.py</code>; a pattern starting with <code>!</code> skips matching files and folders, for example <code>!*.min.js !node_modules</code>. Leave it empty to search all files.</p>
+<p>Results are listed per file, with the line number and the match highlighted. Click a result to open the file at that line, or double-click a file to open it at its first match. Binary files and files over 50 MB are skipped, and each file’s encoding is detected as when you open it. The search stops after 10,000 matches; <b>Stop</b> ends it earlier.</p>
 </body>
 </html>

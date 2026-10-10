@@ -162,6 +162,7 @@ log stream --predicate 'process == "NotepadS"' --level error   # runtime errors 
 - [x] Split editor (two panes on one document)
 - [x] Settings › Restore Defaults; user-defined languages (Settings › Languages)
 - [x] Function list (View › Show Function List, ⌃⌘L)
+- [x] Find in Files (⇧⌘F)
 
 ### Later
 - [ ] iOS app on `NotepadSCore`

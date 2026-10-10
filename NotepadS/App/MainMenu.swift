@@ -56,6 +56,10 @@ enum MainMenu {
                                   action: #selector(EditorViewController.showRegexFindPanel(_:)), keyEquivalent: "f")
             item.keyEquivalentModifierMask = [.shift, .option, .command]
             findMenu.insertItem(item, at: 2)   // after Find… and Find and Replace…
+            let filesItem = NSMenuItem(title: String(localized: "Find in Files…", comment: "Edit › Find menu item: search a folder"),
+                                       action: #selector(AppDelegate.showFindInFiles(_:)), keyEquivalent: "f")
+            filesItem.keyEquivalentModifierMask = [.shift, .command]
+            findMenu.insertItem(filesItem, at: 3)
         }
         if let editMenu = submenu(containing: "selectAll:", in: mainMenu),
            let editItem = mainMenu.items.first(where: { $0.submenu === editMenu }) {

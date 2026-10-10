@@ -381,6 +381,20 @@ final class EditorViewController: NSViewController {
         }
     }
 
+    /// Find in Files: shows a match in this document. Line and column come from the search; the
+    /// document may have changed since, so both are kept inside the current text.
+    func reveal(line: Int, rangeInLine: NSRange) {
+        let line = min(line, lineIndex.lineCount - 1)
+        let content = lineIndex.contentRange(ofLine: line)
+        let location = content.location + min(rangeInLine.location, content.length)
+        let range = NSRange(location: location, length: min(rangeInLine.length, NSMaxRange(content) - location))
+        view.window?.makeKeyAndOrderFront(nil)
+        textView.setSelectedRange(range)
+        textView.centerSelectionInVisibleArea(nil)
+        view.window?.makeFirstResponder(textView)
+        textView.showFindIndicator(for: range)
+    }
+
     /// Clicking a symbol in the function list: select its name, scroll it to the middle, flash it.
     private func jump(to symbol: CodeSymbol) {
         // The list may be a moment older than the text; stay inside it.
@@ -683,6 +697,12 @@ final class EditorViewController: NSViewController {
         textView.insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
         textView.breakUndoCoalescing()
         view.window?.makeKeyAndOrderFront(nil)   // keep typing in the document
+    }
+
+    /// The selected text, for a search window to start with; nil without a selection.
+    var selectedTextForSearch: String? {
+        let selection = textView.selectedRange()
+        return selection.length > 0 ? document.textStorage.mutableString.substring(with: selection) : nil
     }
 
     /// The document's text, without copying it.
